@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 
 ROOT_DIR=`realpath $(dirname $0)/..`
 
@@ -31,9 +32,9 @@ function build_beldibench {
 
 function build {
     build_boki
-    build_queuebench
-    build_retwisbench
-    build_beldibench
+    # build_queuebench
+    # build_retwisbench
+    # build_beldibench
 }
 
 function push {

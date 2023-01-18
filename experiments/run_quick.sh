@@ -3,16 +3,16 @@ ROOT_DIR=`realpath $(dirname $0)/..`
 
 # Message queue workload for BokiQueue and Pulsar
 RUN_QUEUE_BOKI=y
-RUN_QUEUE_PUSLAR=y
-RUN_QUEUE_SQS=y
+RUN_QUEUE_PUSLAR=
+RUN_QUEUE_SQS=
 
 # Retwis workload for BokiStore and MongoDB
-RUN_STORE_BOKI=y
-RUN_STORE_MONGO=y
+RUN_STORE_BOKI=
+RUN_STORE_MONGO=
 
 # Workflow workload for BokiFlow and Beldi
-RUN_WORKFLOW_BOKI=y
-RUN_WORKFLOW_BELDI=y
+RUN_WORKFLOW_BOKI=
+RUN_WORKFLOW_BELDI=
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
 

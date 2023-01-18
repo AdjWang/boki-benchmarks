@@ -1,31 +1,25 @@
 {
     "machines": {
-        "bokiexp-gateway": { "type": "c5d.2xlarge", "role": "manager" },
-        "bokiexp-sequencer-1": { "type": "c5d.2xlarge", "role": "worker", "labels": ["sequencer_node=true"] },
-        "bokiexp-sequencer-2": { "type": "c5d.2xlarge", "role": "worker", "labels": ["sequencer_node=true"] },
-        "bokiexp-sequencer-3": { "type": "c5d.2xlarge", "role": "worker", "labels": ["sequencer_node=true"] },
-        "bokiexp-engine-1": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-2": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-3": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-4": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-5": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-6": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-7": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-8": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-storage-1": { "type": "c5d.2xlarge", "role": "worker", "mount_instance_storage": "nvme1n1", "labels": ["storage_node=true"] },
-        "bokiexp-storage-2": { "type": "c5d.2xlarge", "role": "worker", "mount_instance_storage": "nvme1n1", "labels": ["storage_node=true"] },
-        "bokiexp-storage-3": { "type": "c5d.2xlarge", "role": "worker", "mount_instance_storage": "nvme1n1", "labels": ["storage_node=true"] },
-        "bokiexp-client": { "type": "c5d.xlarge", "role": "client" }
+        "bokiexp-gateway": { "type": "c5d.2xlarge", "role": "manager",
+                             "machine-info": { "instance_id": "bokiexp-gateway", "dns": "adjwang@10.0.9.63", "ip": "10.0.9.63" } },
+        "bokiexp-sequencer-1": { "type": "c5d.2xlarge", "role": "worker", "labels": ["sequencer_node=true"],
+                                 "machine-info": { "instance_id": "bokiexp-sequencer-1", "dns": "adjwang@10.0.9.64", "ip": "10.0.9.64" } },
+        "bokiexp-engine-1": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ],
+                              "machine-info": { "instance_id": "bokiexp-engine-1", "dns": "adjwang@10.0.9.65", "ip": "10.0.9.65" } },
+        "bokiexp-storage-1": { "type": "c5d.2xlarge", "role": "worker", "mount_instance_storage": "nvme0n1", "labels": ["storage_node=true"],
+                               "machine-info": { "instance_id": "bokiexp-storage-1", "dns": "adjwang@10.0.9.69", "ip": "10.0.9.69" } },
+        "bokiexp-client": { "type": "c5d.xlarge", "role": "client",
+                            "machine-info": { "instance_id": "bokiexp-client", "dns": "adjwang@10.0.9.66", "ip": "10.0.9.66" } }
     },
     "services": {
         "zookeeper": { "placement": "bokiexp-gateway" },
         "zookeeper-setup": { "placement": "bokiexp-gateway" },
         "boki-controller": { "placement": "bokiexp-gateway" },
         "boki-gateway": { "placement": "bokiexp-gateway" },
-        "boki-storage": { "placement_label": "storage_node", "replicas": 3 },
-        "boki-sequencer": { "placement_label": "sequencer_node", "replicas": 3 },
-        "boki-engine": { "placement_label": "engine_node", "replicas": 8 },
-        "consumer-fn": { "placement_label": "engine_node", "replicas": 8 },
-        "producer-fn": { "placement_label": "engine_node", "replicas": 8 }
+        "boki-storage": { "placement_label": "storage_node", "replicas": 1 },
+        "boki-sequencer": { "placement_label": "sequencer_node", "replicas": 1 },
+        "boki-engine": { "placement_label": "engine_node", "replicas": 1 },
+        "consumer-fn": { "placement_label": "engine_node", "replicas": 1 },
+        "producer-fn": { "placement_label": "engine_node", "replicas": 1 }
     }
 }

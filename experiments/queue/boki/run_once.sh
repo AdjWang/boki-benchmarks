@@ -1,4 +1,6 @@
 #!/bin/bash
+set -uxo pipefail
+
 BASE_DIR=`realpath $(dirname $0)`
 ROOT_DIR=`realpath $BASE_DIR/../../..`
 
@@ -52,7 +54,7 @@ ssh -q $MANAGER_HOST -- docker stack deploy \
 sleep 60
 
 for HOST in $ALL_ENGINE_HOSTS; do
-    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service faas-engine --machine-host $HOST`
+    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
     echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
 done
 
@@ -60,7 +62,9 @@ QUEUE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
 
 sleep 10
 
-rm -rf $EXP_DIR
+if [[ -d $EXP_DIR ]]; then
+    rm -rf $EXP_DIR
+fi
 mkdir -p $EXP_DIR
 
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
@@ -71,11 +75,11 @@ ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     cp /queuebench-bin/benchmark /tmp/benchmark
 
 ssh -q $CLIENT_HOST -- /tmp/benchmark \
-    --faas_gateway=$ENTRY_HOST:8080 --fn_prefix=slib \
+    --faas_gateway=$ENTRY_HOST:9000 --fn_prefix=slib \
     --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
     --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
     --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
     --consumer_fix_shard=true \
-    --payload_size=1024 --duration=180 >$EXP_DIR/results.log
+    --payload_size=16 --duration=60 >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
