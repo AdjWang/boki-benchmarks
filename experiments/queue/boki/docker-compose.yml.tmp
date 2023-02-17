@@ -24,6 +24,40 @@ services:
       start_period: 5s
       timeout: 10s
 
+  boki-engine:
+    image: zjia/boki:sosp-ae
+    # hostname: faas-engine-{{.Task.Slot}}
+    hostname: faas-engine-1
+    entrypoint:
+      - /boki/engine
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
+      - --zookeeper_host=zookeeper:2181
+      - --listen_iface=eth0
+      - --root_path_for_ipc=/tmp/boki/ipc
+      - --func_config_file=/tmp/boki/func_config.json
+      - --num_io_workers=4
+      - --instant_rps_p_norm=0.8
+      - --io_uring_entries=64
+      - --io_uring_fd_slots=128
+      - --enable_shared_log
+      - --slog_engine_enable_cache
+      - --slog_engine_cache_cap_mb=512
+      - --slog_engine_propagate_auxdata
+      - --v=1
+    depends_on:
+      zookeeper-setup:
+        condition: service_healthy
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+      - /sys/fs/cgroup:/tmp/root_cgroupfs
+    environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
+      - FAAS_NODE_ID=1
+      - FAAS_CGROUP_FS_ROOT=/tmp/root_cgroupfs
+    ulimits:
+      memlock: -1
+    # restart: always
+
   boki-controller:
     image: zjia/boki:sosp-ae
     entrypoint:
@@ -45,7 +79,7 @@ services:
       - 9000:9000
     entrypoint:
       - /boki/gateway
-      - --tracer_exporter_endpoint={tracer_endpoint}
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --http_port=9000
@@ -65,44 +99,13 @@ services:
       memlock: -1
     # restart: always
 
-  boki-engine-1:
-    image: zjia/boki:sosp-ae
-    hostname: faas-engine-1
-    entrypoint:
-      - /boki/engine
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
-      - --zookeeper_host=zookeeper:2181
-      - --listen_iface=eth0
-      - --root_path_for_ipc=/tmp/boki/ipc
-      - --func_config_file=/tmp/boki/func_config.json
-      - --num_io_workers=4
-      - --instant_rps_p_norm=0.8
-      - --io_uring_entries=64
-      - --io_uring_fd_slots=128
-      - --enable_shared_log
-      - --slog_engine_enable_cache
-      - --slog_engine_cache_cap_mb=512
-      - --slog_engine_propagate_auxdata
-      - --v=1
-    depends_on:
-      zookeeper-setup:
-        condition: service_healthy
-    volumes:
-      - /mnt/inmem/boki:/tmp/boki
-      - /sys/fs/cgroup:/tmp/root_cgroupfs
-    environment:
-      - FAAS_NODE_ID=1
-      - FAAS_CGROUP_FS_ROOT=/tmp/root_cgroupfs
-    ulimits:
-      memlock: -1
-    # restart: always
-
   boki-storage-1:
     image: zjia/boki:sosp-ae
+    # hostname: faas-storage-{{.Task.Slot}}
     hostname: faas-storage-1
     entrypoint:
       - /boki/storage
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -120,6 +123,7 @@ services:
     volumes:
       - /mnt/storage1:/tmp/storage
     environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=1
     ulimits:
       memlock: -1
@@ -127,10 +131,11 @@ services:
 
   boki-storage-2:
     image: zjia/boki:sosp-ae
+    # hostname: faas-storage-{{.Task.Slot}}
     hostname: faas-storage-2
     entrypoint:
       - /boki/storage
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -146,8 +151,9 @@ services:
       zookeeper-setup:
         condition: service_healthy
     volumes:
-      - /mnt/storage1:/tmp/storage
+      - /mnt/storage2:/tmp/storage
     environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=2
     ulimits:
       memlock: -1
@@ -155,10 +161,11 @@ services:
 
   boki-storage-3:
     image: zjia/boki:sosp-ae
+    # hostname: faas-storage-{{.Task.Slot}}
     hostname: faas-storage-3
     entrypoint:
       - /boki/storage
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -174,8 +181,9 @@ services:
       zookeeper-setup:
         condition: service_healthy
     volumes:
-      - /mnt/storage1:/tmp/storage
+      - /mnt/storage3:/tmp/storage
     environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=3
     ulimits:
       memlock: -1
@@ -183,10 +191,11 @@ services:
 
   boki-sequencer-1:
     image: zjia/boki:sosp-ae
+    # hostname: faas-sequencer-{{.Task.Slot}}
     hostname: faas-sequencer-1
     entrypoint:
       - /boki/sequencer
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -198,6 +207,7 @@ services:
       zookeeper-setup:
         condition: service_healthy
     environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=1
     ulimits:
       memlock: -1
@@ -205,10 +215,11 @@ services:
 
   boki-sequencer-2:
     image: zjia/boki:sosp-ae
+    # hostname: faas-sequencer-{{.Task.Slot}}
     hostname: faas-sequencer-2
     entrypoint:
       - /boki/sequencer
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -220,6 +231,7 @@ services:
       zookeeper-setup:
         condition: service_healthy
     environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=2
     ulimits:
       memlock: -1
@@ -227,10 +239,11 @@ services:
 
   boki-sequencer-3:
     image: zjia/boki:sosp-ae
+    # hostname: faas-sequencer-{{.Task.Slot}}
     hostname: faas-sequencer-3
     entrypoint:
       - /boki/sequencer
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -242,6 +255,7 @@ services:
       zookeeper-setup:
         condition: service_healthy
     environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=3
     ulimits:
       memlock: -1
@@ -256,7 +270,7 @@ services:
       - FAAS_GO_MAX_PROC_FACTOR=2
       - GOGC=200
     depends_on:
-      - boki-engine-1
+      - boki-engine
     # restart: always
 
   producer-fn:
@@ -268,7 +282,7 @@ services:
       - FAAS_GO_MAX_PROC_FACTOR=2
       - GOGC=200
     depends_on:
-      - boki-engine-1
+      - boki-engine
     # restart: always
 
   goexample-fn:
@@ -280,6 +294,5 @@ services:
       - FAAS_GO_MAX_PROC_FACTOR=2
       - GOGC=200
     depends_on:
-      - boki-engine-1
+      - boki-engine
     # restart: always
-
