@@ -3,6 +3,13 @@ set -uxo pipefail
 
 ROOT_DIR=`realpath $(dirname $0)/..`
 
+# remove old files and folders
+rm -rf /tmp/boki
+rm -rf /tmp/zk_setup.sh
+rm -rf /tmp/zk_health_check
+rm -rf /tmp/nightcore_config.json
+rm -rf /tmp/run_launcher
+
 ln -s $ROOT_DIR/boki /tmp
 cp $ROOT_DIR/scripts/zk_setup.sh /tmp
 cp $ROOT_DIR/scripts/zk_health_check/zk_health_check /tmp
@@ -16,4 +23,6 @@ rm -rf /mnt/inmem/boki/output
 mkdir /mnt/inmem/boki/output
 
 # delete old RocksDB datas
-rm -rf /mnt/storage/logdata
+rm -rf /mnt/storage1/logdata
+rm -rf /mnt/storage2/logdata
+rm -rf /mnt/storage3/logdata

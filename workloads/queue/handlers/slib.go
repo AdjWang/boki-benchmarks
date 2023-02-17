@@ -87,12 +87,14 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 			Message: fmt.Sprintf("NewQueue failed: %v", err),
 		}, nil
 	}
-	latencies := make([]int, 0, 128)
+	latencies := make([]int, 0, 128) // record push duration
 	startTime := time.Now()
 	for time.Since(startTime) < duration {
+		// prepare payload
 		payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
 		pushStart := time.Now()
 		payload = utils.FormatTime(pushStart) + payload
+		// push to queue
 		err := q.Push(payload)
 		elapsed := time.Since(pushStart)
 		if err != nil {
@@ -102,8 +104,10 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 				Duration: time.Since(startTime).Seconds(),
 			}, nil
 		}
+		// record push duration
 		latencies = append(latencies, int(elapsed.Microseconds()))
-		time.Sleep(pushStart.Add(interval).Sub(time.Now()))
+		// sleep for `interval`
+		time.Sleep(time.Until(pushStart.Add(interval)))
 	}
 	return &common.FnOutput{
 		Success:   true,

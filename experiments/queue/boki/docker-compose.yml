@@ -26,9 +26,11 @@ services:
 
   boki-engine:
     image: zjia/boki:sosp-ae
-    hostname: faas-engine-{{.Task.Slot}}
+    # hostname: faas-engine-{{.Task.Slot}}
+    hostname: faas-engine-1
     entrypoint:
       - /boki/engine
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --root_path_for_ipc=/tmp/boki/ipc
@@ -41,7 +43,7 @@ services:
       - --slog_engine_enable_cache
       - --slog_engine_cache_cap_mb=512
       - --slog_engine_propagate_auxdata
-      - --v=5
+      - --v=1
     depends_on:
       zookeeper-setup:
         condition: service_healthy
@@ -61,8 +63,8 @@ services:
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
-      - --metalog_replicas=1
-      - --userlog_replicas=1
+      - --metalog_replicas=3
+      - --userlog_replicas=3
       - --index_replicas=1
       - --v=1
     depends_on:
@@ -77,6 +79,7 @@ services:
       - 9000:9000
     entrypoint:
       - /boki/gateway
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --http_port=9000
@@ -96,11 +99,13 @@ services:
       memlock: -1
     # restart: always
 
-  boki-storage:
+  boki-storage-1:
     image: zjia/boki:sosp-ae
-    hostname: faas-storage-{{.Task.Slot}}
+    # hostname: faas-storage-{{.Task.Slot}}
+    hostname: faas-storage-1
     entrypoint:
       - /boki/storage
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -116,7 +121,7 @@ services:
       zookeeper-setup:
         condition: service_healthy
     volumes:
-      - /mnt/storage:/tmp/storage
+      - /mnt/storage1:/tmp/storage
     environment:
       # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=1
@@ -124,11 +129,73 @@ services:
       memlock: -1
     # restart: always
 
-  boki-sequencer:
+  boki-storage-2:
     image: zjia/boki:sosp-ae
-    hostname: faas-sequencer-{{.Task.Slot}}
+    # hostname: faas-storage-{{.Task.Slot}}
+    hostname: faas-storage-2
+    entrypoint:
+      - /boki/storage
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
+      - --zookeeper_host=zookeeper:2181
+      - --listen_iface=eth0
+      - --db_path=/tmp/storage/logdata
+      - --num_io_workers=2
+      - --io_uring_entries=64
+      - --io_uring_fd_slots=128
+      - --slog_local_cut_interval_us=300
+      - --slog_storage_bgthread_interval_ms=1
+      - --slog_storage_backend=rocksdb
+      - --slog_storage_cache_cap_mb=512
+      - --v=1
+    depends_on:
+      zookeeper-setup:
+        condition: service_healthy
+    volumes:
+      - /mnt/storage2:/tmp/storage
+    environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
+      - FAAS_NODE_ID=2
+    ulimits:
+      memlock: -1
+    # restart: always
+
+  boki-storage-3:
+    image: zjia/boki:sosp-ae
+    # hostname: faas-storage-{{.Task.Slot}}
+    hostname: faas-storage-3
+    entrypoint:
+      - /boki/storage
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
+      - --zookeeper_host=zookeeper:2181
+      - --listen_iface=eth0
+      - --db_path=/tmp/storage/logdata
+      - --num_io_workers=2
+      - --io_uring_entries=64
+      - --io_uring_fd_slots=128
+      - --slog_local_cut_interval_us=300
+      - --slog_storage_bgthread_interval_ms=1
+      - --slog_storage_backend=rocksdb
+      - --slog_storage_cache_cap_mb=512
+      - --v=1
+    depends_on:
+      zookeeper-setup:
+        condition: service_healthy
+    volumes:
+      - /mnt/storage3:/tmp/storage
+    environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
+      - FAAS_NODE_ID=3
+    ulimits:
+      memlock: -1
+    # restart: always
+
+  boki-sequencer-1:
+    image: zjia/boki:sosp-ae
+    # hostname: faas-sequencer-{{.Task.Slot}}
+    hostname: faas-sequencer-1
     entrypoint:
       - /boki/sequencer
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -142,6 +209,54 @@ services:
     environment:
       # - FAAS_NODE_ID={{.Task.Slot}}
       - FAAS_NODE_ID=1
+    ulimits:
+      memlock: -1
+    # restart: always
+
+  boki-sequencer-2:
+    image: zjia/boki:sosp-ae
+    # hostname: faas-sequencer-{{.Task.Slot}}
+    hostname: faas-sequencer-2
+    entrypoint:
+      - /boki/sequencer
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
+      - --zookeeper_host=zookeeper:2181
+      - --listen_iface=eth0
+      - --num_io_workers=2
+      - --io_uring_entries=64
+      - --io_uring_fd_slots=128
+      - --slog_global_cut_interval_us=300
+      - --v=1
+    depends_on:
+      zookeeper-setup:
+        condition: service_healthy
+    environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
+      - FAAS_NODE_ID=2
+    ulimits:
+      memlock: -1
+    # restart: always
+
+  boki-sequencer-3:
+    image: zjia/boki:sosp-ae
+    # hostname: faas-sequencer-{{.Task.Slot}}
+    hostname: faas-sequencer-3
+    entrypoint:
+      - /boki/sequencer
+      - --tracer_exporter_endpoint=http://10.0.9.48:9411/api/v2/spans
+      - --zookeeper_host=zookeeper:2181
+      - --listen_iface=eth0
+      - --num_io_workers=2
+      - --io_uring_entries=64
+      - --io_uring_fd_slots=128
+      - --slog_global_cut_interval_us=300
+      - --v=1
+    depends_on:
+      zookeeper-setup:
+        condition: service_healthy
+    environment:
+      # - FAAS_NODE_ID={{.Task.Slot}}
+      - FAAS_NODE_ID=3
     ulimits:
       memlock: -1
     # restart: always
@@ -161,6 +276,18 @@ services:
   producer-fn:
     image: zjia/boki-queuebench:sosp-ae
     entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "1"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    # restart: always
+
+  goexample-fn:
+    image: zjia/boki-goexample:sosp-ae
+    entrypoint: ["/tmp/boki/run_launcher", "/goexample-bin/main", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:

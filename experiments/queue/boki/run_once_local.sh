@@ -20,7 +20,9 @@ HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
 # ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
 
 ENTRY_HOST="0.0.0.0"
-QUEUE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+# TODO: strange bug: head not generating EOF and just stucks. Only on my vm, tested ok in WSL.
+# QUEUE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+QUEUE_PREFIX=$(echo $RANDOM | md5sum | head -c8)
 
 if [[ -d $EXP_DIR ]]; then
     rm -rf $EXP_DIR
@@ -33,6 +35,6 @@ $ROOT_DIR/workloads/queue/bin/benchmark \
     --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
     --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
     --consumer_fix_shard=true \
-    --payload_size=16 --duration=60 >$EXP_DIR/results.log
+    --payload_size=1024 --duration=10 >$EXP_DIR/results.log
 
 # $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
