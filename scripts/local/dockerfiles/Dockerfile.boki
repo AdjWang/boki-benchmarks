@@ -16,7 +16,8 @@ FROM ubuntu:focal as release
 RUN apt update && \
     apt install -y curl
 
-COPY . /src/boki
+COPY ./worker /src/boki/worker
+COPY ./slib /src/boki/slib
 
 COPY ./bin/release/gateway    /boki/gateway
 COPY ./bin/release/engine     /boki/engine

@@ -41,11 +41,17 @@ func (h *fooHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
 	// 	return nil, err
 	// }
 	// output := fmt.Sprintf("From function Bar: %s", string(barOutput))
-	output := fmt.Sprintf("[Inside Foo] %s, World, count: %d\n", string(input), count)
+
+	// output := fmt.Sprintf("[Inside Foo] %s, World, count: %d\n", string(input), count)
 	count++
-	if count == 5 {
-		panic("manually err")
-	}
+	// if count == 5 {
+	// 	panic("manually err")
+	// }
+
+	fmt.Println("about to append to shared log")
+	seqNum, err := h.env.SharedLogAppend(context.Background(), []uint64{233}, []byte{byte(count)})
+	output := fmt.Sprintf("shared log append count: %v, seqNum: %v, err: %v\n", byte(count), seqNum, err)
+
 	return []byte(output), nil
 }
 

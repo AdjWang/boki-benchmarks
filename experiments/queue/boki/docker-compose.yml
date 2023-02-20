@@ -3,6 +3,8 @@ services:
   zookeeper:
     image: zookeeper:3.6.2
     hostname: zookeeper
+    networks:
+      - boki-net
     ports:
       - 2181:2181
     # restart: always
@@ -26,12 +28,14 @@ services:
 
   boki-controller:
     image: zjia/boki:sosp-ae
+    networks:
+      - boki-net
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
       - --metalog_replicas=3
       - --userlog_replicas=3
-      - --index_replicas=1
+      - --index_replicas=3
       - --v=1
     depends_on:
       zookeeper-setup:
@@ -41,11 +45,13 @@ services:
   boki-gateway:
     image: zjia/boki:sosp-ae
     hostname: faas-gateway
+    networks:
+      - boki-net
     ports:
       - 9000:9000
     entrypoint:
       - /boki/gateway
-      - --tracer_exporter_endpoint={tracer_endpoint}
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --http_port=9000
@@ -68,9 +74,11 @@ services:
   boki-engine-1:
     image: zjia/boki:sosp-ae
     hostname: faas-engine-1
+    networks:
+      - boki-net
     entrypoint:
       - /boki/engine
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --root_path_for_ipc=/tmp/boki/ipc
@@ -88,7 +96,7 @@ services:
       zookeeper-setup:
         condition: service_healthy
     volumes:
-      - /mnt/inmem/boki:/tmp/boki
+      - /mnt/inmem1/boki:/tmp/boki
       - /sys/fs/cgroup:/tmp/root_cgroupfs
     environment:
       - FAAS_NODE_ID=1
@@ -97,12 +105,82 @@ services:
       memlock: -1
     # restart: always
 
+  boki-engine-2:
+    image: zjia/boki:sosp-ae
+    hostname: faas-engine-2
+    networks:
+      - boki-net
+    entrypoint:
+      - /boki/engine
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
+      - --zookeeper_host=zookeeper:2181
+      - --listen_iface=eth0
+      - --root_path_for_ipc=/tmp/boki/ipc
+      - --func_config_file=/tmp/boki/func_config.json
+      - --num_io_workers=4
+      - --instant_rps_p_norm=0.8
+      - --io_uring_entries=64
+      - --io_uring_fd_slots=128
+      - --enable_shared_log
+      - --slog_engine_enable_cache
+      - --slog_engine_cache_cap_mb=512
+      - --slog_engine_propagate_auxdata
+      - --v=1
+    depends_on:
+      zookeeper-setup:
+        condition: service_healthy
+    volumes:
+      - /mnt/inmem2/boki:/tmp/boki
+      - /sys/fs/cgroup:/tmp/root_cgroupfs
+    environment:
+      - FAAS_NODE_ID=2
+      - FAAS_CGROUP_FS_ROOT=/tmp/root_cgroupfs
+    ulimits:
+      memlock: -1
+    # restart: always
+
+  boki-engine-3:
+    image: zjia/boki:sosp-ae
+    hostname: faas-engine-3
+    networks:
+      - boki-net
+    entrypoint:
+      - /boki/engine
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
+      - --zookeeper_host=zookeeper:2181
+      - --listen_iface=eth0
+      - --root_path_for_ipc=/tmp/boki/ipc
+      - --func_config_file=/tmp/boki/func_config.json
+      - --num_io_workers=4
+      - --instant_rps_p_norm=0.8
+      - --io_uring_entries=64
+      - --io_uring_fd_slots=128
+      - --enable_shared_log
+      - --slog_engine_enable_cache
+      - --slog_engine_cache_cap_mb=512
+      - --slog_engine_propagate_auxdata
+      - --v=1
+    depends_on:
+      zookeeper-setup:
+        condition: service_healthy
+    volumes:
+      - /mnt/inmem3/boki:/tmp/boki
+      - /sys/fs/cgroup:/tmp/root_cgroupfs
+    environment:
+      - FAAS_NODE_ID=3
+      - FAAS_CGROUP_FS_ROOT=/tmp/root_cgroupfs
+    ulimits:
+      memlock: -1
+    # restart: always
+
   boki-storage-1:
     image: zjia/boki:sosp-ae
     hostname: faas-storage-1
+    networks:
+      - boki-net
     entrypoint:
       - /boki/storage
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -128,9 +206,11 @@ services:
   boki-storage-2:
     image: zjia/boki:sosp-ae
     hostname: faas-storage-2
+    networks:
+      - boki-net
     entrypoint:
       - /boki/storage
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -146,7 +226,7 @@ services:
       zookeeper-setup:
         condition: service_healthy
     volumes:
-      - /mnt/storage1:/tmp/storage
+      - /mnt/storage2:/tmp/storage
     environment:
       - FAAS_NODE_ID=2
     ulimits:
@@ -156,9 +236,11 @@ services:
   boki-storage-3:
     image: zjia/boki:sosp-ae
     hostname: faas-storage-3
+    networks:
+      - boki-net
     entrypoint:
       - /boki/storage
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -174,7 +256,7 @@ services:
       zookeeper-setup:
         condition: service_healthy
     volumes:
-      - /mnt/storage1:/tmp/storage
+      - /mnt/storage3:/tmp/storage
     environment:
       - FAAS_NODE_ID=3
     ulimits:
@@ -184,9 +266,11 @@ services:
   boki-sequencer-1:
     image: zjia/boki:sosp-ae
     hostname: faas-sequencer-1
+    networks:
+      - boki-net
     entrypoint:
       - /boki/sequencer
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -206,9 +290,11 @@ services:
   boki-sequencer-2:
     image: zjia/boki:sosp-ae
     hostname: faas-sequencer-2
+    networks:
+      - boki-net
     entrypoint:
       - /boki/sequencer
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -228,9 +314,11 @@ services:
   boki-sequencer-3:
     image: zjia/boki:sosp-ae
     hostname: faas-sequencer-3
+    networks:
+      - boki-net
     entrypoint:
       - /boki/sequencer
-      - --tracer_exporter_endpoint=http://47.96.165.13:8900/api/v2/spans
+      - --tracer_exporter_endpoint=http://10.0.2.15:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -247,11 +335,13 @@ services:
       memlock: -1
     # restart: always
 
-  consumer-fn:
+  consumer-fn-1:
     image: zjia/boki-queuebench:sosp-ae
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "2"]
     volumes:
-      - /mnt/inmem/boki:/tmp/boki
+      - /mnt/inmem1/boki:/tmp/boki
     environment:
       - FAAS_GO_MAX_PROC_FACTOR=2
       - GOGC=200
@@ -259,11 +349,13 @@ services:
       - boki-engine-1
     # restart: always
 
-  producer-fn:
+  producer-fn-1:
     image: zjia/boki-queuebench:sosp-ae
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "1"]
     volumes:
-      - /mnt/inmem/boki:/tmp/boki
+      - /mnt/inmem1/boki:/tmp/boki
     environment:
       - FAAS_GO_MAX_PROC_FACTOR=2
       - GOGC=200
@@ -271,15 +363,105 @@ services:
       - boki-engine-1
     # restart: always
 
-  goexample-fn:
+  goexample-fn-1:
     image: zjia/boki-goexample:sosp-ae
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/goexample-bin/main", "3"]
     volumes:
-      - /mnt/inmem/boki:/tmp/boki
+      - /mnt/inmem1/boki:/tmp/boki
     environment:
       - FAAS_GO_MAX_PROC_FACTOR=2
       - GOGC=200
     depends_on:
       - boki-engine-1
     # restart: always
+
+  consumer-fn-2:
+    image: zjia/boki-queuebench:sosp-ae
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "2"]
+    volumes:
+      - /mnt/inmem2/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-2
+    # restart: always
+
+  producer-fn-2:
+    image: zjia/boki-queuebench:sosp-ae
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "1"]
+    volumes:
+      - /mnt/inmem2/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-2
+    # restart: always
+
+  goexample-fn-2:
+    image: zjia/boki-goexample:sosp-ae
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/goexample-bin/main", "3"]
+    volumes:
+      - /mnt/inmem2/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-2
+    # restart: always
+
+  consumer-fn-3:
+    image: zjia/boki-queuebench:sosp-ae
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "2"]
+    volumes:
+      - /mnt/inmem3/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-3
+    # restart: always
+
+  producer-fn-3:
+    image: zjia/boki-queuebench:sosp-ae
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "1"]
+    volumes:
+      - /mnt/inmem3/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-3
+    # restart: always
+
+  goexample-fn-3:
+    image: zjia/boki-goexample:sosp-ae
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/goexample-bin/main", "3"]
+    volumes:
+      - /mnt/inmem3/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-3
+    # restart: always
+
+networks:
+  boki-net:
+    driver: bridge
 

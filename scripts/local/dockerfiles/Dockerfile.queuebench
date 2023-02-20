@@ -10,6 +10,10 @@ RUN cd /queue && ./build.sh
 
 FROM ubuntu:focal
 
+# install curl for opentelemetry which requires libcurl.so
+RUN apt update && \
+    apt install -y curl
+
 COPY --from=builder  /queue/bin      /queuebench-bin
 COPY --from=boki     /boki/launcher  /boki/launcher
 

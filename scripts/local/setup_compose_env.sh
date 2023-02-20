@@ -1,6 +1,9 @@
 #!/bin/bash
 set -uxo pipefail
 
+INDEX_REPLICATION=3
+USERLOG_REPLICATION=3
+
 ROOT_DIR=`realpath $(dirname $0)/../..`
 
 # remove old files and folders
@@ -16,13 +19,24 @@ cp $ROOT_DIR/scripts/local/zk_health_check/zk_health_check /tmp
 cp $ROOT_DIR/experiments/queue/boki/nightcore_config.json /tmp
 cp $ROOT_DIR/experiments/queue/boki/run_launcher /tmp
 
-cp /tmp/nightcore_config.json /mnt/inmem/boki/func_config.json
-cp /tmp/run_launcher /mnt/inmem/boki/run_launcher
+# engine nodes
+for node_i in `seq 1 $INDEX_REPLICATION`; do
+    rm -rf /mnt/inmem$node_i
+    mkdir /mnt/inmem$node_i
+    mkdir /mnt/inmem$node_i/boki
 
-rm -rf /mnt/inmem/boki/output
-mkdir /mnt/inmem/boki/output
+    cp /tmp/nightcore_config.json /mnt/inmem$node_i/boki/func_config.json
+    cp /tmp/run_launcher /mnt/inmem$node_i/boki/run_launcher
 
-# delete old RocksDB datas
-rm -rf /mnt/storage1/logdata
-rm -rf /mnt/storage2/logdata
-rm -rf /mnt/storage3/logdata
+    rm -rf /mnt/inmem$node_i/boki/output
+    mkdir /mnt/inmem$node_i/boki/output
+
+    rm -rf /mnt/inmem$node_i/boki/ipc
+    mkdir /mnt/inmem$node_i/boki/ipc
+done
+
+# storage nodes
+for node_i in `seq 1 $USERLOG_REPLICATION`; do
+    # delete old RocksDB datas
+    rm -rf /mnt/storage$node_i/logdata
+done

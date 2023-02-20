@@ -16,6 +16,10 @@ RUN cd /workflow/boki && make media
 
 FROM ubuntu:focal
 
+# install curl for opentelemetry which requires libcurl.so
+RUN apt update && \
+    apt install -y curl
+
 COPY --from=builder  /workflow/beldi/bin  /beldi-bin
 COPY --from=builder  /workflow/boki/bin   /bokiflow-bin
 COPY --from=boki     /boki/launcher       /boki/launcher
