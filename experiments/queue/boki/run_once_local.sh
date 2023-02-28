@@ -35,6 +35,6 @@ $ROOT_DIR/workloads/queue/bin/benchmark \
     --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
     --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
     --consumer_fix_shard=true \
-    --payload_size=1024 --duration=10 >$EXP_DIR/results.log
+    --payload_size=1024 --duration=60 >$EXP_DIR/results.log
 
 # $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs

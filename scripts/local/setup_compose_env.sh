@@ -3,6 +3,7 @@ set -uxo pipefail
 
 INDEX_REPLICATION=3
 USERLOG_REPLICATION=3
+METALOG_REPLICATION=3
 
 ROOT_DIR=`realpath $(dirname $0)/../..`
 
@@ -24,6 +25,7 @@ for node_i in `seq 1 $INDEX_REPLICATION`; do
     rm -rf /mnt/inmem$node_i
     mkdir /mnt/inmem$node_i
     mkdir /mnt/inmem$node_i/boki
+    mkdir /mnt/inmem$node_i/gperf
 
     cp /tmp/nightcore_config.json /mnt/inmem$node_i/boki/func_config.json
     cp /tmp/run_launcher /mnt/inmem$node_i/boki/run_launcher
@@ -39,4 +41,13 @@ done
 for node_i in `seq 1 $USERLOG_REPLICATION`; do
     # delete old RocksDB datas
     rm -rf /mnt/storage$node_i/logdata
+    rm -rf /mnt/storage$node_i/gperf
+    mkdir /mnt/storage$node_i/gperf
+done
+
+# sequencer nodes
+for node_i in `seq 1 $METALOG_REPLICATION`; do
+    rm -rf /mnt/sequencer$node_i
+    mkdir /mnt/sequencer$node_i
+    mkdir /mnt/sequencer$node_i/gperf
 done

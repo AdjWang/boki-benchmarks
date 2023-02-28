@@ -5,10 +5,13 @@
 # TRACER_ENDPOINT = 'http://47.96.165.13:8900/api/v2/spans'
 TRACER_ENDPOINT = 'http://10.0.2.15:9411/api/v2/spans'
 ZOOKEEPER_ENDPOINT = 'zookeeper:2181'
+# BIN_ENV = """- LD_PRELOAD=/boki/libprofiler.so
+#       - CPUPROFILE=/tmp/gperf/prof.out"""
+BIN_ENV = ''
 
-METALOG_REPLICAS = 3
-USERLOG_REPLICAS = 3
-INDEX_REPLICAS = 3
+METALOG_REPLICAS = 2
+USERLOG_REPLICAS = 1
+INDEX_REPLICAS = 1
 VERBOSE = 1
 IO_URING_ENTRIES = 64
 IO_URING_FD_SLOTS = 128
@@ -58,7 +61,7 @@ zookeeper_setup = """\
 
 boki_engine_f = """\
   boki-engine-{node_id}:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-engine-{node_id}
     networks:
       - boki-net
@@ -83,8 +86,10 @@ boki_engine_f = """\
         condition: service_healthy
     volumes:
       - /mnt/inmem{node_id}/boki:/tmp/boki
+      - /mnt/inmem{node_id}/gperf:/tmp/gperf
       - /sys/fs/cgroup:/tmp/root_cgroupfs
     environment:
+      {bin_env}
       - FAAS_NODE_ID={node_id}
       - FAAS_CGROUP_FS_ROOT=/tmp/root_cgroupfs
     ulimits:
@@ -95,7 +100,7 @@ boki_engine_f = """\
 
 boki_controller_f = """\
   boki-controller:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     networks:
       - boki-net
     entrypoint:
@@ -114,7 +119,7 @@ boki_controller_f = """\
 
 boki_gateway_f = """\
   boki-gateway:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-gateway
     networks:
       - boki-net
@@ -146,7 +151,7 @@ boki_gateway_f = """\
 
 boki_storage_f = """\
   boki-storage-{node_id}:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-storage-{node_id}
     networks:
       - boki-net
@@ -169,7 +174,9 @@ boki_storage_f = """\
         condition: service_healthy
     volumes:
       - /mnt/storage{node_id}:/tmp/storage
+      - /mnt/storage{node_id}/gperf:/tmp/gperf
     environment:
+      {bin_env}
       - FAAS_NODE_ID={node_id}
     ulimits:
       memlock: -1
@@ -179,7 +186,7 @@ boki_storage_f = """\
 
 boki_sequencer_f = """\
   boki-sequencer-{node_id}:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-sequencer-{node_id}
     networks:
       - boki-net
@@ -196,7 +203,10 @@ boki_sequencer_f = """\
     depends_on:
       zookeeper-setup:
         condition: service_healthy
+    volumes:
+      - /mnt/sequencer{node_id}/gperf:/tmp/gperf
     environment:
+      {bin_env}
       - FAAS_NODE_ID={node_id}
     ulimits:
       memlock: -1
@@ -206,7 +216,7 @@ boki_sequencer_f = """\
 
 app_funcs_f = """\
   consumer-fn-{node_id}:
-    image: zjia/boki-queuebench:sosp-ae
+    image: adjwang/boki-queuebench:dev
     networks:
       - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "2"]
@@ -220,7 +230,7 @@ app_funcs_f = """\
     # restart: always
 
   producer-fn-{node_id}:
-    image: zjia/boki-queuebench:sosp-ae
+    image: adjwang/boki-queuebench:dev
     networks:
       - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "1"]
@@ -234,7 +244,7 @@ app_funcs_f = """\
     # restart: always
 
   goexample-fn-{node_id}:
-    image: zjia/boki-goexample:sosp-ae
+    image: adjwang/boki-goexample:dev
     networks:
       - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/goexample-bin/main", "3"]
@@ -263,6 +273,7 @@ if __name__ == '__main__':
         zookeeper_setup,
 
         boki_controller_f.format(
+            bin_env='',
             zookeeper_endpoint=ZOOKEEPER_ENDPOINT,
             metalog_reps=METALOG_REPLICAS,
             userlog_reps=USERLOG_REPLICAS,
@@ -270,6 +281,7 @@ if __name__ == '__main__':
             verbose=VERBOSE
         ),
         boki_gateway_f.format(
+            bin_env='',
             tracer_endpoint=TRACER_ENDPOINT,
             zookeeper_endpoint=ZOOKEEPER_ENDPOINT,
             io_uring_entries=IO_URING_ENTRIES,
@@ -279,6 +291,7 @@ if __name__ == '__main__':
 
         *[boki_engine_f.format(
             node_id=i,
+            bin_env=BIN_ENV,
             tracer_endpoint=TRACER_ENDPOINT,
             zookeeper_endpoint=ZOOKEEPER_ENDPOINT,
             io_uring_entries=IO_URING_ENTRIES,
@@ -288,6 +301,7 @@ if __name__ == '__main__':
 
         *[boki_storage_f.format(
             node_id=i,
+            bin_env=BIN_ENV,
             tracer_endpoint=TRACER_ENDPOINT,
             zookeeper_endpoint=ZOOKEEPER_ENDPOINT,
             io_uring_entries=IO_URING_ENTRIES,
@@ -297,6 +311,7 @@ if __name__ == '__main__':
 
         *[boki_sequencer_f.format(
             node_id=i,
+            bin_env=BIN_ENV,
             tracer_endpoint=TRACER_ENDPOINT,
             zookeeper_endpoint=ZOOKEEPER_ENDPOINT,
             io_uring_entries=IO_URING_ENTRIES,

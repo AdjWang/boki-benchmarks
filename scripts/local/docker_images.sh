@@ -9,31 +9,31 @@ DOCKERFILE_DIR=$ROOT_DIR/scripts/local/dockerfiles
 DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
 
 function build_boki {
-    $DOCKER_BUILDER build -t zjia/boki:sosp-ae \
+    $DOCKER_BUILDER build -t adjwang/boki:dev \
         -f $DOCKERFILE_DIR/Dockerfile.boki \
         $ROOT_DIR/boki
 }
 
 function build_queuebench {
-    $DOCKER_BUILDER build -t zjia/boki-queuebench:sosp-ae \
+    $DOCKER_BUILDER build -t adjwang/boki-queuebench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.queuebench \
         $ROOT_DIR/workloads/queue
 }
 
 function build_retwisbench {
-    $DOCKER_BUILDER build -t zjia/boki-retwisbench:sosp-ae \
+    $DOCKER_BUILDER build -t adjwang/boki-retwisbench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.retwisbench \
         $ROOT_DIR/workloads/retwis
 }
 
 function build_beldibench {
-    $DOCKER_BUILDER build -t zjia/boki-beldibench:sosp-ae \
+    $DOCKER_BUILDER build -t adjwang/boki-beldibench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.beldibench \
         $ROOT_DIR/workloads/workflow
 }
 
 function build_goexample {
-    $DOCKER_BUILDER build -t zjia/boki-goexample:sosp-ae \
+    $DOCKER_BUILDER build -t adjwang/boki-goexample:dev \
         -f $DOCKERFILE_DIR/Dockerfile.goexample \
         $ROOT_DIR/workloads/goexample
 }
@@ -47,10 +47,10 @@ function build {
 }
 
 function push {
-    docker push zjia/boki:sosp-ae
-    docker push zjia/boki-queuebench:sosp-ae
-    docker push zjia/boki-retwisbench:sosp-ae
-    docker push zjia/boki-beldibench:sosp-ae
+    docker push adjwang/boki:dev
+    docker push adjwang/boki-queuebench:dev
+    docker push adjwang/boki-retwisbench:dev
+    docker push adjwang/boki-beldibench:dev
 }
 
 case "$1" in
