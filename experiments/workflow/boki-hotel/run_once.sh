@@ -10,12 +10,18 @@ EXP_DIR=$BASE_DIR/results/$1
 QPS=$2
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
+DOCKERCOMPOSE_GENERATOR=$ROOT_DIR/scripts/docker-compose-generator.py
 WRK_DIR=/usr/local/bin
 
 MANAGER_HOST=`$HELPER_SCRIPT get-docker-manager-host --base-dir=$BASE_DIR`
 CLIENT_HOST=`$HELPER_SCRIPT get-client-host --base-dir=$BASE_DIR`
 ENTRY_HOST=`$HELPER_SCRIPT get-service-host --base-dir=$BASE_DIR --service=boki-gateway`
 ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
+
+$DOCKERCOMPOSE_GENERATOR --docker-compose $BASE_DIR/docker-compose.yml.template \
+	--tracer-host $MANAGER_HOST:9411/api/v2/spans \
+	--zookeeper-host $MANAGER_HOST:2181 \
+	--output $BASE_DIR/docker-compose.yml
 
 $HELPER_SCRIPT generate-docker-compose --base-dir=$BASE_DIR
 scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:/tmp

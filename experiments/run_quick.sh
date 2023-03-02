@@ -124,13 +124,15 @@ echo "====== Start running BokiFlow experiments ======"
 
 BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel
 
-# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# $BASE_DIR/run_once.sh qps100 100
+# MANAGER_HOST=`$HELPER_SCRIPT get-docker-manager-host --base-dir=$BASE_DIR`
+# ssh -q $MANAGER_HOST -- docker run -d -p 9411:9411 openzipkin/zipkin
+
+$BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps200 200
 
-$BASE_DIR/run_once.sh qps10 10
-$BASE_DIR/run_once.sh qps20 20
+# $BASE_DIR/run_once.sh qps10 10
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "DEBUG exit point"
