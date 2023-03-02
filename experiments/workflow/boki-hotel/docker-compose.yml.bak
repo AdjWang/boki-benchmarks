@@ -21,8 +21,7 @@ services:
     hostname: boki-engine-{{.Task.Slot}}
     entrypoint:
       - /boki/engine
-      - --tracer_exporter_endpoint=%pytemp_tracer_host%
-      - --zookeeper_host=%pytemp_zookeeper_host%
+      - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --root_path_for_ipc=/tmp/boki/ipc
       - --func_config_file=/tmp/boki/func_config.json
