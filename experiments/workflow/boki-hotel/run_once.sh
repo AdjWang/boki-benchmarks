@@ -18,11 +18,6 @@ CLIENT_HOST=`$HELPER_SCRIPT get-client-host --base-dir=$BASE_DIR`
 ENTRY_HOST=`$HELPER_SCRIPT get-service-host --base-dir=$BASE_DIR --service=boki-gateway`
 ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
 
-$DOCKERCOMPOSE_GENERATOR --docker-compose $BASE_DIR/docker-compose.yml.template \
-	--tracer-host $MANAGER_HOST:9411/api/v2/spans \
-	--zookeeper-host $MANAGER_HOST:2181 \
-	--output $BASE_DIR/docker-compose.yml
-
 $HELPER_SCRIPT generate-docker-compose --base-dir=$BASE_DIR
 scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:/tmp
 scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:/tmp

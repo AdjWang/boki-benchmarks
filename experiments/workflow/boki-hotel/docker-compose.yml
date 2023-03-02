@@ -21,8 +21,7 @@ services:
     hostname: boki-engine-{{.Task.Slot}}
     entrypoint:
       - /boki/engine
-      - --tracer_exporter_endpoint=ip-172-31-39-58.us-east-2.compute.internal:9411/api/v2/spans
-      - --zookeeper_host=ip-172-31-39-58.us-east-2.compute.internal:2181
+      - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --root_path_for_ipc=/tmp/boki/ipc
       - --func_config_file=/tmp/boki/func_config.json
@@ -49,7 +48,7 @@ services:
     image: adjwang/boki:dev
     entrypoint:
       - /boki/controller
-      - --zookeeper_host=ip-172-31-39-58.us-east-2.compute.internal:2181
+      - --zookeeper_host=zookeeper:2181
       - --metalog_replicas=3
       - --userlog_replicas=3
       - --index_replicas=8
@@ -65,8 +64,7 @@ services:
       - 8080:8080
     entrypoint:
       - /boki/gateway
-      - --tracer_exporter_endpoint=ip-172-31-39-58.us-east-2.compute.internal:9411/api/v2/spans
-      - --zookeeper_host=ip-172-31-39-58.us-east-2.compute.internal:2181
+      - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --http_port=8080
       - --func_config_file=/tmp/boki/func_config.json
@@ -89,8 +87,7 @@ services:
     hostname: faas-storage-{{.Task.Slot}}
     entrypoint:
       - /boki/storage
-      - --tracer_exporter_endpoint=ip-172-31-39-58.us-east-2.compute.internal:9411/api/v2/spans
-      - --zookeeper_host=ip-172-31-39-58.us-east-2.compute.internal:2181
+      - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
       - --num_io_workers=2
@@ -114,8 +111,7 @@ services:
     hostname: faas-sequencer-{{.Task.Slot}}
     entrypoint:
       - /boki/sequencer
-      - --tracer_exporter_endpoint=ip-172-31-39-58.us-east-2.compute.internal:9411/api/v2/spans
-      - --zookeeper_host=ip-172-31-39-58.us-east-2.compute.internal:2181
+      - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
       - --io_uring_entries=2048

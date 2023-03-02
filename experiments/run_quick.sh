@@ -126,9 +126,6 @@ BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# MANAGER_HOST=`$HELPER_SCRIPT get-docker-manager-host --base-dir=$BASE_DIR`
-# ssh -q $MANAGER_HOST -- docker run -d -p 9411:9411 openzipkin/zipkin
-
 $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps200 200
 
