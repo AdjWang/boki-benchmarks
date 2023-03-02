@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euxo pipefail
 
 AWS_REGION="us-east-2"
 PLACEMENT_GROUP_NAME="boki-experiments"

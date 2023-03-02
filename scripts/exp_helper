@@ -14,7 +14,7 @@ AWS_REGION = 'us-east-2'
 AMI_ID = 'ami-0c6de836734de3280'
 SECURITY_GROUP_NAME = 'boki'
 PLACEMENT_GROUP = 'boki-experiments'
-AVAILABILITY_ZONE = 'us-east-2a'
+AVAILABILITY_ZONE = 'us-east-2c'
 
 def random_string(length):
     letters = string.ascii_lowercase
@@ -35,7 +35,7 @@ def run_remote_command(ssh_str, cmd):
     ret = sp.run(['ssh', '-q', ssh_str, '--'] + cmd,
                  stdout=sp.PIPE, stderr=sp.PIPE, encoding='utf8')
     if ret.returncode != 0:
-        raise Exception('Failed to run remote command: ' + ' '.join(cmd) + '\n' + ret.stderr)
+        raise Exception('Failed to run remote command on ' + ssh_str + ' : ' + ' '.join(cmd) + '\n' + ret.stderr)
     return ret.stdout, ret.stderr
 
 def start_ec2_instance(name, instance_type, security_group_id, instance_role):
@@ -201,6 +201,13 @@ def start_machines_main(base_dir,
         config['machines'], spot_instances_waiting_time, instance_role)
     try:
         time.sleep(60)
+        while True: 
+            status, ok = get_machines_status(base_dir)
+            if ok: break
+            print(status)
+            print('sleep 10s to wait for machines to be ready...')
+            time.sleep(10)
+
         start_time = time.time()
         setup_hostname_for_machines(machine_infos)
         setup_instance_storage(config['machines'], machine_infos)
@@ -210,8 +217,32 @@ def start_machines_main(base_dir,
         with open(os.path.join(base_dir, 'machines.json'), 'w') as fout:
             json.dump(machine_infos, fout, indent=4, sort_keys=True)
     except Exception as e:
+        print('exception: ', e)
+        with open(os.path.join(base_dir, 'machines_temp.json'), 'w') as fout:
+            json.dump(machine_infos, fout, indent=4, sort_keys=True)
+        print('machine config: ', os.path.join(base_dir, 'machines.json'))
+        input('pending...press enter to stop instances...')
         stop_instances(machine_infos)
         raise e
+
+def get_machines_status(base_dir):
+    # if os.path.exists(os.path.join(base_dir, 'machines.json')):
+    #     raise Exception('Machines already started')
+    # with open(os.path.join(base_dir, 'config.json')) as fin:
+    #     config = json.load(fin)
+    # instance_role = None
+    # if instance_iam_role is not None and len(instance_iam_role) > 0:
+    #     instance_role = find_instance_role(instance_iam_role)
+    # machine_infos = start_spot_instances(
+    #     config['machines'], spot_instances_waiting_time, instance_role)
+
+    cli_output = run_aws_ec2_command(['describe-instance-status'])
+    # with open('/home/ec2-user/dev/boki-benchmarks/status.log', 'r') as f:
+    #     cli_output = json.load(f)
+
+    instance_status = cli_output["InstanceStatuses"]
+    status = [(i["InstanceId"], i["InstanceStatus"]["Status"]) for i in instance_status]
+    return status, all([i[1] == "ok" for i in status])
 
 def stop_machines_main(base_dir):
     if not os.path.exists(os.path.join(base_dir, 'machines.json')):
@@ -394,6 +425,9 @@ if __name__ == '__main__':
             get_container_id_main(args.base_dir, args.service, args.machine_name, args.machine_host)
         elif args.cmd == 'collect-container-logs':
             collect_container_logs_main(args.base_dir, args.log_path)
+        elif args.cmd == 'status':
+            #get_machines_status(args.base_dir)
+            temp(args.base_dir)
         else:
             raise Exception('Unknown command: ' + args.cmd)
     except Exception as e:

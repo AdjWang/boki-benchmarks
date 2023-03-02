@@ -17,10 +17,11 @@ services:
     restart: always
 
   boki-engine:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: boki-engine-{{.Task.Slot}}
     entrypoint:
       - /boki/engine
+      - --tracer_exporter_endpoint=http://172.31.39.73:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --root_path_for_ipc=/tmp/boki/ipc
@@ -45,25 +46,26 @@ services:
     restart: always
 
   boki-controller:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
-      - --metalog_replicas=3
-      - --userlog_replicas=3
-      - --index_replicas=8
+      - --metalog_replicas=2
+      - --userlog_replicas=1
+      - --index_replicas=1
       # - --v=1
     depends_on:
       - zookeeper-setup
     restart: always
 
   boki-gateway:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-gateway
     ports:
       - 8080:8080
     entrypoint:
       - /boki/gateway
+      - --tracer_exporter_endpoint=http://172.31.39.73:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --http_port=8080
@@ -83,10 +85,11 @@ services:
     restart: always
 
   boki-storage:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-storage-{{.Task.Slot}}
     entrypoint:
       - /boki/storage
+      - --tracer_exporter_endpoint=http://172.31.39.73:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --db_path=/tmp/storage/logdata
@@ -107,10 +110,11 @@ services:
     restart: always
 
   boki-sequencer:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-sequencer-{{.Task.Slot}}
     entrypoint:
       - /boki/sequencer
+      - --tracer_exporter_endpoint=http://172.31.39.73:9411/api/v2/spans
       - --zookeeper_host=zookeeper:2181
       - --listen_iface=eth0
       - --num_io_workers=2
@@ -125,7 +129,7 @@ services:
     restart: always
 
   geo-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/geo", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -138,7 +142,7 @@ services:
     restart: always
 
   profile-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/profile", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -151,7 +155,7 @@ services:
     restart: always
 
   rate-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/rate", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -164,7 +168,7 @@ services:
     restart: always
 
   recommendation-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/recommendation", "4"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -177,7 +181,7 @@ services:
     restart: always
 
   user-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/user", "5"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -190,7 +194,7 @@ services:
     restart: always
 
   hotel-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/hotel", "6"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -203,7 +207,7 @@ services:
     restart: always
 
   search-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/search", "7"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -216,7 +220,7 @@ services:
     restart: always
 
   flight-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/flight", "8"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -229,7 +233,7 @@ services:
     restart: always
 
   order-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/order", "9"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -242,7 +246,7 @@ services:
     restart: always
 
   frontend-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/frontend", "10"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -255,7 +259,7 @@ services:
     restart: always
 
   gateway-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/gateway", "11"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
