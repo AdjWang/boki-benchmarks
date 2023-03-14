@@ -8,14 +8,17 @@ DOCKERFILE_DIR=$ROOT_DIR/scripts/local/dockerfiles
 # export DOCKER_BUILDKIT=1
 DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
 
+# NO_CACHE="--no-cache"
+NO_CACHE=""
+
 function build_boki {
-    $DOCKER_BUILDER build -t adjwang/boki:dev \
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
         -f $DOCKERFILE_DIR/Dockerfile.boki \
         $ROOT_DIR/boki
 }
 
 function build_queuebench {
-    $DOCKER_BUILDER build -t adjwang/boki-queuebench:dev \
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-queuebench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.queuebench \
         $ROOT_DIR/workloads/queue
 }

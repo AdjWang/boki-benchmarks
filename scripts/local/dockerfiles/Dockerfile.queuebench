@@ -1,20 +1,11 @@
 FROM zjia/boki:sosp-ae as boki
-FROM golang:1.14-buster as builder
-
-# fuck
-RUN go env -w GOPROXY=https://goproxy.cn
-
-COPY . /queue
-COPY --from=boki /src/boki /src/boki
-RUN cd /queue && ./build.sh
-
 FROM ubuntu:focal
 
 # install curl for opentelemetry which requires libcurl.so
 RUN apt update && \
     apt install -y curl
 
-COPY --from=builder  /queue/bin      /queuebench-bin
+COPY ./bin      /queuebench-bin
 COPY --from=boki     /boki/launcher  /boki/launcher
 
 WORKDIR /queuebench-bin

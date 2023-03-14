@@ -13,13 +13,13 @@
 FROM ubuntu:focal as release
 
 # install curl for opentelemetry which requires libcurl.so
-RUN apt update && \
-    apt install -y curl
+# RUN apt update && \
+#     apt install -y curl
 
 COPY ./worker /src/boki/worker
 COPY ./slib /src/boki/slib
 
-COPY ./bin/release/libprofiler.so /boki/libprofiler.so
+# COPY ./bin/release/libprofiler.so /boki/libprofiler.so
 COPY ./bin/release/gateway    /boki/gateway
 COPY ./bin/release/engine     /boki/engine
 COPY ./bin/release/launcher   /boki/launcher
