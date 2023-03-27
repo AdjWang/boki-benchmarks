@@ -126,10 +126,9 @@ BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps200 200
-
-# $BASE_DIR/run_once.sh qps10 10
+$BASE_DIR/run_once.sh qps500 500
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "DEBUG exit point"
@@ -140,9 +139,11 @@ BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
 $BASE_DIR/run_once.sh qps100 100
-$BASE_DIR/run_once.sh qps150 150
+# $BASE_DIR/run_once.sh qps150 150
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+echo "DEBUG exit point"
+exit 0
 
 echo "====== Finish running BokiFlow experiments ======"
 else

@@ -9,6 +9,8 @@ import random
 import string
 import argparse
 import subprocess as sp
+import shlex
+from multiprocessing.dummy import Pool as ThreadPool
 
 AWS_REGION = 'us-east-2'
 AMI_ID = 'ami-0c6de836734de3280'
@@ -37,6 +39,11 @@ def run_remote_command(ssh_str, cmd):
     if ret.returncode != 0:
         raise Exception('Failed to run remote command on ' + ssh_str + ' : ' + ' '.join(cmd) + '\n' + ret.stderr)
     return ret.stdout, ret.stderr
+
+def run_remote_command2(ssh_str, cmd):
+    assert isinstance(cmd, list)
+    cmd = shlex.split(cmd)
+    return run_remote_command(ssh_str, cmd)
 
 def start_ec2_instance(name, instance_type, security_group_id, instance_role):
     launch_args = [
@@ -366,14 +373,9 @@ def get_container_id_main(base_dir, service_name, machine_name, machine_host):
         print(container_info['Id'])
 
 def collect_container_logs_main(base_dir, log_path):
-    if not os.path.exists(os.path.join(base_dir, 'machines.json')):
-        raise Exception('Machines not started')
-    os.makedirs(log_path, exist_ok=True)
-    with open(os.path.join(base_dir, 'machines.json')) as fin:
-        machine_infos = json.load(fin)
-    for machine_info in machine_infos.values():
+    def collect_container_log(machine_info):
         if machine_info['role'] == 'client':
-            continue
+            return
         container_ids, _ = run_remote_command(machine_info['dns'], ['docker', 'ps', '-q'])
         container_ids = container_ids.strip().split()
         for container_id in container_ids:
@@ -381,12 +383,48 @@ def collect_container_logs_main(base_dir, log_path):
                 machine_info['dns'], ['docker', 'inspect', container_id])
             container_info = json.loads(container_info)[0]
             container_name = container_info['Name'][1:]  # remove prefix '/'
-            log_stdout, log_stderr = run_remote_command(
-                machine_info['dns'], ['docker', 'container', 'logs', container_id])
-            with open(os.path.join(log_path, '%s.stdout' % container_name), 'w') as fout:
-                fout.write(log_stdout)
-            with open(os.path.join(log_path, '%s.stderr' % container_name), 'w') as fout:
-                fout.write(log_stderr)
+            print('collecting container log of %s' % container_name)
+            log_stdout = '%s.stdout' % container_name
+            log_stderr = '%s.stderr' % container_name
+            # run_remote_command2(machine_info['dns'], shlex.quote('docker container logs %s > /tmp/%s 2> /tmp/%s' % (container_id, log_stdout, log_stderr)))
+            os.system('ssh -q %s -- "docker container logs %s > /tmp/%s 2> /tmp/%s"' % (machine_info['dns'], container_id, log_stdout, log_stderr))
+            os.system('scp -q ubuntu@%s:/tmp/%s %s' % (machine_info['dns'], log_stdout, log_path))
+            os.system('scp -q ubuntu@%s:/tmp/%s %s' % (machine_info['dns'], log_stderr, log_path))
+
+            # log_stdout, log_stderr = run_remote_command(
+            #     machine_info['dns'], ['docker', 'container', 'logs', container_id])
+            # with open(os.path.join(log_path, '%s.stdout' % container_name), 'w') as fout:
+            #     fout.write(log_stdout)
+            # with open(os.path.join(log_path, '%s.stderr' % container_name), 'w') as fout:
+            #     fout.write(log_stderr)
+
+    try:
+        if not os.path.exists(os.path.join(base_dir, 'machines.json')):
+            raise Exception('Machines not started')
+        os.makedirs(log_path, exist_ok=True)
+        with open(os.path.join(base_dir, 'machines.json')) as fin:
+            machine_infos = json.load(fin)
+        if len(machine_infos) == 0:
+            return
+        pool = ThreadPool(len(machine_infos))
+        pool.map(collect_container_log, machine_infos.values())
+        pool.close()
+        pool.join()
+    except Exception as e:
+        print(e)
+        raise e
+
+def collect_func_outputs_main(base_dir, log_path):
+    if not os.path.exists(os.path.join(base_dir, 'machines.json')):
+        raise Exception('Machines not started')
+    os.makedirs(log_path, exist_ok=True)
+    with open(os.path.join(base_dir, 'machines.json')) as fin:
+        machine_infos = json.load(fin)
+    for machine_info in machine_infos.values():
+        if machine_info['role'] != 'engine':
+            continue
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
