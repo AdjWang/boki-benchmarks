@@ -43,7 +43,7 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 }
 
 func LibWrite(tablename string, key aws.JSONValue,
-		update map[expression.NameBuilder]expression.OperandBuilder) {
+	update map[expression.NameBuilder]expression.OperandBuilder) {
 	Key, err := dynamodbattribute.MarshalMap(key)
 	CHECK(err)
 	if len(update) == 0 {
@@ -135,8 +135,8 @@ func LibScan(tablename string, projection []string) []aws.JSONValue {
 }
 
 func CondWrite(env *Env, tablename string, key string,
-		update map[expression.NameBuilder]expression.OperandBuilder,
-		cond expression.ConditionBuilder) {
+	update map[expression.NameBuilder]expression.OperandBuilder,
+	cond expression.ConditionBuilder) {
 	newLog, preWriteLog := ProposeNextStep(env, aws.JSONValue{
 		"type":  "PreWrite",
 		"key":   key,
@@ -147,7 +147,7 @@ func CondWrite(env *Env, tablename string, key string,
 		CheckLogDataField(preWriteLog, "table", tablename)
 		CheckLogDataField(preWriteLog, "key", key)
 		log.Printf("[INFO] Seen PreWrite log for step %d", preWriteLog.StepNumber)
-		resultLog := FetchStepResultLog(env, preWriteLog.StepNumber, /* catch= */ false)
+		resultLog := FetchStepResultLog(env, preWriteLog.StepNumber /* catch= */, false)
 		if resultLog != nil {
 			CheckLogDataField(resultLog, "type", "PostWrite")
 			CheckLogDataField(resultLog, "table", tablename)
@@ -187,9 +187,9 @@ func CondWrite(env *Env, tablename string, key string,
 	}
 
 	LogStepResult(env, env.InstanceId, preWriteLog.StepNumber, aws.JSONValue{
-		"type":    "PostWrite",
-		"key":     key,
-		"table":   tablename,
+		"type":  "PostWrite",
+		"key":   key,
+		"table": tablename,
 	})
 }
 
@@ -213,9 +213,9 @@ func Read(env *Env, tablename string, key string) interface{} {
 			res = nil
 		}
 		newLog, intentLog = ProposeNextStep(env, aws.JSONValue{
-			"type": "Read",
-			"key": key,
-			"table": tablename,
+			"type":   "Read",
+			"key":    key,
+			"table":  tablename,
 			"result": res,
 		})
 	}
@@ -226,6 +226,71 @@ func Read(env *Env, tablename string, key string) interface{} {
 		log.Printf("[INFO] Seen Read log for step %d", intentLog.StepNumber)
 	}
 	return intentLog.Data["result"]
+
+	// logCh := make(chan *IntentLogEntry)
+	// dbCh := make(chan interface{})
+	// go func() {
+	// 	env.Fsm.Catch(env)
+	// 	step := env.StepNumber
+	// 	intentLog := env.Fsm.GetStepLog(step)
+	// 	logCh <- intentLog
+	// }()
+	// go func() {
+	// 	item := LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
+	// 	var res interface{}
+	// 	if tmp, ok := item["V"]; ok {
+	// 		res = tmp
+	// 	} else {
+	// 		res = nil
+	// 	}
+	// 	dbCh <- res
+	// }()
+
+	// logFirst := true
+	// var intentLog *IntentLogEntry
+	// var dbRes interface{}
+	// select {
+	// case intentLog = <-logCh:
+	// 	logFirst = true
+	// 	break
+	// case dbRes = <-dbCh:
+	// 	logFirst = false
+	// 	break
+	// }
+	// if logFirst {
+	// 	if intentLog != nil { // duplicate step
+	// 		defer func() {
+	// 			go func() { <-dbCh }() // drop db res
+	// 		}()
+	// 		return intentLog.Data["result"]
+	// 	} else {
+	// 		dbRes = <-dbCh
+	// 		defer func() {
+	// 			go func() {
+	// 				ProposeNextStep(env, aws.JSONValue{
+	// 					"type":   "Read",
+	// 					"key":    key,
+	// 					"table":  tablename,
+	// 					"result": dbRes,
+	// 				})
+	// 			}()
+	// 		}()
+	// 		return dbRes
+	// 	}
+	// } else {
+	// 	defer func() {
+	// 		go func() {
+	// 			ProposeNextStep(env, aws.JSONValue{
+	// 				"type":   "Read",
+	// 				"key":    key,
+	// 				"table":  tablename,
+	// 				"result": dbRes,
+	// 			})
+	// 			<-logCh // drop log res
+	// 		}()
+	// 	}()
+	// 	return dbRes
+	// }
 }
 
 func Scan(env *Env, tablename string) interface{} {
@@ -242,8 +307,8 @@ func Scan(env *Env, tablename string) interface{} {
 			res = append(res, item["V"])
 		}
 		newLog, intentLog = ProposeNextStep(env, aws.JSONValue{
-			"type": "Scan",
-			"table": tablename,
+			"type":   "Scan",
+			"table":  tablename,
 			"result": res,
 		})
 	}

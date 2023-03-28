@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+	"time"
 
 	"cs.utexas.edu/zjia/faas"
 	"cs.utexas.edu/zjia/faas/types"
@@ -48,7 +51,17 @@ func (h *fooHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
 	// 	panic("manually err")
 	// }
 
-	fmt.Println("about to append to shared log")
+	// prof
+	start := time.Now()
+	defer func() {
+		engineId, err := strconv.Atoi(os.Getenv("FAAS_ENGINE_ID"))
+		if err != nil {
+			engineId = -1
+		}
+		duration := time.Since(start)
+		fmt.Printf("[PROF] LibAppendLog engine=%v, tag=%v, duration=%v\n", engineId, 233, duration.Seconds())
+	}()
+
 	seqNum, err := h.env.SharedLogAppend(context.Background(), []uint64{233}, []byte{byte(count)})
 	output := fmt.Sprintf("shared log append count: %v, seqNum: %v, err: %v\n", byte(count), seqNum, err)
 

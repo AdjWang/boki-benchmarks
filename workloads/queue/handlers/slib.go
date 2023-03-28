@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"cs.utexas.edu/zjia/faas-queue/common"
@@ -70,6 +71,7 @@ func (h *slibConsumerHandler) Call(ctx context.Context, input []byte) ([]byte, e
 }
 
 func createQueue(ctx context.Context, env types.Environment, name string, shards int) (QueueIface, error) {
+	ctx = context.WithValue(ctx, "stdout", os.Stdout)
 	if shards == 1 {
 		return sync.NewQueue(ctx, env, name)
 	} else {
@@ -87,6 +89,7 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 			Message: fmt.Sprintf("NewQueue failed: %v", err),
 		}, nil
 	}
+
 	latencies := make([]int, 0, 128) // record push duration
 	startTime := time.Now()
 	for time.Since(startTime) < duration {

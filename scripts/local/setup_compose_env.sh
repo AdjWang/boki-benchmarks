@@ -7,6 +7,9 @@ METALOG_REPLICATION=3
 
 ROOT_DIR=`realpath $(dirname $0)/../..`
 
+# EXP_DIR=$ROOT_DIR/experiments/queue/boki
+EXP_DIR=$ROOT_DIR/experiments/workflow/boki-singleop
+
 # remove old files and folders
 rm -rf /tmp/boki
 rm -rf /tmp/zk_setup.sh
@@ -17,8 +20,12 @@ rm -rf /tmp/run_launcher
 ln -s $ROOT_DIR/boki /tmp
 cp $ROOT_DIR/scripts/local/zk_setup.sh /tmp
 cp $ROOT_DIR/scripts/local/zk_health_check/zk_health_check /tmp
-cp $ROOT_DIR/experiments/queue/boki/nightcore_config.json /tmp
-cp $ROOT_DIR/experiments/queue/boki/run_launcher /tmp
+cp $EXP_DIR/nightcore_config.json /tmp
+cp $EXP_DIR/run_launcher /tmp
+
+# dynamodb
+rm -rf /mnt/dynamodb
+mkdir /mnt/dynamodb
 
 # engine nodes
 for node_i in `seq 1 $INDEX_REPLICATION`; do

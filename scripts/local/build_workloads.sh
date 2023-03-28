@@ -50,6 +50,7 @@ function build_workflow {
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
     make hotel
     make media
+    make singleop
 }
 
 build_goexample

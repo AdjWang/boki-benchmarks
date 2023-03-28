@@ -58,6 +58,21 @@ zookeeper_setup = """\
 
 """
 
+# deps = """\
+#   dynamodb-local:
+#     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+#     image: "amazon/dynamodb-local:latest"
+#     container_name: dynamodb-local
+#     networks:
+#       - boki-net
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - "/mnt/dynamodb:/home/dynamodblocal/data"
+#     working_dir: /home/dynamodblocal
+
+# """
+
 boki_engine_f = """\
   boki-engine-{node_id}:
     image: adjwang/boki:dev
@@ -210,48 +225,39 @@ boki_sequencer_f = """\
 """
 
 app_funcs_f = """\
-  consumer-fn-{node_id}:
-    image: adjwang/boki-queuebench:dev
+  singleop-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/singleop", "1"]
     volumes:
       - /mnt/inmem{node_id}/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=2
-      - GOGC=200
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX=${{TABLE_PREFIX:?}}
+    ulimits:
+      memlock: -1
     depends_on:
       - boki-engine-{node_id}
     # restart: always
 
-  producer-fn-{node_id}:
-    image: adjwang/boki-queuebench:dev
+  nop-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/nop", "2"]
     volumes:
       - /mnt/inmem{node_id}/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=2
-      - GOGC=200
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX=${{TABLE_PREFIX:?}}
+    ulimits:
+      memlock: -1
     depends_on:
       - boki-engine-{node_id}
     # restart: always
-
-  goexample-fn-{node_id}:
-    image: adjwang/boki-goexample:dev
-    networks:
-      - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/goexample-bin/main", "3"]
-    volumes:
-      - /mnt/inmem{node_id}/boki:/tmp/boki
-    environment:
-      - FAAS_GO_MAX_PROC_FACTOR=2
-      - GOGC=200
-    depends_on:
-      - boki-engine-{node_id}
-    # restart: always
-
 """
 
 network_config = """\
@@ -266,6 +272,7 @@ if __name__ == '__main__':
         dc_header,
         zookeeper,
         zookeeper_setup,
+        # deps,
 
         boki_controller_f.format(
             bin_env='',

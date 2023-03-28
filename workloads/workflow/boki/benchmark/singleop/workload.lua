@@ -9,6 +9,19 @@
 --     return UUID():gsub('-', '')
 -- end
 
+function dump(o)
+   if type(o) == 'table' then
+      local s = '{ '
+      for k,v in pairs(o) do
+         if type(k) ~= 'number' then k = '"'..k..'"' end
+         s = s .. '['..k..'] = ' .. dump(v) .. ','
+      end
+      return s .. '} '
+   else
+      return tostring(o)
+   end
+end
+
 request = function()
     local path = os.getenv("ENDPOINT")
     local method = "POST"
@@ -30,9 +43,18 @@ request = function()
     -- local body = JSON:encode(param)
     headers["Content-Type"] = "application/json"
 
-    return wrk.format(method, path, headers, body)
+    local req = wrk.format(method, path, headers, body)
+    -- print(req)
+    return req
 end
 
-function init(rand_seed)
-    math.randomseed(rand_seed)
+-- function init(rand_seed)
+--     math.randomseed(rand_seed)
+-- end
+
+function response(status, headers, body)
+  -- print(status)
+  -- print(dump(headers))
+  io.stderr:write(body)
+  io.stderr:write('\n')
 end
