@@ -46,7 +46,7 @@ func assertLogEntry(funcName string, logEntry *types.LogEntry, expected *types.L
 		output += fmt.Sprintf("[PASS] %v logEntry==nil assert true\n", funcName)
 		return output, true
 	} else if logEntry.SeqNum != expected.SeqNum {
-		output += fmt.Sprintf("[FAIL] %v seqnum=%v, expect=%v\n", funcName, logEntry.SeqNum, expected.SeqNum)
+		output += fmt.Sprintf("[FAIL] %v seqNum=0x%016X, expect=%v\n", funcName, logEntry.SeqNum, expected.SeqNum)
 		return output, false
 	} else if !reflect.DeepEqual(logEntry.Tags, expected.Tags) {
 		output += fmt.Sprintf("[FAIL] %v tags=%v, expect=%v\n", funcName, logEntry.Tags, expected.Tags)
@@ -58,7 +58,7 @@ func assertLogEntry(funcName string, logEntry *types.LogEntry, expected *types.L
 		output += fmt.Sprintf("[FAIL]  %v aux data=%v, expect=%v\n", funcName, logEntry.AuxData, expected.AuxData)
 		return output, false
 	} else {
-		output += fmt.Sprintf("[PASS] %v seqNum=%v, tags=%v, data=%v, auxData=%v\n",
+		output += fmt.Sprintf("[PASS] %v seqNum=0x%016X, tags=%v, data=%v, auxData=%v\n",
 			funcName, logEntry.SeqNum, logEntry.Tags, logEntry.Data, logEntry.AuxData)
 		return output, true
 	}
@@ -210,8 +210,8 @@ func (h *benchHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
 	if err != nil {
 		return []byte(fmt.Sprintf("[FAIL] shared log append 1k error: %v\n", err)), nil
 	} else {
-		// return []byte(test + prof + fmt.Sprintf("[PASS] shared log append 1k seqNum=%v\n", seqNum)), nil
-		return []byte(prof + fmt.Sprintf("[PASS] shared log append 1k seqNum=%v\n", seqNum)), nil
+		// return []byte(test + prof + fmt.Sprintf("[PASS] shared log append 1k seqNum=0x%016X\n", seqNum)), nil
+		return []byte(prof + fmt.Sprintf("[PASS] shared log append 1k seqNum=0x%016X\n", seqNum)), nil
 	}
 }
 
