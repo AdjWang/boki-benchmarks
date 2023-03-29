@@ -8,6 +8,9 @@ WORKLOAD_DIR=$TEST_DIR/workloads
 
 WORK_DIR=/tmp/boki-test
 
+DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
+NO_CACHE=""
+
 function setup_env {
     METALOG_REPLICATION=$1
     USERLOG_REPLICATION=$2
@@ -64,9 +67,6 @@ function build {
     $WORKLOAD_DIR/build_all.sh
 
     echo "========== build docker images =========="
-    DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
-    NO_CACHE=""
-
     # build boki docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
         -f $DOCKERFILE_DIR/Dockerfile.boki \
@@ -88,8 +88,8 @@ function cleanup {
 
 function sleep_count_down {
     for i in $(seq 1 $1); do
-        printf "\rsleep...%d   \b\b\b" $(($1+1-$i))
-        sleep 1;
+        printf "\rsleep...%d   \b\b\b" $(($1 + 1 - $i))
+        sleep 1
     done
     echo ""
 }
@@ -112,12 +112,12 @@ function debug {
     # assert_should_fail $LINENO
 
     echo "test Foo"
-    timeout 1 curl -X POST -d "abc" http://localhost:9000/function/Foo -f || \
-    assert_should_success $LINENO
+    timeout 1 curl -X POST -d "abc" http://localhost:9000/function/Foo -f ||
+        assert_should_success $LINENO
 
     echo "test unknown"
-    timeout 1 curl -X POST -d "abc" http://localhost:9000/function/unknown -fs || \
-    assert_should_fail $LINENO
+    timeout 1 curl -X POST -d "abc" http://localhost:9000/function/unknown -fs ||
+        assert_should_fail $LINENO
     echo "end"
 }
 
@@ -139,11 +139,11 @@ function test_sharedlog {
     cd $WORK_DIR && docker compose up -d
 
     echo "wait to startup..."
-    sleep_count_down 55
+    sleep_count_down 15
 
     echo "list functions"
-    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions || \
-    assert_should_success $LINENO
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
+        assert_should_success $LINENO
 
     echo "test Foo"
     OUTPUT=$(timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/Foo 2>/dev/null)
@@ -158,8 +158,21 @@ function test_sharedlog {
     fi
 
     echo "test unknown"
-    timeout 1 curl -fs -X POST -d "abc" http://localhost:9000/function/unknown || \
-    assert_should_fail $LINENO
+    timeout 1 curl -fs -X POST -d "abc" http://localhost:9000/function/unknown ||
+        assert_should_fail $LINENO
+
+    echo "test shared log operations"
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
+        assert_should_success $LINENO
+
+    echo "run bench"
+    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/Bench ||
+        assert_should_success $LINENO
+
+    echo "check docker status"
+    if [ $(docker ps -a -f name=boki-test-* -f status=exited -q | wc -l) -ne 0 ]; then
+        failed $LINENO
+    fi
 
     echo "shutdown cluster..."
     cd $WORK_DIR && docker compose down
