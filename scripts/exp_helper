@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from inspect import trace
 import os
 import sys
 import time
