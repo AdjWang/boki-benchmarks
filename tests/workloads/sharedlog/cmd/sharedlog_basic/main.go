@@ -16,6 +16,10 @@ type basicLogOpHandler struct {
 	env types.Environment
 }
 
+type asyncLogOpHandler struct {
+	env types.Environment
+}
+
 type benchHandler struct {
 	env types.Environment
 }
@@ -26,6 +30,8 @@ type funcHandlerFactory struct {
 func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.FuncHandler, error) {
 	if funcName == "BasicLogOp" {
 		return &basicLogOpHandler{env: env}, nil
+	} else if funcName == "AsyncLogOp" {
+		return &asyncLogOpHandler{env: env}, nil
 	} else if funcName == "Bench" {
 		return &benchHandler{env: env}, nil
 	} else {
@@ -46,7 +52,7 @@ func assertLogEntry(funcName string, logEntry *types.LogEntry, expected *types.L
 		output += fmt.Sprintf("[PASS] %v logEntry==nil assert true\n", funcName)
 		return output, true
 	} else if logEntry.SeqNum != expected.SeqNum {
-		output += fmt.Sprintf("[FAIL] %v seqNum=0x%016X, expect=%v\n", funcName, logEntry.SeqNum, expected.SeqNum)
+		output += fmt.Sprintf("[FAIL] %v seqNum=0x%016X, expect=0x%016X\n", funcName, logEntry.SeqNum, expected.SeqNum)
 		return output, false
 	} else if !reflect.DeepEqual(logEntry.Tags, expected.Tags) {
 		output += fmt.Sprintf("[FAIL] %v tags=%v, expect=%v\n", funcName, logEntry.Tags, expected.Tags)
@@ -65,7 +71,7 @@ func assertLogEntry(funcName string, logEntry *types.LogEntry, expected *types.L
 }
 
 func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
-	output := ""
+	output := "worker.basicLogOpHandler.Call\n"
 	// list env
 	output += fmt.Sprintf("env.FAAS_ENGINE_ID=%v\n", os.Getenv("FAAS_ENGINE_ID"))
 	output += fmt.Sprintf("env.FAAS_CLIENT_ID=%v\n", os.Getenv("FAAS_CLIENT_ID"))
@@ -79,7 +85,7 @@ func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 			output += fmt.Sprintf("[FAIL] shared log append error: %v\n", err)
 			return []byte(output), nil
 		} else {
-			output += fmt.Sprintf("[PASS] shared log append seqNum: %v\n", seqNum)
+			output += fmt.Sprintf("[PASS] shared log append seqNum: 0x%016X\n", seqNum)
 			seqNumAppended = seqNum
 		}
 	}
@@ -144,7 +150,7 @@ func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 			output += fmt.Sprintf("[FAIL] shared log set aux data error: %v\n", err)
 			return []byte(output), nil
 		} else {
-			output += fmt.Sprintf("[PASS] shared log set aux data=%v", auxData)
+			output += fmt.Sprintf("[PASS] shared log set aux data=%v\n", auxData)
 		}
 	}
 	{
@@ -169,7 +175,38 @@ func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 	return []byte(output), nil
 }
 
+func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	output := "worker.asyncLogOpHandler.Call\n"
+	// list env
+	output += fmt.Sprintf("env.FAAS_ENGINE_ID=%v\n", os.Getenv("FAAS_ENGINE_ID"))
+	output += fmt.Sprintf("env.FAAS_CLIENT_ID=%v\n", os.Getenv("FAAS_CLIENT_ID"))
+	// test
+	var seqNumAppended uint64
+	tags := []uint64{1}
+	data := []byte{1, 2, 3}
+	{
+		future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+			return []byte(output), nil
+		} else {
+			output += fmt.Sprintf("[PASS] async shared log append localid: 0x%016X\n", future.GetLocalId())
+			if err := future.Verify(); err != nil {
+				output += fmt.Sprintf("[FAIL] async shared log verify error: %v\n", err)
+				return []byte(output), nil
+			} else {
+				seqNumAppended = future.GetResult().(uint64)
+				output += fmt.Sprintf("[PASS] async shared log append seqNum: 0x%016X\n", seqNumAppended)
+			}
+		}
+	}
+
+	return []byte(output), nil
+}
+
 func (h *benchHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	// output := "worker.benchHandler.Call\n"
+
 	// prof
 	engineId, err := strconv.Atoi(os.Getenv("FAAS_ENGINE_ID"))
 	if err != nil {
@@ -184,18 +221,17 @@ func (h *benchHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
 
 	start := time.Now()
 
-	seqNum, err := h.env.SharedLogAppend(ctx, tags, data)
 	// test := ""
+	seqNum, err := h.env.SharedLogAppend(ctx, tags, data)
+	if err != nil {
+		panic(err)
+	}
 	// { // consistency check
-	// 	logEntry, err := h.env.SharedLogReadNext(ctx, 1 /*tag*/, seqNum)
+	// 	logEntry, err := h.env.SharedLogReadNext(ctx, 1 /*tag*/, 0)
 	// 	test += fmt.Sprintln("[TEST]", logEntry, err)
 	// }
 	// { // consistency check
 	// 	logEntry, err := h.env.SharedLogReadNext(ctx, 1 /*tag*/, seqNum)
-	// 	test += fmt.Sprintln("[TEST]", logEntry, err)
-	// }
-	// { // consistency check
-	// 	logEntry, err := h.env.SharedLogReadNextBlock(ctx, 1 /*tag*/, seqNum)
 	// 	test += fmt.Sprintln("[TEST]", logEntry, err)
 	// }
 

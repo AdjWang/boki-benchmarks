@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 DOCKERFILE_DIR=$TEST_DIR/dockerfiles
@@ -68,9 +69,15 @@ function build {
 
     echo "========== build docker images =========="
     # build boki docker image
-    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
-        -f $DOCKERFILE_DIR/Dockerfile.boki \
-        $BOKI_DIR
+    if [ $DEBUG_BUILD -eq 1 ]; then
+        $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
+            -f $DOCKERFILE_DIR/Dockerfile.bokidebug \
+            $BOKI_DIR
+    else
+        $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
+            -f $DOCKERFILE_DIR/Dockerfile.boki \
+            $BOKI_DIR
+    fi
 
     # build workloads docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
@@ -163,6 +170,10 @@ function test_sharedlog {
 
     echo "test shared log operations"
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
+        assert_should_success $LINENO
+
+    echo "test async shared log operations"
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
         assert_should_success $LINENO
 
     echo "run bench"
