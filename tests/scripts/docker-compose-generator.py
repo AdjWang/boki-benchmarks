@@ -284,6 +284,178 @@ sharedlog_funcs_f = """\
 
 """
 
+bokiflow_funcs_f = """\
+  geo-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/geo", "1"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  profile-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/profile", "2"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  rate-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/rate", "3"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  recommendation-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/recommendation", "4"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  user-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/user", "5"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  hotel-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/hotel", "6"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  search-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/search", "7"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  flight-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/flight", "8"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  order-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/order", "9"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  frontend-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/frontend", "10"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  gateway-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/gateway", "11"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  singleop-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/singleop", "12"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  nop-service-{node_id}:
+    image: adjwang/boki-tests:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/nop", "13"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+"""
+
 network_config = """\
 networks:
   boki-net:
@@ -297,6 +469,7 @@ if __name__ == '__main__':
     parser.add_argument('--userlog-reps', type=int, default=3)
     parser.add_argument('--index-reps', type=int, default=3)
     parser.add_argument('--test-case', type=str, required=True)
+    parser.add_argument('--table-prefix', type=str, default="")
     parser.add_argument('--workdir', type=str, default='/tmp')
     parser.add_argument('--output', type=str, default='/tmp')
     args = parser.parse_args()
@@ -313,14 +486,20 @@ if __name__ == '__main__':
     INDEX_REPLICAS = args.index_reps
     VERBOSE = 1
     IO_URING_ENTRIES = 64
-    IO_URING_FD_SLOTS = 128
+    IO_URING_FD_SLOTS = 1024
 
     AVAILABLE_TEST_CASES = {
         'sharedlog': sharedlog_funcs_f,
+        'bokiflow': bokiflow_funcs_f,
     }
+
+    # argument assertations
     if args.test_case not in AVAILABLE_TEST_CASES:
         raise Exception("invalid test case: '{}', need to be one of: {}".format(
                         args.test_case, list(AVAILABLE_TEST_CASES.keys())))
+    if args.test_case == 'bokiflow' and args.table_prefix == "":
+        raise Exception("table prefix of bokiflow is not allowed to be empty")
+
     app_funcs_f = AVAILABLE_TEST_CASES[args.test_case]
 
     dc_content = ''.join([
@@ -377,7 +556,8 @@ if __name__ == '__main__':
 
         *[app_funcs_f.format(
             workdir=WORK_DIR,
-            node_id=i
+            node_id=i,
+            table_prefix=args.table_prefix,
         ) for i in range(1, 1+INDEX_REPLICAS)],
         network_config,
     ])

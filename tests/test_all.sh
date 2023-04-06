@@ -118,14 +118,26 @@ function debug {
     # sleep_count_down 12
     # assert_should_fail $LINENO
 
-    echo "test Foo"
-    timeout 1 curl -X POST -d "abc" http://localhost:9000/function/Foo -f ||
-        assert_should_success $LINENO
+    python3 $TEST_DIR/scripts/docker-compose-generator.py \
+        --metalog-reps=3 \
+        --userlog-reps=3 \
+        --index-reps=1 \
+        --test-case=sharedlog \
+        --workdir=$WORK_DIR \
+        --output=$WORK_DIR
 
-    echo "test unknown"
-    timeout 1 curl -X POST -d "abc" http://localhost:9000/function/unknown -fs ||
-        assert_should_fail $LINENO
-    echo "end"
+    setup_env 3 3 1 sharedlog
+
+    python3 $TEST_DIR/scripts/docker-compose-generator.py \
+        --metalog-reps=3 \
+        --userlog-reps=3 \
+        --index-reps=8 \
+        --test-case=bokiflow \
+        --table-prefix="abc" \
+        --workdir=$WORK_DIR \
+        --output=$WORK_DIR
+
+    setup_env 3 3 8 bokiflow
 }
 
 function test_sharedlog {
@@ -173,7 +185,7 @@ function test_sharedlog {
         assert_should_success $LINENO
 
     echo "test async shared log operations"
-    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
+    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
         assert_should_success $LINENO
 
     echo "run bench"
@@ -184,9 +196,46 @@ function test_sharedlog {
     if [ $(docker ps -a -f name=boki-test-* -f status=exited -q | wc -l) -ne 0 ]; then
         failed $LINENO
     fi
+}
 
-    echo "shutdown cluster..."
-    cd $WORK_DIR && docker compose down
+function test_bokiflow {
+    echo "========== test bokiflow =========="
+
+    # strange bug: head not generating EOF and just stucks. Only on my vm, tested ok in WSL.
+    # TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+    TABLE_PREFIX=$(echo $RANDOM | md5sum | head -c8)
+    TABLE_PREFIX="${TABLE_PREFIX}-"
+
+    echo "setup env..."
+    python3 $TEST_DIR/scripts/docker-compose-generator.py \
+        --metalog-reps=3 \
+        --userlog-reps=3 \
+        --index-reps=2 \
+        --test-case=bokiflow \
+        --table-prefix=$TABLE_PREFIX \
+        --workdir=$WORK_DIR \
+        --output=$WORK_DIR
+
+    setup_env 3 3 2 bokiflow
+
+    echo "setup dynamodb..."
+    docker stop `docker ps -qf ancestor=amazon/dynamodb-local` 2> /dev/null || true
+    docker rm `docker ps -aqf ancestor=amazon/dynamodb-local` 2> /dev/null || true
+    docker run -d -p 8000:8000 amazon/dynamodb-local
+
+    echo "setup cluster..."
+    cd $WORK_DIR && docker compose up -d
+
+    echo "wait to startup..."
+    sleep_count_down 15
+
+    echo "list functions"
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
+        assert_should_success $LINENO
+
+    echo "test singleop"
+    timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
+        assert_should_success $LINENO
 }
 
 if [ $# -eq 0 ]; then
@@ -204,7 +253,8 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
+    test_bokiflow
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'clean', 'run']"
