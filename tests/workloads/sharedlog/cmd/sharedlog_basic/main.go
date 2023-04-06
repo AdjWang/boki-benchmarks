@@ -220,7 +220,7 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 					AuxData: []byte{},
 				})
 				output += res
-				output += fmt.Sprintf("condLogEntry=%+v\n", condLogEntry)
+				// output += fmt.Sprintf("condLogEntry=%+v\n", condLogEntry)
 				if !passed {
 					return output
 				}
@@ -286,7 +286,7 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 					AuxData: []byte{},
 				})
 				output += res
-				output += fmt.Sprintf("condLogEntry=%+v\n", condLogEntry)
+				// output += fmt.Sprintf("condLogEntry=%+v\n", condLogEntry)
 				if !passed {
 					return output
 				}
@@ -299,6 +299,28 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 	return output
 }
 
+func asyncLogTestSync(ctx context.Context, h *asyncLogOpHandler, output string) string {
+	output += "test async log sync\n"
+	tags := []uint64{1}
+	for i := 0; i < 10; i++ {
+		data := []byte{byte(i)}
+		future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+			return output
+		}
+		h.env.AsyncLogChain().Chain(future.GetMeta())
+	}
+	err := h.env.AsyncLogChain().Sync(time.Second)
+	if err != nil {
+		output += fmt.Sprintf("[FAIL] async shared log sync error: %v\n", err)
+		return output
+	} else {
+		output += fmt.Sprintln("[PASS] async shared log sync succeed")
+	}
+	return output
+}
+
 func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
 	output := "worker.asyncLogOpHandler.Call\n"
 	// list env
@@ -307,6 +329,7 @@ func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 
 	output += asyncLogTestAppendRead(ctx, h, output)
 	output += asyncLogTestCondAppendRead(ctx, h, output)
+	output += asyncLogTestSync(ctx, h, output)
 
 	return []byte(output), nil
 }
