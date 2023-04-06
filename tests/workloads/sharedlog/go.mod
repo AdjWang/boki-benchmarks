@@ -1,6 +1,6 @@
 module cs.utexas.edu/zjia/nightcore-example
 
-go 1.14
+go 1.19
 
 require cs.utexas.edu/zjia/faas v0.0.0
 
