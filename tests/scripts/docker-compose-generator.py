@@ -254,11 +254,25 @@ sharedlog_funcs_f = """\
       - boki-engine-{node_id}
     # restart: always
 
-  sharedlog-Bench-{node_id}:
+  sharedlog-AsyncLogOpChild-{node_id}:
     image: adjwang/boki-tests:dev
     networks:
       - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/test-bin/sharedlog/sharedlog_basic", "5"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  sharedlog-Bench-{node_id}:
+    image: adjwang/boki-tests:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/test-bin/sharedlog/sharedlog_basic", "6"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:

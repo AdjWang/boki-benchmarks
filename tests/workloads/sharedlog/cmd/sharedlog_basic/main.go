@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -20,6 +21,11 @@ type asyncLogOpHandler struct {
 	env types.Environment
 }
 
+// child function as async log receiver
+type asyncLogOpChildHandler struct {
+	env types.Environment
+}
+
 type benchHandler struct {
 	env types.Environment
 }
@@ -32,6 +38,8 @@ func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.
 		return &basicLogOpHandler{env: env}, nil
 	} else if funcName == "AsyncLogOp" {
 		return &asyncLogOpHandler{env: env}, nil
+	} else if funcName == "AsyncLogOpChild" {
+		return &asyncLogOpChildHandler{env: env}, nil
 	} else if funcName == "Bench" {
 		return &benchHandler{env: env}, nil
 	} else {
@@ -201,7 +209,7 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 		}
 		lastFuture = future
 	}
-	h.env.AsyncLogChain().Chain(lastFuture.GetMeta())
+	h.env.AsyncLogCtx().Chain(lastFuture.GetMeta())
 	{
 		future, err := h.env.AsyncSharedLogReadNext(ctx, tags[0], lastFuture)
 		if err != nil {
@@ -267,7 +275,7 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 		}
 		lastFuture = future
 	}
-	h.env.AsyncLogChain().Chain(lastFuture.GetMeta())
+	h.env.AsyncLogCtx().Chain(lastFuture.GetMeta())
 	{
 		future, err := h.env.AsyncSharedLogReadNext(ctx, tags[0], lastFuture)
 		if err != nil {
@@ -309,9 +317,9 @@ func asyncLogTestSync(ctx context.Context, h *asyncLogOpHandler, output string) 
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
 		}
-		h.env.AsyncLogChain().Chain(future.GetMeta())
+		h.env.AsyncLogCtx().Chain(future.GetMeta())
 	}
-	err := h.env.AsyncLogChain().Sync(time.Second)
+	err := h.env.AsyncLogCtx().Sync(time.Second)
 	if err != nil {
 		output += fmt.Sprintf("[FAIL] async shared log sync error: %v\n", err)
 		return output
@@ -330,6 +338,47 @@ func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 	output += asyncLogTestAppendRead(ctx, h, output)
 	output += asyncLogTestCondAppendRead(ctx, h, output)
 	output += asyncLogTestSync(ctx, h, output)
+
+	output += "test async log ctx propagate\n"
+	tags := []uint64{1}
+	data := []byte{2}
+	future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+	if err != nil {
+		output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+		return []byte(output), nil
+	}
+	h.env.AsyncLogCtx().Chain(future.GetMeta())
+
+	asyncLogCtxData, err := h.env.AsyncLogCtx().Serialize()
+	if err != nil {
+		output += fmt.Sprintf("[FAIL] async shared log propagate serialize error: %v\n", err)
+		return []byte(output), nil
+	}
+	res, err := h.env.InvokeFunc(ctx, "AsyncLogOpChild", asyncLogCtxData)
+	return bytes.Join([][]byte{[]byte(output), res}, nil), err
+}
+
+func (h *asyncLogOpChildHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	output := "worker.asyncLogOpChildHandler.Call\n"
+	// list env
+	output += fmt.Sprintf("env.FAAS_ENGINE_ID=%v\n", os.Getenv("FAAS_ENGINE_ID"))
+	output += fmt.Sprintf("env.FAAS_CLIENT_ID=%v\n", os.Getenv("FAAS_CLIENT_ID"))
+
+	err := h.env.NewAsyncLogCtx(input)
+	if err != nil {
+		output += fmt.Sprintf("[FAIL] async shared log ctx propagate restore error: %v\n", err)
+		return []byte(output), nil
+	}
+	// DEBUG: print
+	output += fmt.Sprintf("async log ctx: %v\n", h.env.AsyncLogCtx())
+
+	err = h.env.AsyncLogCtx().Sync(time.Second)
+	if err != nil {
+		output += fmt.Sprintf("[FAIL] async shared log remote sync error: %v\n", err)
+		return []byte(output), nil
+	} else {
+		output += fmt.Sprintln("[PASS] async shared log remote sync succeed")
+	}
 
 	return []byte(output), nil
 }

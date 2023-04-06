@@ -3,5 +3,6 @@
     { "funcName": "Bar", "funcId": 2, "minWorkers": 1, "maxWorkers": 32 },
     { "funcName": "BasicLogOp", "funcId": 3, "minWorkers": 1, "maxWorkers": 32 },
     { "funcName": "AsyncLogOp", "funcId": 4, "minWorkers": 1, "maxWorkers": 32 },
-    { "funcName": "Bench", "funcId": 5, "minWorkers": 1, "maxWorkers": 32 }
+    { "funcName": "AsyncLogOpChild", "funcId": 5, "minWorkers": 1, "maxWorkers": 32 },
+    { "funcName": "Bench", "funcId": 6, "minWorkers": 1, "maxWorkers": 32 }
 ]
