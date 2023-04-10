@@ -2,16 +2,19 @@ package cayonlib
 
 import (
 	"encoding/json"
-	"errors"
-	"log"
 	"fmt"
+	"log"
+
+	"github.com/pkg/errors"
+
 	// "github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+
 	// lambdaSdk "github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/golang/snappy"
 	"github.com/lithammer/shortuuid"
 	"github.com/mitchellh/mapstructure"
-	"github.com/golang/snappy"
 
 	"cs.utexas.edu/zjia/faas/types"
 
@@ -29,6 +32,13 @@ type InputWrapper struct {
 	TxnId       string      `mapstructure:"TxnId"`
 	Instruction string      `mapstructure:"Instruction"`
 	Async       bool        `mapstructure:"Async"`
+
+	// TODO: more graceful way to propagate
+	// Currently mapstructure+json would lose the type of the field, like
+	// []byte or types.FutureMeta, use string instead.
+	AsyncLogPropagator        string `mapstructure:"AsyncLogPropagator"`
+	LastStepLogMetaPropagator string `mapstructure:"LastStepLogMetaPropagator"`
+	lastStepLogMeta           types.FutureMeta
 }
 
 func (iw *InputWrapper) Serialize() []byte {
@@ -86,9 +96,9 @@ func (ow *OutputWrapper) Deserialize(stream []byte) {
 func ParseInput(raw interface{}) *InputWrapper {
 	var iw InputWrapper
 	if body, ok := raw.(map[string]interface{})["body"]; ok {
-		CHECK(json.Unmarshal([]byte(body.(string)), &iw))
+		CHECK(errors.Wrapf(json.Unmarshal([]byte(body.(string)), &iw), "invalid json raw=%+v", raw))
 	} else {
-		CHECK(mapstructure.Decode(raw, &iw))
+		CHECK(errors.Wrapf(mapstructure.Decode(raw, &iw), "invalid mapstructure raw=%+v", raw))
 	}
 	return &iw
 }
@@ -120,7 +130,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	if !newLog {
 		CheckLogDataField(preInvokeLog, "type", "PreInvoke")
 		log.Printf("[INFO] Seen PreInvoke log for step %d", preInvokeLog.StepNumber)
-		resultLog := FetchStepResultLog(env, preInvokeLog.StepNumber, /* catch= */ false)
+		resultLog := FetchStepResultLog(env, preInvokeLog.StepNumber /* catch= */, false)
 		if resultLog != nil {
 			CheckLogDataField(resultLog, "type", "InvokeResult")
 			log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
@@ -159,6 +169,78 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	}
 }
 
+func SyncInvoke2(env *Env, callee string, input interface{}) (interface{}, string) {
+	future, intentLog := AsyncProposeNextStep(env, aws.JSONValue{
+		"type":       "PreInvoke",
+		"instanceId": shortuuid.New(),
+		"callee":     callee,
+		"input":      input,
+	}, []types.FutureMeta{})
+	if future == nil {
+		preInvokeLog := intentLog
+		instanceId := preInvokeLog.Data["instanceId"].(string)
+
+		CheckLogDataField(preInvokeLog, "type", "PreInvoke")
+		log.Printf("[INFO] Seen PreInvoke log for step %d", preInvokeLog.StepNumber)
+		resultLog := FetchStepResultLog(env, preInvokeLog.StepNumber /* catch= */, false)
+		if resultLog != nil {
+			CheckLogDataField(resultLog, "type", "InvokeResult")
+			log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
+			return resultLog.Data["output"], instanceId
+		}
+	}
+
+	env.FaasEnv.AsyncLogCtx().Chain(future.GetMeta())
+	// newLog would:
+	// exert if cond is true
+	// drop if cond is false
+	instanceId := intentLog.Data["instanceId"].(string)
+	stepNumber := intentLog.StepNumber
+
+	asyncLogCtxData, err := env.FaasEnv.AsyncLogCtx().Serialize()
+	CHECK(err)
+	// DEBUG
+	if len(asyncLogCtxData) == 0 {
+		panic(fmt.Sprintf("empty asyncLogCtxData: %v", asyncLogCtxData))
+	}
+	futureMetaData, err := future.GetMeta().Serialize()
+	CHECK(err)
+
+	iw := InputWrapper{
+		CallerName:  env.LambdaId,
+		CallerId:    env.InstanceId,
+		CallerStep:  stepNumber,
+		Async:       false,
+		InstanceId:  instanceId,
+		Input:       input,
+		TxnId:       env.TxnId,
+		Instruction: env.Instruction,
+
+		AsyncLogPropagator:        string(asyncLogCtxData),
+		LastStepLogMetaPropagator: string(futureMetaData),
+	}
+	if iw.Instruction == "EXECUTE" {
+		// TODO
+		// LibAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId), &TxnLogEntry{
+		// 	LambdaId: env.LambdaId,
+		// 	TxnId:    env.TxnId,
+		// 	Callee:   callee,
+		// 	WriteOp:  aws.JSONValue{},
+		// })
+	}
+	payload := iw.Serialize()
+	res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
+	CHECK(err)
+	ow := OutputWrapper{}
+	ow.Deserialize(res)
+	switch ow.Status {
+	case "Success":
+		return ow.Output, iw.InstanceId
+	default:
+		panic("never happens")
+	}
+}
+
 func ProposeInvoke(env *Env, callee string) *IntentLogEntry {
 	newLog, preInvokeLog := ProposeNextStep(env, aws.JSONValue{
 		"type":       "PreInvoke",
@@ -179,7 +261,7 @@ func AssignedSyncInvoke(env *Env, callee string, input interface{}, preInvokeLog
 
 	instanceId := preInvokeLog.Data["instanceId"].(string)
 
-	resultLog := FetchStepResultLog(env, preInvokeLog.StepNumber, /* catch= */ false)
+	resultLog := FetchStepResultLog(env, preInvokeLog.StepNumber /* catch= */, false)
 	if resultLog != nil {
 		CheckLogDataField(resultLog, "type", "InvokeResult")
 		log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
@@ -228,7 +310,7 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 	if !newLog {
 		CheckLogDataField(preInvokeLog, "type", "PreInvoke")
 		log.Printf("[INFO] Seen PreInvoke log for step %d", preInvokeLog.StepNumber)
-		resultLog := FetchStepResultLog(env, preInvokeLog.StepNumber, /* catch= */ false)
+		resultLog := FetchStepResultLog(env, preInvokeLog.StepNumber /* catch= */, false)
 		if resultLog != nil {
 			CheckLogDataField(resultLog, "type", "InvokeResult")
 			log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
@@ -245,12 +327,12 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 		Input:      input,
 	}
 
-/*
-	Should we handle this?
-	LibWrite(env.LogTable, pk, map[expression.NameBuilder]expression.OperandBuilder{
-		expression.Name("RET"): expression.Value(1),
-	})
-*/
+	/*
+		Should we handle this?
+		LibWrite(env.LogTable, pk, map[expression.NameBuilder]expression.OperandBuilder{
+			expression.Name("RET"): expression.Value(1),
+		})
+	*/
 
 	payload := iw.Serialize()
 	err := env.FaasEnv.InvokeFuncAsync(env.FaasCtx, callee, payload)
@@ -328,20 +410,27 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		panic("Baseline type not supported")
 	}
 
+	var intentLogFuture types.Future[uint64]
 	if iw.Async == false || iw.CallerName == "" {
-		LibAppendLog(env, IntentLogTag, aws.JSONValue{
+		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
-			"DONE": false,
-			"ASYNC": iw.Async,
-			"INPUT": iw.Input,
-			"ST": time.Now().Unix(),
+			"DONE":       false,
+			"ASYNC":      iw.Async,
+			"INPUT":      iw.Input,
+			"ST":         time.Now().Unix(),
+		}, func(cond types.CondHandle) {
+			cond.AddDep(iw.lastStepLogMeta)
+			// TODO: verify last step
 		})
 	} else {
-		LibAppendLog(env, IntentLogTag, aws.JSONValue{
+		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
-			"ST": time.Now().Unix(),
+			"ST":         time.Now().Unix(),
+		}, func(cond types.CondHandle) {
+			cond.AddDep(iw.lastStepLogMeta)
 		})
 	}
+	env.FaasEnv.AsyncLogCtx().Chain(intentLogFuture.GetMeta())
 	//ok := LibPut(env.IntentTable, aws.JSONValue{"InstanceId": env.InstanceId},
 	//	aws.JSONValue{"DONE": false, "ASYNC": iw.Async})
 	//if !ok {
@@ -355,6 +444,14 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	//	}
 	//}
 
+	if err := env.FaasEnv.AsyncLogCtx().Sync(time.Second); err != nil {
+		return OutputWrapper{
+			Status: "Failure",
+			Output: 0,
+		}, err
+	}
+	// TODO: [CRITICAL] verify
+
 	var output interface{}
 	if env.Instruction == "COMMIT" {
 		TPLCommit(env)
@@ -367,16 +464,20 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	}
 
 	if iw.CallerName != "" {
-		LogStepResult(env, iw.CallerId, iw.CallerStep, aws.JSONValue{
+		env.FaasEnv.AsyncLogCtx().Chain(AsyncLogStepResult(env, iw.CallerId, iw.CallerStep, aws.JSONValue{
 			"type":   "InvokeResult",
 			"output": output,
-		})
+		}, func(cond types.CondHandle) {
+			cond.AddDep(iw.lastStepLogMeta)
+		}).GetMeta())
 	}
-	LibAppendLog(env, IntentLogTag, aws.JSONValue{
+	env.FaasEnv.AsyncLogCtx().Chain(LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 		"InstanceId": env.InstanceId,
 		"DONE":       true,
 		"TS":         time.Now().Unix(),
-	})
+	}, func(cond types.CondHandle) {
+		cond.AddDep(intentLogFuture.GetMeta())
+	}).GetMeta())
 
 	return OutputWrapper{
 		Status: "Success",
@@ -400,6 +501,14 @@ func (w *funcHandlerWrapper) Call(ctx context.Context, input []byte) ([]byte, er
 	env := PrepareEnv(iw, w.fnName)
 	env.FaasCtx = ctx
 	env.FaasEnv = w.env
+
+	if iw.CallerName != "" {
+		err = env.FaasEnv.NewAsyncLogCtx([]byte(iw.AsyncLogPropagator))
+		CHECK(err)
+		iw.lastStepLogMeta, err = types.DeserializeFutureMeta([]byte(iw.LastStepLogMetaPropagator))
+		CHECK(err)
+	}
+
 	env.Fsm = NewIntentFsm(env.InstanceId)
 	env.Fsm.Catch(env)
 	ow, err := wrapperInternal(w.handler, iw, env)

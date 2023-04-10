@@ -210,18 +210,22 @@ function test_bokiflow {
     python3 $TEST_DIR/scripts/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=1 \
         --test-case=bokiflow \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 bokiflow
+    setup_env 3 3 1 bokiflow
 
     echo "setup dynamodb..."
-    docker stop `docker ps -qf ancestor=amazon/dynamodb-local` 2> /dev/null || true
-    docker rm `docker ps -aqf ancestor=amazon/dynamodb-local` 2> /dev/null || true
-    docker run -d -p 8000:8000 amazon/dynamodb-local
+    # docker stop $(docker ps -qf ancestor=amazon/dynamodb-local) 2>/dev/null || true
+    # docker rm $(docker ps -aqf ancestor=amazon/dynamodb-local) 2>/dev/null || true
+    # docker run -d -p 8000:8000 amazon/dynamodb-local
+    $TEST_DIR/workloads/bokiflow/bin/singleop/init
+    $TEST_DIR/workloads/bokiflow/bin/hotel/init clean boki
+    $TEST_DIR/workloads/bokiflow/bin/hotel/init create boki
+    $TEST_DIR/workloads/bokiflow/bin/hotel/init populate boki
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -236,6 +240,19 @@ function test_bokiflow {
     echo "test singleop"
     timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
         assert_should_success $LINENO
+    echo ""
+
+    # echo "test read request"
+    # timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
+    #     http://localhost:9000/function/gateway ||
+    #     assert_should_success $LINENO
+    # echo ""
+
+    # echo "test write request"
+    # timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"reserve","Input":{"userId":"user1","hotelId":"75","flightId":"8"}}}' \
+    #     http://localhost:9000/function/gateway ||
+    #     assert_should_success $LINENO
+    # echo ""
 }
 
 if [ $# -eq 0 ]; then

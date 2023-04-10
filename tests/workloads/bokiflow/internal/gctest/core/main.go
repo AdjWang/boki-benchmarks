@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/eniac/Beldi/pkg/beldilib"
 	"github.com/lithammer/shortuuid"
@@ -21,5 +20,5 @@ func Handler(env *beldilib.Env) interface{} {
 }
 
 func main() {
-	lambda.Start(beldilib.Wrapper(Handler))
+	// lambda.Start(beldilib.Wrapper(Handler))
 }
