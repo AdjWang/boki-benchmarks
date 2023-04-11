@@ -170,14 +170,15 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 }
 
 func SyncInvoke2(env *Env, callee string, input interface{}) (interface{}, string) {
-	future, intentLog := AsyncProposeNextStep(env, aws.JSONValue{
+	stepFuture, intentLog := AsyncProposeNextStep(env, aws.JSONValue{
 		"type":       "PreInvoke",
 		"instanceId": shortuuid.New(),
 		"callee":     callee,
 		"input":      input,
-	}, []types.FutureMeta{})
-	if future == nil {
-		preInvokeLog := intentLog
+	}, /*deps*/ []types.FutureMeta{})
+	// if stepFuture is nil, then intentLog is the recorded step before;
+	// if stepFuture is not nil, then intentLog is the newly append step;
+	fnGetLoggedStepResult := func(preInvokeLog *IntentLogEntry) (interface{}, string, bool) {
 		instanceId := preInvokeLog.Data["instanceId"].(string)
 
 		CheckLogDataField(preInvokeLog, "type", "PreInvoke")
@@ -186,59 +187,99 @@ func SyncInvoke2(env *Env, callee string, input interface{}) (interface{}, strin
 		if resultLog != nil {
 			CheckLogDataField(resultLog, "type", "InvokeResult")
 			log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
-			return resultLog.Data["output"], instanceId
+			return resultLog.Data["output"], instanceId, true
+		} else {
+			return nil, "", false
 		}
 	}
-
-	env.FaasEnv.AsyncLogCtx().Chain(future.GetMeta())
-	// newLog would:
-	// exert if cond is true
-	// drop if cond is false
-	instanceId := intentLog.Data["instanceId"].(string)
-	stepNumber := intentLog.StepNumber
-
-	asyncLogCtxData, err := env.FaasEnv.AsyncLogCtx().Serialize()
-	CHECK(err)
-	// DEBUG
-	if len(asyncLogCtxData) == 0 {
-		panic(fmt.Sprintf("empty asyncLogCtxData: %v", asyncLogCtxData))
+	if stepFuture == nil {
+		if output, instanceId, ok := fnGetLoggedStepResult(intentLog); ok {
+			return output, instanceId
+		}
 	}
-	futureMetaData, err := future.GetMeta().Serialize()
-	CHECK(err)
+	// However the fsm maybe expired, so we still need to resolve it
+	// to grab the last view of the step log here.
+	type retValPair struct {
+		output     interface{}
+		instanceId string
+	}
+	retValChan := make(chan retValPair)
+	go func(env *Env, future types.Future[uint64]) {
+		// sync
+		err := future.Await(10 * time.Second)
+		CHECK(err)
+		// resolve cond
+		lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, future.GetMeta())
+		CHECK(err)
 
-	iw := InputWrapper{
-		CallerName:  env.LambdaId,
-		CallerId:    env.InstanceId,
-		CallerStep:  stepNumber,
-		Async:       false,
-		InstanceId:  instanceId,
-		Input:       input,
-		TxnId:       env.TxnId,
-		Instruction: env.Instruction,
+		logState := ResolveLog(env, lastStepLog)
+		if logState.State == LogEntryState_PENDING {
+			panic("impossible")
+		} else if logState.State == LogEntryState_DISCARDED {
+			if output, instanceId, ok := fnGetLoggedStepResult(intentLog); ok {
+				retValChan <- retValPair{output, instanceId}
+			}
+		} else if logState.State == LogEntryState_APPLIED {
+			// carry on
+		} else {
+			panic("unreachable")
+		}
+	}(env, stepFuture)
 
-		AsyncLogPropagator:        string(asyncLogCtxData),
-		LastStepLogMetaPropagator: string(futureMetaData),
-	}
-	if iw.Instruction == "EXECUTE" {
-		// TODO
-		// LibAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId), &TxnLogEntry{
-		// 	LambdaId: env.LambdaId,
-		// 	TxnId:    env.TxnId,
-		// 	Callee:   callee,
-		// 	WriteOp:  aws.JSONValue{},
-		// })
-	}
-	payload := iw.Serialize()
-	res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
-	CHECK(err)
-	ow := OutputWrapper{}
-	ow.Deserialize(res)
-	switch ow.Status {
-	case "Success":
-		return ow.Output, iw.InstanceId
-	default:
-		panic("never happens")
-	}
+	go func(env *Env, future types.Future[uint64]) {
+		env.FaasEnv.AsyncLogCtx().Chain(future.GetMeta())
+		// newLog would:
+		// exert if cond is true
+		// drop if cond is false
+		instanceId := intentLog.Data["instanceId"].(string)
+		stepNumber := intentLog.StepNumber
+
+		asyncLogCtxData, err := env.FaasEnv.AsyncLogCtx().Serialize()
+		CHECK(err)
+		// DEBUG
+		if len(asyncLogCtxData) == 0 {
+			panic(fmt.Sprintf("empty asyncLogCtxData: %v", asyncLogCtxData))
+		}
+		futureMetaData, err := future.GetMeta().Serialize()
+		CHECK(err)
+
+		iw := InputWrapper{
+			CallerName:  env.LambdaId,
+			CallerId:    env.InstanceId,
+			CallerStep:  stepNumber,
+			Async:       false,
+			InstanceId:  instanceId,
+			Input:       input,
+			TxnId:       env.TxnId,
+			Instruction: env.Instruction,
+
+			AsyncLogPropagator:        string(asyncLogCtxData),
+			LastStepLogMetaPropagator: string(futureMetaData),
+		}
+		if iw.Instruction == "EXECUTE" {
+			// TODO
+			// LibAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId), &TxnLogEntry{
+			// 	LambdaId: env.LambdaId,
+			// 	TxnId:    env.TxnId,
+			// 	Callee:   callee,
+			// 	WriteOp:  aws.JSONValue{},
+			// })
+		}
+		payload := iw.Serialize()
+		res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
+		CHECK(err)
+		ow := OutputWrapper{}
+		ow.Deserialize(res)
+		switch ow.Status {
+		case "Success":
+			retValChan <- retValPair{ow.Output, iw.InstanceId}
+		default:
+			panic("never happens")
+		}
+	}(env, stepFuture)
+
+	retVal := <-retValChan
+	return retVal.output, retVal.instanceId
 }
 
 func ProposeInvoke(env *Env, callee string) *IntentLogEntry {
@@ -410,6 +451,15 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		panic("Baseline type not supported")
 	}
 
+	var intentCond func(types.CondHandle)
+	if iw.CallerName != "" {
+		intentCond = func(cond types.CondHandle) {
+			cond.AddDep(iw.lastStepLogMeta)
+		}
+	} else {
+		intentCond = func(cond types.CondHandle) {}
+	}
+
 	var intentLogFuture types.Future[uint64]
 	if iw.Async == false || iw.CallerName == "" {
 		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
@@ -418,19 +468,13 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			"ASYNC":      iw.Async,
 			"INPUT":      iw.Input,
 			"ST":         time.Now().Unix(),
-		}, func(cond types.CondHandle) {
-			cond.AddDep(iw.lastStepLogMeta)
-			// TODO: verify last step
-		})
+		}, intentCond)
 	} else {
 		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
 			"ST":         time.Now().Unix(),
-		}, func(cond types.CondHandle) {
-			cond.AddDep(iw.lastStepLogMeta)
-		})
+		}, intentCond)
 	}
-	env.FaasEnv.AsyncLogCtx().Chain(intentLogFuture.GetMeta())
 	//ok := LibPut(env.IntentTable, aws.JSONValue{"InstanceId": env.InstanceId},
 	//	aws.JSONValue{"DONE": false, "ASYNC": iw.Async})
 	//if !ok {
@@ -450,7 +494,32 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			Output: 0,
 		}, err
 	}
-	// TODO: [CRITICAL] verify
+	// speed up by skipping intent log sync
+	env.FaasEnv.AsyncLogCtx().Chain(intentLogFuture.GetMeta())
+
+	// verify
+	if iw.CallerName != "" {
+		lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, iw.lastStepLogMeta)
+		CHECK(err)
+		// DEBUG
+		if lastStepLog == nil {
+			panic(fmt.Sprintf("read nothing from last step: %+v", iw.lastStepLogMeta))
+		}
+
+		logState := ResolveLog(env, lastStepLog)
+		if logState.State == LogEntryState_PENDING {
+			panic("impossible")
+		} else if logState.State == LogEntryState_DISCARDED {
+			return OutputWrapper{
+				Status: "Failure",
+				Output: 0,
+			}, nil
+		} else if logState.State == LogEntryState_APPLIED {
+			// carry on
+		} else {
+			panic("unreachable")
+		}
+	}
 
 	var output interface{}
 	if env.Instruction == "COMMIT" {

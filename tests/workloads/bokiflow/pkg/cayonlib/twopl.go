@@ -1,21 +1,22 @@
 package cayonlib
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"encoding/json"
 	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/snappy"
 	// "github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
 type LockLogEntry struct {
-	SeqNum     uint64  `json:"-"`
-	LockId     string  `json:"lockId"`
-	StepNumber int32   `json:"step"`
-	UnlockOp   bool    `json:"unlockOp"`
-	Holder     string  `json:"holder"`
+	SeqNum     uint64 `json:"-"`
+	LockId     string `json:"lockId"`
+	StepNumber int32  `json:"step"`
+	UnlockOp   bool   `json:"unlockOp"`
+	Holder     string `json:"holder"`
 }
 
 type LockFsm struct {
@@ -25,8 +26,17 @@ type LockFsm struct {
 	tail       *LockLogEntry
 }
 
-var lockFsms      = map[string]LockFsm{}
+var lockFsms = map[string]LockFsm{}
 var lockFsmsMutex = sync.RWMutex{}
+
+func NewLockFsm(lockId string) *LockFsm {
+	return &LockFsm{
+		lockId:     lockId,
+		tailSeqNum: uint64(0),
+		stepNumber: 0,
+		tail:       nil,
+	}
+}
 
 func getOrCreateLockFsm(lockId string) LockFsm {
 	lockFsmsMutex.RLock()
@@ -35,12 +45,7 @@ func getOrCreateLockFsm(lockId string) LockFsm {
 	if exists {
 		return fsm
 	} else {
-		return LockFsm{
-			lockId:     lockId,
-			tailSeqNum: uint64(0),
-			stepNumber: 0,
-			tail:       nil,
-		}
+		return *NewLockFsm(lockId)
 	}
 }
 
@@ -166,7 +171,7 @@ func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool 
 			LambdaId: env.LambdaId,
 			TxnId:    env.TxnId,
 			Callee:   "",
-			WriteOp:  aws.JSONValue{
+			WriteOp: aws.JSONValue{
 				"tablename": tablename,
 				"key":       key,
 				"value":     value,

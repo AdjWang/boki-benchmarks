@@ -21,9 +21,35 @@ const lockStreamLowBits uint64 = 3
 const transactionStreamLowBits uint64 = 4
 
 const (
-	FsmType_INTENT    uint8 = 0
-	FsmType_INTENTLOG uint8 = 0
+	FsmType_STEPSTREAM        uint8 = 0
+	FsmType_INTENTLOG         uint8 = 1
+	FsmType_TRANSACTIONSTREAM uint8 = 2
+	FsmType_LOCKSTREAM        uint8 = 3
 )
+
+// Factory is only used by depdency tracking, Env should use raw allocators
+func GetOrCreateFsm(env *Env, fsmType uint8, tagKeys ...string) Fsm {
+	switch fsmType {
+	case FsmType_STEPSTREAM:
+		if env.Fsm.instanceId == tagKeys[0] {
+			return env.Fsm
+		} else {
+			return NewIntentFsm(tagKeys[0])
+		}
+	case FsmType_INTENTLOG:
+		// TODO: implement Fsm for intentlog fsm
+		panic("TODO")
+	case FsmType_TRANSACTIONSTREAM:
+		// TODO: implement Fsm for txn fsm
+		panic("TODO")
+	case FsmType_LOCKSTREAM:
+		// TODO: implement Fsm for lock fsm
+		// return NewLockFsm(tagKeys[0])
+		panic("TODO")
+	default:
+		panic("unreachable")
+	}
+}
 
 func IntentStepStreamTag(instanceId string) uint64 {
 	h := xxhash.Sum64String(instanceId)

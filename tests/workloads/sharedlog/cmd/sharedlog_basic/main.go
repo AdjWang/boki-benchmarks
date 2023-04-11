@@ -256,9 +256,10 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
 		}
+		CondResolver_IsTheFirstStep := uint8(0)
 		future, err := h.env.AsyncSharedLogCondAppend(ctx, tags, tagsMeta, data, func(cond types.CondHandle) {
 			cond.AddDep(preFuture.GetMeta())
-			cond.Read(preFuture.GetMeta())
+			cond.AddResolver(CondResolver_IsTheFirstStep)
 		})
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)

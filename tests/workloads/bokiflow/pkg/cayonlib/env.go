@@ -1,8 +1,9 @@
 package cayonlib
 
 import (
-	"cs.utexas.edu/zjia/faas/types"
 	"context"
+
+	"cs.utexas.edu/zjia/faas/types"
 )
 
 type LogEntry struct {
