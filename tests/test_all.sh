@@ -242,17 +242,17 @@ function test_bokiflow {
         assert_should_success $LINENO
     echo ""
 
-    # echo "test read request"
-    # timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
-    #     http://localhost:9000/function/gateway ||
-    #     assert_should_success $LINENO
-    # echo ""
+    echo "test read request"
+    timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
+        http://localhost:9000/function/gateway ||
+        assert_should_success $LINENO
+    echo ""
 
-    # echo "test write request"
-    # timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"reserve","Input":{"userId":"user1","hotelId":"75","flightId":"8"}}}' \
-    #     http://localhost:9000/function/gateway ||
-    #     assert_should_success $LINENO
-    # echo ""
+    echo "test write request"
+    timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"reserve","Input":{"userId":"user1","hotelId":"75","flightId":"8"}}}' \
+        http://localhost:9000/function/gateway ||
+        assert_should_success $LINENO
+    echo ""
 }
 
 if [ $# -eq 0 ]; then

@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"cs.utexas.edu/zjia/faas/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/snappy"
 	// "github.com/aws/aws-sdk-go/service/dynamodb/expression"
@@ -61,7 +62,7 @@ func storeBackLockFsm(fsm LockFsm) {
 func (fsm *LockFsm) catch(env *Env) {
 	tag := LockStreamTag(fsm.lockId)
 	for {
-		logEntry, err := env.FaasEnv.SharedLogReadNext(env.FaasCtx, tag, fsm.tailSeqNum)
+		logEntry, err := env.FaasEnv.AsyncSharedLogReadNext(env.FaasCtx, tag, fsm.tailSeqNum)
 		CHECK(err)
 		if logEntry == nil {
 			break
@@ -106,12 +107,17 @@ func (fsm *LockFsm) Lock(env *Env, holder string) bool {
 	} else if currentHolder != "" {
 		return false
 	}
-	LibAppendLog(env, LockStreamTag(fsm.lockId), &LockLogEntry{
-		LockId:     fsm.lockId,
-		StepNumber: fsm.stepNumber,
-		UnlockOp:   false,
-		Holder:     holder,
-	})
+	LibSyncAppendLog(env, LockStreamTag(fsm.lockId),
+		[]types.TagMeta{
+			{FsmType_LOCKSTREAM, []string{fsm.lockId}},
+		},
+		&LockLogEntry{
+			LockId:     fsm.lockId,
+			StepNumber: fsm.stepNumber,
+			UnlockOp:   false,
+			Holder:     holder,
+		}, func(cond types.CondHandle) {})
+
 	fsm.catch(env)
 	return fsm.holder() == holder
 }
@@ -122,12 +128,16 @@ func (fsm *LockFsm) Unlock(env *Env, holder string) {
 		log.Printf("[WARN] %s is not the holder for lock %s", holder, fsm.lockId)
 		return
 	}
-	LibAppendLog(env, LockStreamTag(fsm.lockId), &LockLogEntry{
-		LockId:     fsm.lockId,
-		StepNumber: fsm.stepNumber,
-		UnlockOp:   true,
-		Holder:     holder,
-	})
+	LibSyncAppendLog(env, LockStreamTag(fsm.lockId),
+		[]types.TagMeta{
+			{FsmType_LOCKSTREAM, []string{fsm.lockId}},
+		},
+		&LockLogEntry{
+			LockId:     fsm.lockId,
+			StepNumber: fsm.stepNumber,
+			UnlockOp:   true,
+			Holder:     holder,
+		}, func(cond types.CondHandle) {})
 }
 
 func Lock(env *Env, tablename string, key string) bool {
@@ -167,16 +177,20 @@ type TxnLogEntry struct {
 func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool {
 	if Lock(env, tablename, key) {
 		tag := TransactionStreamTag(env.LambdaId, env.TxnId)
-		LibAppendLog(env, tag, &TxnLogEntry{
-			LambdaId: env.LambdaId,
-			TxnId:    env.TxnId,
-			Callee:   "",
-			WriteOp: aws.JSONValue{
-				"tablename": tablename,
-				"key":       key,
-				"value":     value,
+		env.FaasEnv.AsyncLogCtx().Chain(LibAsyncAppendLog(env, tag,
+			[]types.TagMeta{
+				{FsmType_TRANSACTIONSTREAM, []string{env.LambdaId, env.TxnId}},
 			},
-		})
+			&TxnLogEntry{
+				LambdaId: env.LambdaId,
+				TxnId:    env.TxnId,
+				Callee:   "",
+				WriteOp: aws.JSONValue{
+					"tablename": tablename,
+					"key":       key,
+					"value":     value,
+				},
+			}, func(cond types.CondHandle) {}).GetMeta())
 		return true
 	} else {
 		return false

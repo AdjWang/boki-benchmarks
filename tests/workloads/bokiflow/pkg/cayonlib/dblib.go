@@ -2,8 +2,12 @@ package cayonlib
 
 import (
 	"log"
+	"time"
+
 	// "fmt"
+	"cs.utexas.edu/zjia/faas/types"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+
 	// "github.com/mitchellh/mapstructure"
 	// "strings"
 
@@ -137,12 +141,7 @@ func LibScan(tablename string, projection []string) []aws.JSONValue {
 func CondWrite(env *Env, tablename string, key string,
 	update map[expression.NameBuilder]expression.OperandBuilder,
 	cond expression.ConditionBuilder) {
-	newLog, preWriteLog := ProposeNextStep(env, aws.JSONValue{
-		"type":  "PreWrite",
-		"key":   key,
-		"table": tablename,
-	})
-	if !newLog {
+	fnGetLoggedStepResult := func(preWriteLog *IntentLogEntry) bool {
 		CheckLogDataField(preWriteLog, "type", "PreWrite")
 		CheckLogDataField(preWriteLog, "table", tablename)
 		CheckLogDataField(preWriteLog, "key", key)
@@ -153,8 +152,42 @@ func CondWrite(env *Env, tablename string, key string,
 			CheckLogDataField(resultLog, "table", tablename)
 			CheckLogDataField(resultLog, "key", key)
 			log.Printf("[INFO] Seen PostWrite log for step %d", preWriteLog.StepNumber)
+			return true
+		} else {
+			return false
+		}
+	}
+	stepFuture, preWriteLog := AsyncProposeNextStep(env, aws.JSONValue{
+		"type":  "PreWrite",
+		"key":   key,
+		"table": tablename,
+	}, /*deps*/ []types.FutureMeta{})
+	if stepFuture == nil {
+		if fnGetLoggedStepResult(preWriteLog) {
+			return
+		} else {
+			panic("unreachable")
+		}
+	}
+	env.FaasEnv.AsyncLogCtx().Chain(stepFuture.GetMeta())
+	// sync
+	err := env.FaasEnv.AsyncLogCtx().Sync(10 * time.Second)
+	CHECK(err)
+	// resolve cond
+	lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
+	CHECK(err)
+
+	logState := ResolveLog(env, lastStepLog)
+	if logState.State == LogEntryState_PENDING {
+		panic("impossible")
+	} else if logState.State == LogEntryState_DISCARDED {
+		if ok := fnGetLoggedStepResult(preWriteLog); ok {
 			return
 		}
+	} else if logState.State == LogEntryState_APPLIED {
+		// carry on
+	} else {
+		panic("unreachable")
 	}
 
 	Key, err := dynamodbattribute.MarshalMap(aws.JSONValue{"K": key})
@@ -186,11 +219,11 @@ func CondWrite(env *Env, tablename string, key string,
 		AssertConditionFailure(err)
 	}
 
-	LogStepResult(env, env.InstanceId, preWriteLog.StepNumber, aws.JSONValue{
+	env.FaasEnv.AsyncLogCtx().Chain(AsyncLogStepResult(env, env.InstanceId, preWriteLog.StepNumber, aws.JSONValue{
 		"type":  "PostWrite",
 		"key":   key,
 		"table": tablename,
-	})
+	}, func(cond types.CondHandle) { cond.AddDep(stepFuture.GetMeta()) }).GetMeta())
 }
 
 func Write(env *Env, tablename string, key string, update map[expression.NameBuilder]expression.OperandBuilder) {
@@ -199,10 +232,14 @@ func Write(env *Env, tablename string, key string, update map[expression.NameBui
 
 func Read(env *Env, tablename string, key string) interface{} {
 	step := env.StepNumber
-	newLog := false
-	intentLog := env.Fsm.GetStepLog(step)
-	if intentLog != nil {
+	if intentLog := env.Fsm.GetStepLog(step); intentLog != nil {
 		env.StepNumber += 1
+
+		CheckLogDataField(intentLog, "type", "Read")
+		CheckLogDataField(intentLog, "key", key)
+		CheckLogDataField(intentLog, "table", tablename)
+		log.Printf("[INFO] Seen Read log for step %d", intentLog.StepNumber)
+		return intentLog.Data["result"]
 	} else {
 		// log.Printf("[INFO] Read data from DB")
 		item := LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
@@ -212,93 +249,34 @@ func Read(env *Env, tablename string, key string) interface{} {
 		} else {
 			res = nil
 		}
-		newLog, intentLog = ProposeNextStep(env, aws.JSONValue{
+
+		newLogFuture, intentReadLog := AsyncProposeNextStep(env, aws.JSONValue{
 			"type":   "Read",
 			"key":    key,
 			"table":  tablename,
 			"result": res,
-		})
+		}, /*deps*/ []types.FutureMeta{})
+		if newLogFuture == nil {
+			CheckLogDataField(intentReadLog, "type", "Read")
+			CheckLogDataField(intentReadLog, "key", key)
+			CheckLogDataField(intentReadLog, "table", tablename)
+			log.Printf("[INFO] Seen Read log for step %d", intentReadLog.StepNumber)
+		} else {
+			env.FaasEnv.AsyncLogCtx().Chain(newLogFuture.GetMeta())
+		}
+		return intentReadLog.Data["result"]
 	}
-	if !newLog {
-		CheckLogDataField(intentLog, "type", "Read")
-		CheckLogDataField(intentLog, "key", key)
-		CheckLogDataField(intentLog, "table", tablename)
-		log.Printf("[INFO] Seen Read log for step %d", intentLog.StepNumber)
-	}
-	return intentLog.Data["result"]
-
-	// logCh := make(chan *IntentLogEntry)
-	// dbCh := make(chan interface{})
-	// go func() {
-	// 	env.Fsm.Catch(env)
-	// 	step := env.StepNumber
-	// 	intentLog := env.Fsm.GetStepLog(step)
-	// 	logCh <- intentLog
-	// }()
-	// go func() {
-	// 	item := LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
-	// 	var res interface{}
-	// 	if tmp, ok := item["V"]; ok {
-	// 		res = tmp
-	// 	} else {
-	// 		res = nil
-	// 	}
-	// 	dbCh <- res
-	// }()
-
-	// logFirst := true
-	// var intentLog *IntentLogEntry
-	// var dbRes interface{}
-	// select {
-	// case intentLog = <-logCh:
-	// 	logFirst = true
-	// 	break
-	// case dbRes = <-dbCh:
-	// 	logFirst = false
-	// 	break
-	// }
-	// if logFirst {
-	// 	if intentLog != nil { // duplicate step
-	// 		defer func() {
-	// 			go func() { <-dbCh }() // drop db res
-	// 		}()
-	// 		return intentLog.Data["result"]
-	// 	} else {
-	// 		dbRes = <-dbCh
-	// 		defer func() {
-	// 			go func() {
-	// 				ProposeNextStep(env, aws.JSONValue{
-	// 					"type":   "Read",
-	// 					"key":    key,
-	// 					"table":  tablename,
-	// 					"result": dbRes,
-	// 				})
-	// 			}()
-	// 		}()
-	// 		return dbRes
-	// 	}
-	// } else {
-	// 	defer func() {
-	// 		go func() {
-	// 			ProposeNextStep(env, aws.JSONValue{
-	// 				"type":   "Read",
-	// 				"key":    key,
-	// 				"table":  tablename,
-	// 				"result": dbRes,
-	// 			})
-	// 			<-logCh // drop log res
-	// 		}()
-	// 	}()
-	// 	return dbRes
-	// }
 }
 
 func Scan(env *Env, tablename string) interface{} {
 	step := env.StepNumber
-	newLog := false
-	intentLog := env.Fsm.GetStepLog(step)
-	if intentLog != nil {
+	if intentLog := env.Fsm.GetStepLog(step); intentLog != nil {
 		env.StepNumber += 1
+
+		CheckLogDataField(intentLog, "type", "Scan")
+		CheckLogDataField(intentLog, "table", tablename)
+		log.Printf("[INFO] Seen Scan log for step %d", intentLog.StepNumber)
+		return intentLog.Data["result"]
 	} else {
 		// log.Printf("[INFO] Scan data from DB")
 		items := LibScan(tablename, []string{"V"})
@@ -306,18 +284,20 @@ func Scan(env *Env, tablename string) interface{} {
 		for _, item := range items {
 			res = append(res, item["V"])
 		}
-		newLog, intentLog = ProposeNextStep(env, aws.JSONValue{
+		newLogFuture, intentScanLog := AsyncProposeNextStep(env, aws.JSONValue{
 			"type":   "Scan",
 			"table":  tablename,
 			"result": res,
-		})
+		}, /*deps*/ []types.FutureMeta{})
+		if newLogFuture == nil {
+			CheckLogDataField(intentScanLog, "type", "Scan")
+			CheckLogDataField(intentScanLog, "table", tablename)
+			log.Printf("[INFO] Seen Scan log for step %d", intentScanLog.StepNumber)
+		} else {
+			env.FaasEnv.AsyncLogCtx().Chain(newLogFuture.GetMeta())
+		}
+		return intentScanLog.Data["result"]
 	}
-	if !newLog {
-		CheckLogDataField(intentLog, "type", "Scan")
-		CheckLogDataField(intentLog, "table", tablename)
-		log.Printf("[INFO] Seen Scan log for step %d", intentLog.StepNumber)
-	}
-	return intentLog.Data["result"]
 }
 
 func BuildProjection(names []string) expression.ProjectionBuilder {
