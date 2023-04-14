@@ -5,5 +5,5 @@ FROM ubuntu:focal
 RUN apt update && \
     apt install -y curl
 
-COPY ./sharedlog/bin    /test-bin/sharedlog
-COPY --from=boki        /boki/launcher  /boki/launcher
+COPY ./bokiflow/bin     /bokiflow-bin
+COPY --from=boki     /boki/launcher       /boki/launcher

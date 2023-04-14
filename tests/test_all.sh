@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 DOCKERFILE_DIR=$TEST_DIR/dockerfiles
@@ -83,6 +83,25 @@ function build {
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
         -f $DOCKERFILE_DIR/Dockerfile.testcases \
         $WORKLOAD_DIR
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.beldibench \
+        $WORKLOAD_DIR
+}
+
+function push {
+    echo "========== build docker images =========="
+    # boki
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.boki \
+        $BOKI_DIR
+    # bokiflow
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.beldibench \
+        $WORKLOAD_DIR
+
+    echo "========== push docker images =========="
+    docker push adjwang/boki:dev
+    docker push adjwang/boki-beldibench:dev
 }
 
 function cleanup {
@@ -198,6 +217,8 @@ function test_sharedlog {
     fi
 }
 
+# wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
+# docker run --rm -v $HOME/dev/boki-benchmarks/tests/workloads/bokiflow/benchmark/hotel:/tmp/bench ghcr.io/eniac/beldi/beldi:latest /root/beldi/tools/wrk -t 1 -c 1 -d 5 -s /tmp/bench/workload.lua http://10.0.2.15:9000 -R 1
 function test_bokiflow {
     echo "========== test bokiflow =========="
 
@@ -210,28 +231,30 @@ function test_bokiflow {
     python3 $TEST_DIR/scripts/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=1 \
+        --index-reps=2 \
         --test-case=bokiflow \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 bokiflow
+    setup_env 3 3 2 bokiflow
 
-    echo "setup dynamodb..."
-    # docker stop $(docker ps -qf ancestor=amazon/dynamodb-local) 2>/dev/null || true
-    # docker rm $(docker ps -aqf ancestor=amazon/dynamodb-local) 2>/dev/null || true
-    # docker run -d -p 8000:8000 amazon/dynamodb-local
-    $TEST_DIR/workloads/bokiflow/bin/singleop/init
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init clean boki
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init create boki
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init populate boki
+    echo "restart dynamodb..."
+    docker stop $(docker ps -qf ancestor=amazon/dynamodb-local) 2>/dev/null || true
+    docker rm $(docker ps -aqf ancestor=amazon/dynamodb-local) 2>/dev/null || true
+    docker run -d -p 8000:8000 amazon/dynamodb-local
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
 
     echo "wait to startup..."
     sleep_count_down 15
+
+    echo "setup dynamodb..."
+    $TEST_DIR/workloads/bokiflow/bin/singleop/init
+    $TEST_DIR/workloads/bokiflow/bin/hotel/init clean boki
+    $TEST_DIR/workloads/bokiflow/bin/hotel/init create boki
+    $TEST_DIR/workloads/bokiflow/bin/hotel/init populate boki
 
     echo "list functions"
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
@@ -253,6 +276,13 @@ function test_bokiflow {
         http://localhost:9000/function/gateway ||
         assert_should_success $LINENO
     echo ""
+
+    echo "test more reads"
+    for _ in $(seq 1 300); do
+        curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
+            http://localhost:9000/function/gateway
+        echo ""
+    done
 }
 
 if [ $# -eq 0 ]; then
@@ -265,6 +295,9 @@ debug)
     ;;
 build)
     build
+    ;;
+push)
+    push
     ;;
 clean)
     cleanup

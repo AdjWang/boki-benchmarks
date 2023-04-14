@@ -46,7 +46,7 @@ function build {
     build_queuebench
     build_retwisbench
     build_beldibench
-    build_goexample
+    # build_goexample
 }
 
 function push {

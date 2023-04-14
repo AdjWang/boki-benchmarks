@@ -286,7 +286,7 @@ sharedlog_funcs_f = """\
 
 bokiflow_funcs_f = """\
   geo-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/geo", "1"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -299,7 +299,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   profile-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/profile", "2"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -312,7 +312,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   rate-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/rate", "3"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -325,7 +325,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   recommendation-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/recommendation", "4"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -338,7 +338,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   user-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/user", "5"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -351,7 +351,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   hotel-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/hotel", "6"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -364,7 +364,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   search-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/search", "7"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -377,7 +377,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   flight-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/flight", "8"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -390,7 +390,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   order-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/order", "9"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -403,7 +403,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   frontend-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/frontend", "10"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -416,7 +416,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   gateway-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/gateway", "11"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -429,7 +429,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   singleop-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/singleop", "12"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -442,7 +442,7 @@ bokiflow_funcs_f = """\
     # restart: always
 
   nop-service-{node_id}:
-    image: adjwang/boki-tests:dev
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/nop", "13"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki

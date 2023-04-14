@@ -1,4 +1,4 @@
-FROM zjia/boki:sosp-ae as boki
+FROM adjwang/boki:dev as boki
 FROM ubuntu:focal
 
 # install curl for opentelemetry which requires libcurl.so

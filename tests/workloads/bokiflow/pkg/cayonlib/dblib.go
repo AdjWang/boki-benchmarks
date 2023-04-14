@@ -171,7 +171,7 @@ func CondWrite(env *Env, tablename string, key string,
 	}
 	env.FaasEnv.AsyncLogCtx().Chain(stepFuture.GetMeta())
 	// sync
-	err := env.FaasEnv.AsyncLogCtx().Sync(10 * time.Second)
+	err := env.FaasEnv.AsyncLogCtx().Sync(60 * time.Second)
 	CHECK(err)
 	// resolve cond
 	lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
@@ -284,19 +284,21 @@ func Scan(env *Env, tablename string) interface{} {
 		for _, item := range items {
 			res = append(res, item["V"])
 		}
-		newLogFuture, intentScanLog := AsyncProposeNextStep(env, aws.JSONValue{
-			"type":   "Scan",
-			"table":  tablename,
-			"result": res,
-		}, /*deps*/ []types.FutureMeta{})
-		if newLogFuture == nil {
-			CheckLogDataField(intentScanLog, "type", "Scan")
-			CheckLogDataField(intentScanLog, "table", tablename)
-			log.Printf("[INFO] Seen Scan log for step %d", intentScanLog.StepNumber)
-		} else {
-			env.FaasEnv.AsyncLogCtx().Chain(newLogFuture.GetMeta())
-		}
-		return intentScanLog.Data["result"]
+		// FIXME: data too large
+		// newLogFuture, intentScanLog := AsyncProposeNextStep(env, aws.JSONValue{
+		// 	"type":   "Scan",
+		// 	"table":  tablename,
+		// 	"result": res,
+		// }, /*deps*/ []types.FutureMeta{})
+		// if newLogFuture == nil {
+		// 	CheckLogDataField(intentScanLog, "type", "Scan")
+		// 	CheckLogDataField(intentScanLog, "table", tablename)
+		// 	log.Printf("[INFO] Seen Scan log for step %d", intentScanLog.StepNumber)
+		// } else {
+		// 	env.FaasEnv.AsyncLogCtx().Chain(newLogFuture.GetMeta())
+		// }
+		// return intentScanLog.Data["result"]
+		return res
 	}
 }
 
