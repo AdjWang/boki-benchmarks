@@ -277,16 +277,12 @@ function test_bokiflow {
         assert_should_success $LINENO
     echo ""
 
-    echo "test more reads"
-    for _ in $(seq 1 300); do
-        curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
-            http://localhost:9000/function/gateway
-        echo ""
-    done
+    echo "test more requests"
+    wrk -t 2 -c 2 -d 150 -s $TEST_DIR/workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then
-    echo "[ERROR] needs an arg ['build', 'clean', 'run']"
+    echo "[ERROR] needs an arg ['build', 'push', 'clean', 'run']"
     exit 1
 fi
 case "$1" in
@@ -307,6 +303,6 @@ run)
     test_bokiflow
     ;;
 *)
-    echo "[ERROR] unknown arg '$1', needs ['build', 'clean', 'run']"
+    echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"
     ;;
 esac

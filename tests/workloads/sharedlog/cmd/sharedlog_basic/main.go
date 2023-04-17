@@ -11,6 +11,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas"
 	"cs.utexas.edu/zjia/faas/types"
+	"github.com/eniac/Beldi/pkg/cayonlib"
 )
 
 type basicLogOpHandler struct {
@@ -201,7 +202,7 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
 		} else {
-			output += fmt.Sprintf("[PASS] async shared log append localid: 0x%016X\n", future.GetLocalId())
+			output += fmt.Sprintf("[PASS] async shared log append localid: 0x%016X\n", future.GetMeta().LocalId)
 			if err := future.Await(time.Second); err != nil {
 				output += fmt.Sprintf("[FAIL] async shared log verify error: %v\n", err)
 				return output
@@ -215,7 +216,6 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 		}
 		lastFuture = future
 	}
-	h.env.AsyncLogCtx().Chain(lastFuture.GetMeta())
 	{
 		condLogEntry, err := h.env.AsyncSharedLogRead(ctx, lastFuture.GetMeta())
 		if err != nil {
@@ -259,13 +259,13 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 		CondResolver_IsTheFirstStep := uint8(0)
 		future, err := h.env.AsyncSharedLogCondAppend(ctx, tags, tagsMeta, data, func(cond types.CondHandle) {
 			cond.AddDep(preFuture.GetMeta())
-			cond.AddResolver(CondResolver_IsTheFirstStep)
+			cond.AddCond(CondResolver_IsTheFirstStep)
 		})
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
 		} else {
-			output += fmt.Sprintf("[PASS] async shared log append localid: 0x%016X\n", future.GetLocalId())
+			output += fmt.Sprintf("[PASS] async shared log append localid: 0x%016X\n", future.GetMeta().LocalId)
 			if err := future.Await(time.Second); err != nil {
 				output += fmt.Sprintf("[FAIL] async shared log verify error: %v\n", err)
 				return output
@@ -279,7 +279,6 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 		}
 		lastFuture = future
 	}
-	h.env.AsyncLogCtx().Chain(lastFuture.GetMeta())
 	{
 		condLogEntry, err := h.env.AsyncSharedLogRead(ctx, lastFuture.GetMeta())
 		if err != nil {
@@ -304,6 +303,7 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 
 func asyncLogTestSync(ctx context.Context, h *asyncLogOpHandler, output string) string {
 	output += "test async log sync\n"
+	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
 	tags := []uint64{1}
 	tagsMeta := []types.TagMeta{
 		{
@@ -318,9 +318,9 @@ func asyncLogTestSync(ctx context.Context, h *asyncLogOpHandler, output string) 
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
 		}
-		h.env.AsyncLogCtx().Chain(future.GetMeta())
+		asyncLogCtx.ChainFuture(future.GetMeta())
 	}
-	err := h.env.AsyncLogCtx().Sync(time.Second)
+	err := asyncLogCtx.Sync(time.Second)
 	if err != nil {
 		output += fmt.Sprintf("[FAIL] async shared log sync error: %v\n", err)
 		return output
@@ -341,6 +341,7 @@ func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 	output += asyncLogTestSync(ctx, h, output)
 
 	output += "test async log ctx propagate\n"
+	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
 	tags := []uint64{1}
 	tagsMeta := []types.TagMeta{
 		{
@@ -354,9 +355,9 @@ func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 		output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 		return []byte(output), nil
 	}
-	h.env.AsyncLogCtx().Chain(future.GetMeta())
+	asyncLogCtx.ChainStep(future.GetMeta())
 
-	asyncLogCtxData, err := h.env.AsyncLogCtx().Serialize()
+	asyncLogCtxData, err := asyncLogCtx.Serialize()
 	if err != nil {
 		output += fmt.Sprintf("[FAIL] async shared log propagate serialize error: %v\n", err)
 		return []byte(output), nil
@@ -371,15 +372,15 @@ func (h *asyncLogOpChildHandler) Call(ctx context.Context, input []byte) ([]byte
 	output += fmt.Sprintf("env.FAAS_ENGINE_ID=%v\n", os.Getenv("FAAS_ENGINE_ID"))
 	output += fmt.Sprintf("env.FAAS_CLIENT_ID=%v\n", os.Getenv("FAAS_CLIENT_ID"))
 
-	err := h.env.NewAsyncLogCtx(input)
+	asyncLogCtx, err := cayonlib.DeserializeAsyncLogContext(h.env, input)
 	if err != nil {
 		output += fmt.Sprintf("[FAIL] async shared log ctx propagate restore error: %v\n", err)
 		return []byte(output), nil
 	}
 	// DEBUG: print
-	output += fmt.Sprintf("async log ctx: %v\n", h.env.AsyncLogCtx())
+	output += fmt.Sprintf("async log ctx: %v\n", asyncLogCtx)
 
-	err = h.env.AsyncLogCtx().Sync(time.Second)
+	err = asyncLogCtx.Sync(time.Second)
 	if err != nil {
 		output += fmt.Sprintf("[FAIL] async shared log remote sync error: %v\n", err)
 		return []byte(output), nil

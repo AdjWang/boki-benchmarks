@@ -46,7 +46,7 @@ func TestInputWrapperSerialize(t *testing.T) {
 		TxnId:       "dummyTxnId",
 		Instruction: "dummyInstruction",
 
-		AsyncLogPropagator:        string(asyncLogCtxData),
+		AsyncLogCtxPropagator:     string(asyncLogCtxData),
 		LastStepLogMetaPropagator: string(futureMetaData),
 	}
 	t.Logf("iw=%+v", iw)

@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.34.6
 	github.com/cespare/xxhash/v2 v2.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/golang/snappy v0.0.2
+	github.com/golang/snappy v0.0.4
 	github.com/hailocab/go-geoindex v0.0.0-20160127134810-64631bfe9711
 	github.com/lithammer/shortuuid v3.0.0+incompatible
 	github.com/mitchellh/mapstructure v1.3.3

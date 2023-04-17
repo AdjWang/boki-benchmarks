@@ -2,10 +2,9 @@ package cayonlib
 
 import (
 	"log"
-	"time"
 
 	// "fmt"
-	"cs.utexas.edu/zjia/faas/types"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
 
 	// "github.com/mitchellh/mapstructure"
@@ -161,7 +160,7 @@ func CondWrite(env *Env, tablename string, key string,
 		"type":  "PreWrite",
 		"key":   key,
 		"table": tablename,
-	}, /*deps*/ []types.FutureMeta{})
+	}, env.AsyncLogCtx.GetLastStepLogMeta())
 	if stepFuture == nil {
 		if fnGetLoggedStepResult(preWriteLog) {
 			return
@@ -169,9 +168,9 @@ func CondWrite(env *Env, tablename string, key string,
 			panic("unreachable")
 		}
 	}
-	env.FaasEnv.AsyncLogCtx().Chain(stepFuture.GetMeta())
+	env.AsyncLogCtx.ChainStep(stepFuture.GetMeta())
 	// sync
-	err := env.FaasEnv.AsyncLogCtx().Sync(60 * time.Second)
+	err := env.AsyncLogCtx.Sync(gSyncTimeout)
 	CHECK(err)
 	// resolve cond
 	lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
@@ -219,11 +218,11 @@ func CondWrite(env *Env, tablename string, key string,
 		AssertConditionFailure(err)
 	}
 
-	env.FaasEnv.AsyncLogCtx().Chain(AsyncLogStepResult(env, env.InstanceId, preWriteLog.StepNumber, aws.JSONValue{
+	env.AsyncLogCtx.ChainStep(AsyncLogStepResult(env, env.InstanceId, preWriteLog.StepNumber, aws.JSONValue{
 		"type":  "PostWrite",
 		"key":   key,
 		"table": tablename,
-	}, func(cond types.CondHandle) { cond.AddDep(stepFuture.GetMeta()) }).GetMeta())
+	}, stepFuture.GetMeta()).GetMeta())
 }
 
 func Write(env *Env, tablename string, key string, update map[expression.NameBuilder]expression.OperandBuilder) {
@@ -232,7 +231,7 @@ func Write(env *Env, tablename string, key string, update map[expression.NameBui
 
 func Read(env *Env, tablename string, key string) interface{} {
 	step := env.StepNumber
-	if intentLog := env.Fsm.GetStepLog(step); intentLog != nil {
+	if intentLog := env.FsmHub.GetInstanceStepFsm().GetStepLog(step); intentLog != nil {
 		env.StepNumber += 1
 
 		CheckLogDataField(intentLog, "type", "Read")
@@ -255,14 +254,14 @@ func Read(env *Env, tablename string, key string) interface{} {
 			"key":    key,
 			"table":  tablename,
 			"result": res,
-		}, /*deps*/ []types.FutureMeta{})
+		}, env.AsyncLogCtx.GetLastStepLogMeta())
 		if newLogFuture == nil {
 			CheckLogDataField(intentReadLog, "type", "Read")
 			CheckLogDataField(intentReadLog, "key", key)
 			CheckLogDataField(intentReadLog, "table", tablename)
 			log.Printf("[INFO] Seen Read log for step %d", intentReadLog.StepNumber)
 		} else {
-			env.FaasEnv.AsyncLogCtx().Chain(newLogFuture.GetMeta())
+			env.AsyncLogCtx.ChainStep(newLogFuture.GetMeta())
 		}
 		return intentReadLog.Data["result"]
 	}
@@ -270,7 +269,7 @@ func Read(env *Env, tablename string, key string) interface{} {
 
 func Scan(env *Env, tablename string) interface{} {
 	step := env.StepNumber
-	if intentLog := env.Fsm.GetStepLog(step); intentLog != nil {
+	if intentLog := env.FsmHub.GetInstanceStepFsm().GetStepLog(step); intentLog != nil {
 		env.StepNumber += 1
 
 		CheckLogDataField(intentLog, "type", "Scan")

@@ -2,7 +2,6 @@ package cayonlib
 
 import (
 	"fmt"
-	"time"
 
 	// "log"
 	"encoding/json"
@@ -25,7 +24,6 @@ type IntentLogEntry struct {
 type IntentFsm struct {
 	instanceId string
 	stepNumber int32
-	// tail         *IntentLogEntry
 	FsmCommon[IntentLogEntry]
 	stepLogs     map[int32]*IntentLogEntry
 	postStepLogs map[int32]*IntentLogEntry
@@ -87,7 +85,7 @@ func (fsm *IntentFsm) applyLog(intentLog *IntentLogEntry) {
 			if step != fsm.stepNumber {
 				panic(fmt.Sprintf("StepNumber is not monotonic: expected=%d, seen=%d", fsm.stepNumber, step))
 			}
-			fsm.stepNumber += 1
+			fsm.stepNumber++
 			fsm.stepLogs[step] = intentLog
 		}
 	}
@@ -148,10 +146,10 @@ func (fsm *IntentFsm) GetPostStepLog(stepNumber int32) *IntentLogEntry {
 // 	})
 // }
 
-func AsyncProposeNextStep(env *Env, data aws.JSONValue, deps []types.FutureMeta) (types.Future[uint64], *IntentLogEntry) {
+func AsyncProposeNextStep(env *Env, data aws.JSONValue, dep types.FutureMeta) (types.Future[uint64], *IntentLogEntry) {
 	step := env.StepNumber
 	env.StepNumber += 1
-	intentLog := env.Fsm.GetStepLog(step)
+	intentLog := env.FsmHub.GetInstanceStepFsm().GetStepLog(step)
 	if intentLog != nil {
 		return nil, intentLog
 	}
@@ -170,16 +168,14 @@ func AsyncProposeNextStep(env *Env, data aws.JSONValue, deps []types.FutureMeta)
 		},
 		&intentLog,
 		func(cond types.CondHandle) {
-			for _, dep := range deps {
-				cond.AddDep(dep)
-			}
-			cond.AddResolver(CondResolver_IsTheFirstStep)
+			cond.AddDep(dep)
+			cond.AddCond(CondResolver_IsTheFirstStep)
 		},
 	)
 	return future, intentLog
 }
 
-func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue, cond func(types.CondHandle)) types.Future[uint64] {
+func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue, dep types.FutureMeta) types.Future[uint64] {
 	return LibAsyncAppendLog(env, IntentStepStreamTag(instanceId),
 		[]types.TagMeta{
 			{
@@ -193,21 +189,23 @@ func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.
 			PostStep:   true,
 			Data:       data,
 		},
-		cond,
+		func(cond types.CondHandle) {
+			cond.AddDep(dep)
+		},
 	)
 }
 
 func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry {
-	intentLog := env.Fsm.GetPostStepLog(stepNumber)
+	intentLog := env.FsmHub.GetInstanceStepFsm().GetPostStepLog(stepNumber)
 	if intentLog != nil {
 		return intentLog
 	}
 	if catch {
-		env.Fsm.Catch(env)
+		env.FsmHub.GetInstanceStepFsm().Catch(env)
 	} else {
 		return nil
 	}
-	return env.Fsm.GetPostStepLog(stepNumber)
+	return env.FsmHub.GetInstanceStepFsm().GetPostStepLog(stepNumber)
 }
 
 // func LibAppendLog(env *Env, tag uint64, data interface{}) uint64 {
@@ -229,13 +227,22 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 // 	return seqNum
 // }
 
-func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, cond func(types.CondHandle)) {
-	future := LibAsyncAppendLog(env, tag, tagMeta, data, cond)
-	// sync index
-	indexFuture, err := env.FaasEnv.AsyncSharedLogReadIndex(env.FaasCtx, future.GetMeta())
+func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, dep types.FutureMeta) {
+	future := LibAsyncAppendLog(env, tag, tagMeta, data,
+		func(cond types.CondHandle) {
+			cond.AddDep(dep)
+		})
+	// sync until receives index
+	// If the async log is not propagated to a different engine, waiting for
+	// the seqnum is enough to gaurantee read-your-write consistency.
+	err := future.Await(gSyncTimeout)
 	CHECK(err)
-	err = indexFuture.Await(10 * time.Second)
-	CHECK(err)
+
+	// // But wait for index is fast enough so no need to do this optimization.
+	// indexFuture, err := env.FaasEnv.AsyncSharedLogReadIndex(env.FaasCtx, future.GetMeta())
+	// CHECK(err)
+	// err = indexFuture.Await(gSyncTimeout)
+	// CHECK(err)
 }
 
 func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, cond func(types.CondHandle)) types.Future[uint64] {

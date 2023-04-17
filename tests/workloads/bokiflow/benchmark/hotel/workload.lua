@@ -47,7 +47,8 @@ local function search_hotel()
 
     local method = "POST"
 
-    local path = '/asyncFunction/gateway'
+    -- local path = '/asyncFunction/gateway'
+    local path = '/function/gateway'
     -- local param = {
     --     InstanceId = uuid(),
     --     CallerName = "",
@@ -79,7 +80,9 @@ local function search_hotel()
 
     local headers = {}
     headers["Content-Type"] = "application/json"
-    return wrk.format(method, path, headers, body)
+    local search_req = wrk.format(method, path, headers, body)
+    print("search_req:", search_req)
+    return search_req
 end
 
 local function recommend()
@@ -97,7 +100,8 @@ local function recommend()
     local lon = -122.095 + (math.random(0, 325) - 157.0) / 1000.0
 
     local method = "POST"
-    local path = '/asyncFunction/gateway'
+    -- local path = '/asyncFunction/gateway'
+    local path = '/function/gateway'
 
     -- local param = {
     --     InstanceId = uuid(),
@@ -165,7 +169,8 @@ end
 
 local function reserve_all()
     local method = "POST"
-    local path = '/asyncFunction/gateway'
+    -- local path = '/asyncFunction/gateway'
+    local path = '/function/gateway'
 
     -- local param = {
     --     InstanceId = uuid(),
@@ -202,7 +207,8 @@ end
 local function user_login()
     local user_name, password = get_user()
     local method = "POST"
-    local path = '/asyncFunction/gateway'
+    -- local path = '/asyncFunction/gateway'
+    local path = '/function/gateway'
     -- local param = {
     --     InstanceId = uuid(),
     --     CallerName = "",
@@ -235,27 +241,54 @@ end
 
 request = function()
     -- cur_time = math.floor(socket.gettime())
-    local search_ratio = 0.6
-    local recommend_ratio = 0.39
-    local user_ratio = 0.005
-    local reserve_ratio = 0.005
+    -- local search_ratio = 0.6
+    -- local recommend_ratio = 0.39
+    -- local user_ratio = 0.005
+    -- local reserve_ratio = 0.005
 
-    --return search_hotel()
+    -- DEBUG
+    local search_ratio = 0.25
+    local recommend_ratio = 0.25
+    local user_ratio = 0.25
+    local reserve_ratio = 0.25
+
+    -- request = search_hotel()
     --return recommend()
-    --return user_login()
-    --return reserve_all()
+    -- request = user_login()
+    -- request = reserve_all()
     local coin = math.random()
+    local request
     if coin < search_ratio then
-        return search_hotel()
+        request = search_hotel()
     elseif coin < search_ratio + recommend_ratio then
-        return recommend()
+        request = recommend()
     elseif coin < search_ratio + recommend_ratio + user_ratio then
-        return user_login()
+        request = user_login()
     else
-        return reserve_all()
+        request = reserve_all()
     end
+    print("request:", request)
+    return request
 end
 
-function init(rand_seed)
-    math.randomseed(rand_seed)
+function dump(o)
+   if type(o) == 'table' then
+      local s = '{ '
+      for k,v in pairs(o) do
+         if type(k) ~= 'number' then k = '"'..k..'"' end
+         s = s .. '['..k..'] = ' .. dump(v) .. ','
+      end
+      return s .. '} '
+   else
+      return tostring(o)
+   end
+end
+
+response = function(status, headers, body)
+  print("status:", status)
+  print("headers:", dump(headers))
+  print("body:", body)
+  if status ~= 200 then
+    error(status)
+  end
 end

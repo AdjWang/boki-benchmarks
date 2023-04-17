@@ -1,5 +1,5 @@
-# buildflags = -race
-buildflags = 
+buildflags = -race
+# buildflags = 
 
 .PHONY: build clean deploy
 

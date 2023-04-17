@@ -2,11 +2,12 @@ package cayonlib
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	"time"
 )
 
 func CreateMainTable(lambdaId string) {
@@ -63,7 +64,7 @@ func DeleteLambdaTables(lambdaId string) {
 }
 
 func WaitUntilDeleted(tablename string) {
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(kTablePrefix + tablename)})
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
@@ -87,7 +88,7 @@ func WaitUntilAllDeleted(tablenames []string) {
 
 func WaitUntilActive(tablename string) bool {
 	counter := 0
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(kTablePrefix + tablename)})
 		if err != nil {
 			counter += 1
@@ -133,4 +134,17 @@ func Populate(tablename string, key string, value interface{}, baseline bool) {
 			expression.Name("VERSION"): expression.Value(0),
 			expression.Name("V"):       expression.Value(value),
 		})
+}
+
+func CHECK(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// DEBUG
+func ASSERT(cond bool, tip string) {
+	if !cond {
+		panic(fmt.Errorf("assertion failed: %v", tip))
+	}
 }

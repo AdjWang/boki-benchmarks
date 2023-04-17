@@ -78,19 +78,23 @@ func (fsm *FsmCommon[TLogEntry]) Catch(env *Env) {
 //	resolved/rejected: true
 //	pending: false
 func (fsm *FsmCommon[TLogEntry]) resolve(env *Env, condLogEntry *types.CondLogEntry) (bool, uint64) {
-	// log.Printf("fsm=%v resolve log %v", fsm, condLogEntry)
+	log.Printf("fsm=%+v resolve log %+v", fsm, condLogEntry)
 	// resolve deps
 	for _, dep := range condLogEntry.Deps {
 		depCondLogEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, dep)
 		CHECK(err)
-		// log.Printf("fsm=%v resolve log dep %v get deplog %v", fsm, dep, depCondLogEntry)
+		log.Printf("fsm=%+v resolve log dep %+v get deplog %+v", fsm, dep, depCondLogEntry)
 
 		var logState LogState
-		decoded, err := snappy.Decode(nil, depCondLogEntry.AuxData)
-		CHECK(err)
-		if len(decoded) > 0 {
-			err = json.Unmarshal(decoded, &logState)
+		if len(depCondLogEntry.AuxData) > 0 {
+			decoded, err := snappy.Decode(nil, depCondLogEntry.AuxData)
 			CHECK(err)
+			if len(decoded) > 0 {
+				err = json.Unmarshal(decoded, &logState)
+				CHECK(err)
+			} else {
+				logState = LogState{LogEntryState_PENDING}
+			}
 		} else {
 			logState = LogState{LogEntryState_PENDING}
 		}
@@ -98,10 +102,10 @@ func (fsm *FsmCommon[TLogEntry]) resolve(env *Env, condLogEntry *types.CondLogEn
 	recheck:
 		switch logState.State {
 		case LogEntryState_PENDING:
-			if inside(IntentStepStreamTag(env.InstanceId), depCondLogEntry.Tags) && depCondLogEntry.SeqNum > condLogEntry.SeqNum {
+			if inside(fsm.reciever.GetTag(), depCondLogEntry.Tags) && depCondLogEntry.SeqNum > condLogEntry.SeqNum {
 				// to pending
 				return false, depCondLogEntry.SeqNum
-			} else if inside(IntentStepStreamTag(env.InstanceId), depCondLogEntry.Tags) && depCondLogEntry.SeqNum < condLogEntry.SeqNum {
+			} else if inside(fsm.reciever.GetTag(), depCondLogEntry.Tags) && depCondLogEntry.SeqNum < condLogEntry.SeqNum {
 				log.Println(dep.State)
 				panic("impossible here that deps.state is pending")
 			} else { // if !inside(IntentStepStreamTag(env.InstanceId), depCondLogEntry.Tags) {
@@ -146,6 +150,15 @@ func (fsm *FsmCommon[TLogEntry]) resolve(env *Env, condLogEntry *types.CondLogEn
 	return true, 0
 }
 
+func inside(a uint64, b []uint64) bool {
+	for _, i := range b {
+		if a == i {
+			return true
+		}
+	}
+	return false
+}
+
 func ResolveLog(env *Env, logEntry *types.CondLogEntry) LogState {
 	tag := logEntry.Tags[0]
 	if tag == IntentLogTag {
@@ -153,7 +166,7 @@ func ResolveLog(env *Env, logEntry *types.CondLogEntry) LogState {
 	}
 	// log.Printf("ResolveLog %v catch begin", logEntry)
 	tagBuildMeta := logEntry.TagBuildMeta[0] // only 1 in bokiflow
-	fsm := GetOrCreateFsm(env, tagBuildMeta.FsmType, tagBuildMeta.TagKeys...)
+	fsm := env.FsmHub.GetOrCreateAbsFsm(tagBuildMeta.FsmType, tagBuildMeta.TagKeys...)
 	fsm.Catch(env)
 	// log.Printf("ResolveLog %v catch over", logEntry)
 
@@ -176,13 +189,4 @@ func ResolveLog(env *Env, logEntry *types.CondLogEntry) LogState {
 		panic("impossible")
 	}
 	return logState
-}
-
-func inside(a uint64, b []uint64) bool {
-	for _, i := range b {
-		if a == i {
-			return true
-		}
-	}
-	return false
 }

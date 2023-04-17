@@ -2,6 +2,7 @@ package cayonlib
 
 import (
 	"os"
+	"time"
 
 	// "github.com/aws/aws-sdk-go/aws"
 	// "github.com/aws/aws-sdk-go/aws/credentials"
@@ -33,10 +34,5 @@ var T = int64(60)
 
 var TYPE = "BELDI"
 
-func CHECK(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
 var kTablePrefix = os.Getenv("TABLE_PREFIX")
+var gSyncTimeout = time.Duration(60 * time.Second)
