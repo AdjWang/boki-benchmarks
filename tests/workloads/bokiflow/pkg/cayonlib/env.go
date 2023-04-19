@@ -72,6 +72,26 @@ type FsmHubImpl struct {
 	absFsms map[uint64]Fsm
 }
 
+// DEBUG
+func (fsmhub *FsmHubImpl) String() string {
+	clientStr := fmt.Sprintf("LambdaId=%v, InstanceId=%v, StepNumber=%v\n",
+		fsmhub.env.LambdaId, fsmhub.env.InstanceId, fsmhub.env.StepNumber)
+	stepFsmStr := fmt.Sprintf("stepFsm: %v", fsmhub.stepFsm.DebugGetLogReadOrder())
+	lockFsmStr := ""
+	for lockId, lockFsm := range fsmhub.lockFsms {
+		lockFsmStr += fmt.Sprintf("lockFsm_%v: %v", lockId, lockFsm.DebugGetLogReadOrder())
+	}
+	txnFsmStr := ""
+	for txnId, txnFsm := range fsmhub.txnFsms {
+		txnFsmStr += fmt.Sprintf("txnFsm_%v: %v", txnId, txnFsm.DebugGetLogReadOrder())
+	}
+	absFsmStr := ""
+	for absId, absFsm := range fsmhub.absFsms {
+		absFsmStr += fmt.Sprintf("absFsm_%v: %v", absId, absFsm.DebugGetLogReadOrder())
+	}
+	return clientStr + stepFsmStr + lockFsmStr + txnFsmStr + absFsmStr
+}
+
 func NewFsmHub(env *Env) FsmHub {
 	stepFsm := NewIntentFsm(env.InstanceId)
 	stepFsm.Catch(env)
@@ -228,9 +248,7 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	for _, futureMeta := range fc.AsyncLogOps {
 		wg.Add(1)
 		go func(futureMeta types.FutureMeta) {
-			if future, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, futureMeta); err != nil {
-				errCh <- err
-			} else if err := future.Await(timeout); err != nil {
+			if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, futureMeta); err != nil {
 				errCh <- err
 			} else {
 				// log.Printf("wait future=%+v done", future)
@@ -292,5 +310,7 @@ func DeserializeAsyncLogContext(faasEnv types.Environment, data []byte) (AsyncLo
 
 // DEBUG
 func (fc *asyncLogContextImpl) String() string {
-	return fmt.Sprintf("ops=%+v", fc.AsyncLogOps)
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	return fmt.Sprintf("log chain: %+v, last log: %+v", fc.AsyncLogOps, fc.LastStepLogMeta)
 }

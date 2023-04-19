@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/pkg/errors"
 
@@ -201,7 +202,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 				WriteOp:  aws.JSONValue{},
 			},
 			func(cond types.CondHandle) {
-				env.AsyncLogCtx.GetLastStepLogMeta()
+				cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
 			}).GetMeta())
 	}
 	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
@@ -353,17 +354,12 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		panic("Baseline type not supported")
 	}
 
-	var intentCond func(types.CondHandle)
 	if iw.CallerName != "" {
 		ASSERT(env.AsyncLogCtx.GetLastStepLogMeta().IsValid(),
 			fmt.Sprintf("last step meta: %+v should be valid", env.AsyncLogCtx.GetLastStepLogMeta()))
-		intentCond = func(cond types.CondHandle) {
-			cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
-		}
 	} else {
 		ASSERT(!env.AsyncLogCtx.GetLastStepLogMeta().IsValid(),
 			fmt.Sprintf("last step meta: %+v should be invalid", env.AsyncLogCtx.GetLastStepLogMeta()))
-		intentCond = func(cond types.CondHandle) {}
 	}
 
 	var intentLogFuture types.Future[uint64]
@@ -374,12 +370,16 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			"ASYNC":      iw.Async,
 			"INPUT":      iw.Input,
 			"ST":         time.Now().Unix(),
-		}, intentCond)
+		}, func(cond types.CondHandle) {
+			cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
+		})
 	} else {
 		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
 			"ST":         time.Now().Unix(),
-		}, intentCond)
+		}, func(cond types.CondHandle) {
+			cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
+		})
 	}
 	env.AsyncLogCtx.ChainFuture(intentLogFuture.GetMeta())
 	//ok := LibPut(env.IntentTable, aws.JSONValue{"InstanceId": env.InstanceId},
@@ -410,11 +410,10 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		fmt.Sprintf("last step meta: %+v should be valid", env.AsyncLogCtx.GetLastStepLogMeta()))
 
 	if iw.CallerName != "" {
-		lastStep := AsyncLogStepResult(env, iw.CallerId, iw.CallerStep, aws.JSONValue{
+		env.AsyncLogCtx.ChainStep(AsyncLogStepResult(env, iw.CallerId, iw.CallerStep, aws.JSONValue{
 			"type":   "InvokeResult",
 			"output": output,
-		}, env.AsyncLogCtx.GetLastStepLogMeta())
-		env.AsyncLogCtx.ChainStep(lastStep.GetMeta())
+		}, env.AsyncLogCtx.GetLastStepLogMeta()).GetMeta())
 	}
 	env.AsyncLogCtx.ChainFuture(LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 		"InstanceId": env.InstanceId,
@@ -463,6 +462,9 @@ type funcHandlerFactory struct {
 }
 
 func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.FuncHandler, error) {
+	log.SetOutput(os.Stderr)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	return &funcHandlerWrapper{
 		fnName:  funcName,
 		handler: f.handler,

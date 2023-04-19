@@ -2,8 +2,12 @@ package cayonlib
 
 import (
 	"fmt"
+	"log"
+	"runtime"
+	"strings"
 	"time"
 
+	"cs.utexas.edu/zjia/faas/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -147,4 +151,24 @@ func ASSERT(cond bool, tip string) {
 	if !cond {
 		panic(fmt.Errorf("assertion failed: %v", tip))
 	}
+}
+
+func DumpStackTrace() {
+	buf := make([]byte, 10000)
+	n := runtime.Stack(buf, false)
+	log.Printf("[DEBUG] Stack trace : %s ", string(buf[:n]))
+}
+
+func dumpDeps(env *Env, logEntryMeta types.FutureMeta, depth int) string {
+	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, logEntryMeta)
+	CHECK(err)
+	output := fmt.Sprintf("%v LocalId=%v SeqNum=%v %+v\n",
+		strings.Repeat("  ", depth), logEntryMeta.LocalId, logEntry.SeqNum, logEntry.TagBuildMeta)
+	for _, depLogMeta := range logEntry.Deps {
+		output += dumpDeps(env, depLogMeta, depth+1)
+	}
+	return output
+}
+func DumpDepChain(env *Env, logEntryMeta types.FutureMeta, logTip string) {
+	log.Printf("[DEBUG] Dep chain for log: %v\n%v\n", logTip, dumpDeps(env, logEntryMeta, 0))
 }

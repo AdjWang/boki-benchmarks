@@ -169,25 +169,24 @@ func CondWrite(env *Env, tablename string, key string,
 		}
 	}
 	env.AsyncLogCtx.ChainStep(stepFuture.GetMeta())
+	// DEBUG
+	log.Printf("[DEBUG] CondWrite before sync: %v", env.AsyncLogCtx)
 	// sync
 	err := env.AsyncLogCtx.Sync(gSyncTimeout)
 	CHECK(err)
 	// resolve cond
-	lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
+	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
 	CHECK(err)
-
-	logState := ResolveLog(env, lastStepLog)
-	if logState.State == LogEntryState_PENDING {
-		panic("impossible")
-	} else if logState.State == LogEntryState_DISCARDED {
+	if applied := ResolveLog(env, logEntry.Tags, logEntry.TagBuildMeta, logEntry.SeqNum); !applied {
+		// discarded
 		if ok := fnGetLoggedStepResult(preWriteLog); ok {
 			return
+		} else {
+			panic("unreachable")
 		}
-	} else if logState.State == LogEntryState_APPLIED {
-		// carry on
-	} else {
-		panic("unreachable")
 	}
+	// DEBUG
+	log.Printf("[DEBUG] CondWrite resolved fsms: %v", env.FsmHub)
 
 	Key, err := dynamodbattribute.MarshalMap(aws.JSONValue{"K": key})
 	CHECK(err)

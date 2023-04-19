@@ -30,12 +30,9 @@ func NewLockFsm(lockId string) *LockFsm {
 	this := &LockFsm{
 		lockId:     lockId,
 		stepNumber: 0,
-		FsmCommon: FsmCommon[LockLogEntry]{
-			reciever: nil,
-			tail:     nil,
-		},
+		FsmCommon:  NewEmptyFsmCommon[LockLogEntry](),
 	}
-	this.reciever = this
+	this.receiver = this
 	return this
 }
 
@@ -191,15 +188,12 @@ type TxnFsm struct {
 
 func NewTxnFsm(lambdaId string, txnId string) *TxnFsm {
 	this := &TxnFsm{
-		LambdaId: lambdaId,
-		TxnId:    txnId,
-		FsmCommon: FsmCommon[TxnLogEntry]{
-			reciever: nil,
-			tail:     nil,
-		},
-		txnLogs: make(map[uint64]*TxnLogEntry),
+		LambdaId:  lambdaId,
+		TxnId:     txnId,
+		FsmCommon: NewEmptyFsmCommon[TxnLogEntry](),
+		txnLogs:   make(map[uint64]*TxnLogEntry),
 	}
-	this.reciever = this
+	this.receiver = this
 	return this
 }
 
@@ -260,7 +254,9 @@ func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool 
 					"key":       key,
 					"value":     value,
 				},
-			}, func(cond types.CondHandle) {}).GetMeta())
+			}, func(cond types.CondHandle) {
+				cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
+			}).GetMeta())
 		return true
 	} else {
 		return false
@@ -282,6 +278,9 @@ func CommitTxn(env *Env) {
 
 func AbortTxn(env *Env) {
 	log.Printf("[WARN] Abort transaction %s", env.TxnId)
+	// DEBUG
+	DumpStackTrace()
+
 	env.Instruction = "ABORT"
 	TPLAbort(env)
 	env.TxnId = ""

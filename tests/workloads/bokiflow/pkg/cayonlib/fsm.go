@@ -2,17 +2,18 @@ package cayonlib
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"math"
 
 	"cs.utexas.edu/zjia/faas/types"
 	"github.com/golang/snappy"
-	"github.com/pkg/errors"
 )
 
 const (
-	LogEntryState_PENDING   uint8 = 0
-	LogEntryState_APPLIED   uint8 = 1
-	LogEntryState_DISCARDED uint8 = 2
+	LogState_PENDING   uint8 = 0
+	LogState_APPLIED   uint8 = 1
+	LogState_DISCARDED uint8 = 2
 )
 
 type LogState struct {
@@ -21,6 +22,10 @@ type LogState struct {
 
 type Fsm interface {
 	Catch(env *Env)
+	GetLogState(seqNum uint64) (LogState, bool)
+
+	// DEBUG
+	DebugGetLogReadOrder() string
 }
 type FsmReceiver interface {
 	ApplyLog(log *types.CondLogEntry) bool
@@ -30,124 +35,107 @@ type FsmReceiver interface {
 
 // Implement Fsm
 type FsmCommon[TLogEntry any] struct {
-	reciever FsmReceiver
-	tail     *TLogEntry
+	receiver          FsmReceiver
+	tail              *TLogEntry
+	resolvedLogStatus map[uint64]LogState
+
+	// DEBUG: check multi-client reading order consistency
+	resolvingSeq []uint64
+	applyingSeq  []uint64
+	appliedSeq   []uint64
+}
+
+func NewEmptyFsmCommon[TLogEntry any]() FsmCommon[TLogEntry] {
+	return FsmCommon[TLogEntry]{
+		receiver:          nil,
+		tail:              nil,
+		resolvedLogStatus: make(map[uint64]LogState),
+
+		// DEBUG
+		resolvingSeq: make([]uint64, 0, 100),
+		applyingSeq:  make([]uint64, 0, 100),
+		appliedSeq:   make([]uint64, 0, 100),
+	}
+}
+
+func (fsm *FsmCommon[TLogEntry]) DebugGetLogReadOrder() string {
+	return fmt.Sprintf("tag=%v, resolvingSeq=%v, applyingSeq=%v, appliedSeq=%v\n",
+		fsm.receiver.GetTag(), fsm.resolvingSeq, fsm.applyingSeq, fsm.appliedSeq)
+}
+
+func resolvedOrRejected(logState LogState) bool {
+	return logState.State == LogState_APPLIED ||
+		logState.State == LogState_DISCARDED
+}
+
+func (fsm *FsmCommon[TLogEntry]) resolveWithPendings(env *Env, condLogEntry *types.CondLogEntry,
+	handlePendings bool,
+	pendings map[uint64][]*types.CondLogEntry /*ref*/) {
+
+	// log.Printf("[DEBUG] resolveWithPendings logEntry=%+v, handlePendings=%v, pendings=%+v",
+	// 	condLogEntry, handlePendings, pendings)
+
+	currentSeqNum := condLogEntry.SeqNum
+	if logState, jumpSeqNum := fsm.doResolve(env, condLogEntry); resolvedOrRejected(logState) {
+		// check if any available pending logs can be handled after a log is
+		// resolved or rejected
+		fsm.resolvedLogStatus[currentSeqNum] = logState
+		// DEBUG
+		fsm.resolvingSeq = append(fsm.resolvingSeq, currentSeqNum)
+
+		// only handle pending logs after a new log is resolved or rejected
+		if !handlePendings {
+			// now handle pending logs
+			if pendingLogs, ok := pendings[currentSeqNum]; ok {
+				for _, log := range pendingLogs {
+					fsm.resolveWithPendings(env, log, true /*handlePendings*/, pendings /*ref*/)
+				}
+				delete(pendings, currentSeqNum)
+			}
+		}
+	} else {
+		// DEBUG
+		log.Printf("[DEBUG] pending log=%+v", condLogEntry)
+
+		if jumpSeqNum <= currentSeqNum {
+			panic("unreachable")
+		}
+		// put off resolving until the dependent seqnum is met
+		if _, ok := pendings[jumpSeqNum]; !ok {
+			pendings[jumpSeqNum] = make([]*types.CondLogEntry, 0, 10)
+		}
+		pendings[jumpSeqNum] = append(pendings[jumpSeqNum], condLogEntry)
+	}
 }
 
 func (fsm *FsmCommon[TLogEntry]) Catch(env *Env) {
-	tag := fsm.reciever.GetTag()
+	ASSERT(fsm.receiver != nil, "set receiver to fsm object self")
+
+	tag := fsm.receiver.GetTag()
 	seqNum := uint64(0)
 	if fsm.tail != nil {
-		seqNum = fsm.reciever.GetTailSeqNum() + 1
+		seqNum = fsm.receiver.GetTailSeqNum() + 1
 	}
 	pendings := make(map[uint64][]*types.CondLogEntry)
 	for {
 		condLogEntry, err := env.FaasEnv.AsyncSharedLogReadNext(env.FaasCtx, tag, seqNum)
 		CHECK(err)
-		// log.Printf("fsm=%v Catch seqnum %v get log %v", fsm, seqNum, condLogEntry)
+		// log.Printf("fsm=%v Catch seqnum %v get log %+v", reflect.TypeOf(fsm.receiver), seqNum, condLogEntry)
 		if condLogEntry == nil {
 			break
 		}
-		if notPending, jumpSeqNum := fsm.resolve(env, condLogEntry); notPending {
-			resolvedSeqNum := condLogEntry.SeqNum
-			if pendingLogs, ok := pendings[resolvedSeqNum]; ok {
-				for _, log := range pendingLogs {
-					if notPending_, jumpSeqNum_ := fsm.resolve(env, log); notPending_ {
-						continue
-					} else {
-						if jumpSeqNum_ <= resolvedSeqNum {
-							panic("impossible")
-						}
-						pendings[jumpSeqNum_] = append(pendings[jumpSeqNum_], log)
-					}
-				}
-				delete(pendings, resolvedSeqNum)
-			}
-		} else {
-			if _, ok := pendings[jumpSeqNum]; !ok {
-				pendings[jumpSeqNum] = make([]*types.CondLogEntry, 0, 10)
-			}
-			pendings[jumpSeqNum] = append(pendings[jumpSeqNum], condLogEntry)
-		}
+		fsm.resolveWithPendings(env, condLogEntry, false /*handlePendings*/, pendings /*ref*/)
 		seqNum = condLogEntry.SeqNum + 1
 	}
+	ASSERT(len(pendings) == 0, fmt.Sprintf("all pendings are expected to be resolved, existing: %+v", pendings))
 }
 
-// return:
-//
-//	resolved/rejected: true
-//	pending: false
-func (fsm *FsmCommon[TLogEntry]) resolve(env *Env, condLogEntry *types.CondLogEntry) (bool, uint64) {
-	log.Printf("fsm=%+v resolve log %+v", fsm, condLogEntry)
-	// resolve deps
-	for _, dep := range condLogEntry.Deps {
-		depCondLogEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, dep)
-		CHECK(err)
-		log.Printf("fsm=%+v resolve log dep %+v get deplog %+v", fsm, dep, depCondLogEntry)
-
-		var logState LogState
-		if len(depCondLogEntry.AuxData) > 0 {
-			decoded, err := snappy.Decode(nil, depCondLogEntry.AuxData)
-			CHECK(err)
-			if len(decoded) > 0 {
-				err = json.Unmarshal(decoded, &logState)
-				CHECK(err)
-			} else {
-				logState = LogState{LogEntryState_PENDING}
-			}
-		} else {
-			logState = LogState{LogEntryState_PENDING}
-		}
-
-	recheck:
-		switch logState.State {
-		case LogEntryState_PENDING:
-			if inside(fsm.reciever.GetTag(), depCondLogEntry.Tags) && depCondLogEntry.SeqNum > condLogEntry.SeqNum {
-				// to pending
-				return false, depCondLogEntry.SeqNum
-			} else if inside(fsm.reciever.GetTag(), depCondLogEntry.Tags) && depCondLogEntry.SeqNum < condLogEntry.SeqNum {
-				log.Println(dep.State)
-				panic("impossible here that deps.state is pending")
-			} else { // if !inside(IntentStepStreamTag(env.InstanceId), depCondLogEntry.Tags) {
-				logState = ResolveLog(env, depCondLogEntry)
-				if logState.State == LogEntryState_PENDING {
-					panic("impossible")
-				}
-				goto recheck
-			}
-		case LogEntryState_APPLIED:
-			continue
-		case LogEntryState_DISCARDED:
-			serializedData, err := json.Marshal(LogState{LogEntryState_DISCARDED})
-			CHECK(err)
-			encoded := snappy.Encode(nil, serializedData)
-			err = env.FaasEnv.SharedLogSetAuxData(env.FaasCtx, condLogEntry.SeqNum, encoded)
-			CHECK(err)
-			// rejected
-			return true, 0
-		default:
-			panic("unreachable")
-		}
-	}
-
-	// from here the deps are all solved, condLogEntry.State must be PENDING
-	if ok := fsm.reciever.ApplyLog(condLogEntry); ok {
-		// log.Printf("ApplyLog %v, set aux applied", condLogEntry)
-		serializedData, err := json.Marshal(LogState{LogEntryState_APPLIED})
-		CHECK(err)
-		encoded := snappy.Encode(nil, serializedData)
-		err = env.FaasEnv.SharedLogSetAuxData(env.FaasCtx, condLogEntry.SeqNum, encoded)
-		CHECK(err)
+func (fsm *FsmCommon[TLogEntry]) GetLogState(seqNum uint64) (LogState, bool) {
+	if logState, ok := fsm.resolvedLogStatus[seqNum]; ok {
+		return logState, true
 	} else {
-		// log.Printf("ApplyLog %v, set aux discarded", condLogEntry)
-		serializedData, err := json.Marshal(LogState{LogEntryState_DISCARDED})
-		CHECK(err)
-		encoded := snappy.Encode(nil, serializedData)
-		err = env.FaasEnv.SharedLogSetAuxData(env.FaasCtx, condLogEntry.SeqNum, encoded)
-		CHECK(err)
+		return LogState{math.MaxUint8}, false
 	}
-	// resolved/rejected
-	return true, 0
 }
 
 func inside(a uint64, b []uint64) bool {
@@ -159,34 +147,120 @@ func inside(a uint64, b []uint64) bool {
 	return false
 }
 
-func ResolveLog(env *Env, logEntry *types.CondLogEntry) LogState {
-	tag := logEntry.Tags[0]
-	if tag == IntentLogTag {
-		panic("impossible that a step depend to a intent")
-	}
-	// log.Printf("ResolveLog %v catch begin", logEntry)
-	tagBuildMeta := logEntry.TagBuildMeta[0] // only 1 in bokiflow
-	fsm := env.FsmHub.GetOrCreateAbsFsm(tagBuildMeta.FsmType, tagBuildMeta.TagKeys...)
-	fsm.Catch(env)
-	// log.Printf("ResolveLog %v catch over", logEntry)
-
-	condLogEntry, err := env.FaasEnv.AsyncSharedLogReadNext(env.FaasCtx, tag, logEntry.SeqNum)
+func setLogStateAuxData(env *Env, seqnum uint64, logState LogState) {
+	serializedData, err := json.Marshal(logState)
 	CHECK(err)
-	// log.Printf("Catched. get log %v of seqnum %v", condLogEntry, logEntry.SeqNum)
-	if condLogEntry == nil {
-		panic("impossible")
-	}
+	encoded := snappy.Encode(nil, serializedData)
+	err = env.FaasEnv.SharedLogSetAuxData(env.FaasCtx, seqnum, encoded)
+	CHECK(err)
+}
+
+func getLogStateAuxData(auxData []byte) LogState {
 	var logState LogState
-	decoded, err := snappy.Decode(nil, condLogEntry.AuxData)
-	CHECK(errors.Wrapf(err, "invalid aux data for log: %+v", condLogEntry))
-	if len(decoded) > 0 {
-		err = json.Unmarshal(decoded, &logState)
+	if len(auxData) > 0 {
+		decoded, err := snappy.Decode(nil, auxData)
 		CHECK(err)
+		if len(decoded) > 0 {
+			err = json.Unmarshal(decoded, &logState)
+			CHECK(err)
+		} else {
+			logState = LogState{LogState_PENDING}
+		}
 	} else {
-		panic("impossible")
-	}
-	if logState.State == LogEntryState_PENDING {
-		panic("impossible")
+		logState = LogState{LogState_PENDING}
 	}
 	return logState
+}
+
+// Return: resolved state, put off target seqnum
+// the put off target seqnum only set when LogState is PENDING
+func (fsm *FsmCommon[TLogEntry]) doResolve(env *Env, condLogEntry *types.CondLogEntry) (LogState, uint64) {
+	// log.Printf("fsm=%v resolve log %+v", reflect.TypeOf(fsm.receiver), condLogEntry)
+	// 1. resolve deps
+	for _, depLogMeta := range condLogEntry.Deps {
+		depLogEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, depLogMeta)
+		CHECK(err)
+		// log.Printf("fsm=%v resolve log dep %+v get deplog %+v", reflect.TypeOf(fsm.receiver), depLogMeta, depLogEntry)
+
+		// treat not resolved log as pending
+		logState := getLogStateAuxData(depLogEntry.AuxData)
+		if logState.State == LogState_PENDING {
+			if inside(fsm.receiver.GetTag(), depLogEntry.Tags) {
+				if depLogEntry.SeqNum > condLogEntry.SeqNum {
+					// deps will come later, put off resolving
+					// do nothing to fallthrough to switch
+				} else if depLogEntry.SeqNum < condLogEntry.SeqNum {
+					log.Printf("[DEBUG] invalid dep log: %+v", depLogEntry)
+					panic("unreachable that deps should have been handled")
+				} else {
+					// a log cannot depend on itself
+					panic("unreachable")
+				}
+			} else {
+				// delegate resolving to the target fsm
+				// A potential issue here is circular dependency, which causes infinite loop. Becareful!
+				if ok := ResolveLog(env, depLogEntry.Tags, depLogEntry.TagBuildMeta, depLogEntry.SeqNum); ok {
+					logState = LogState{LogState_APPLIED}
+				} else {
+					logState = LogState{LogState_DISCARDED}
+				}
+			}
+		}
+
+		switch logState.State {
+		case LogState_PENDING:
+			// deps will come later, put off resolving
+			return LogState{LogState_PENDING}, depLogEntry.SeqNum
+		case LogState_APPLIED:
+			// handle next dep
+			continue
+		case LogState_DISCARDED:
+			setLogStateAuxData(env, condLogEntry.SeqNum, LogState{LogState_DISCARDED})
+			return LogState{LogState_DISCARDED}, 0
+		default:
+			panic("unreachable")
+		}
+	}
+	// 2. check conds
+	// from here the deps are all solved, condLogEntry.State must be PENDING
+	// DEBUG
+	fsm.applyingSeq = append(fsm.applyingSeq, condLogEntry.SeqNum)
+
+	if ok := fsm.receiver.ApplyLog(condLogEntry); ok {
+		// DEBUG
+		fsm.appliedSeq = append(fsm.appliedSeq, condLogEntry.SeqNum)
+
+		setLogStateAuxData(env, condLogEntry.SeqNum, LogState{LogState_APPLIED})
+		return LogState{LogState_APPLIED}, 0
+	} else {
+		setLogStateAuxData(env, condLogEntry.SeqNum, LogState{LogState_DISCARDED})
+		return LogState{LogState_DISCARDED}, 0
+	}
+}
+
+// Return:
+// - true: applied
+// - false: discard
+func ResolveLog(env *Env, tags []uint64, tagBuildMetas []types.TagMeta, seqNum uint64) bool {
+	tag := tags[0] // only 1 in bokiflow
+	if tag == IntentLogTag {
+		panic("unreachable that a step is designed to never depend on an intent")
+	}
+	tagBuildMeta := tagBuildMetas[0] // only 1 in bokiflow
+	// log.Printf("ResolveLog tagMeta: %+v seqNum: %v catch begin", tagBuildMeta, seqNum)
+	fsm := env.FsmHub.GetOrCreateAbsFsm(tagBuildMeta.FsmType, tagBuildMeta.TagKeys...)
+	fsm.Catch(env)
+
+	logState, ok := fsm.GetLogState(seqNum)
+	ASSERT(ok, fmt.Sprintf("log %v should have been resolved", seqNum))
+	// log.Printf("ResolveLog catch over, get log state: %+v", logState)
+
+	if logState.State == LogState_APPLIED {
+		return true
+	} else if logState.State == LogState_DISCARDED {
+		return false
+	} else {
+		// Catch(env) -> resolved -> cannot be PENDING now
+		panic("unreachable")
+	}
 }

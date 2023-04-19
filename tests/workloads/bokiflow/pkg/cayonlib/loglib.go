@@ -32,16 +32,13 @@ type IntentFsm struct {
 // Implement Fsm and FsmReceiver
 func NewIntentFsm(instanceId string) *IntentFsm {
 	this := &IntentFsm{
-		instanceId: instanceId,
-		stepNumber: 0,
-		FsmCommon: FsmCommon[IntentLogEntry]{
-			reciever: nil,
-			tail:     nil,
-		},
+		instanceId:   instanceId,
+		stepNumber:   0,
+		FsmCommon:    NewEmptyFsmCommon[IntentLogEntry](),
 		stepLogs:     make(map[int32]*IntentLogEntry),
 		postStepLogs: make(map[int32]*IntentLogEntry),
 	}
-	this.reciever = this
+	this.receiver = this
 	return this
 }
 
@@ -232,6 +229,7 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 		func(cond types.CondHandle) {
 			cond.AddDep(dep)
 		})
+	env.AsyncLogCtx.ChainStep(future.GetMeta())
 	// sync until receives index
 	// If the async log is not propagated to a different engine, waiting for
 	// the seqnum is enough to gaurantee read-your-write consistency.
