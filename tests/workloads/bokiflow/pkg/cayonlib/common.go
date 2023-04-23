@@ -23,7 +23,7 @@ var sess = session.Must(session.NewSessionWithOptions(session.Options{
 // local dynamodb
 var DBClient = dynamodb.New(sess,
 	&aws.Config{
-		Endpoint: aws.String("http://10.0.2.15:8000"),
+		Endpoint: aws.String("http://dynamodb:8000"),
 		Region:   aws.String("us-east-2"),
 		// Credentials:                   credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 		Credentials:                   credentials.NewStaticCredentials("2333", "abcd", "TOKEN"),

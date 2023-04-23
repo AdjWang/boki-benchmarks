@@ -17,7 +17,9 @@ function build_bokiflow {
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
     go mod tidy
     make hotel
+    # make hotel-baseline
     make media
+    # make media-baseline
     make singleop
 }
 

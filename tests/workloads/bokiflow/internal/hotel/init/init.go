@@ -2,12 +2,15 @@ package main
 
 import (
 	// "fmt"
+	"log"
+	"os"
+	"strconv"
+
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/eniac/Beldi/internal/hotel/main/data"
 	"github.com/eniac/Beldi/internal/hotel/main/flight"
 	"github.com/eniac/Beldi/internal/hotel/main/hotel"
 	"github.com/eniac/Beldi/pkg/cayonlib"
-	"os"
-	"strconv"
 	// "time"
 )
 
@@ -18,7 +21,7 @@ func tables(baseline bool) {
 	if baseline {
 		panic("Not implemented for baseline")
 	} else {
-		for ; ; {
+		for {
 			tablenames := []string{}
 			for _, service := range services {
 				cayonlib.CreateLambdaTables(service)
@@ -383,8 +386,25 @@ func populate(baseline bool) {
 	addFlights(baseline)
 }
 
+func health_check() {
+	tablename := "flight"
+	key := strconv.Itoa(0)
+	item := cayonlib.LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
+	log.Printf("[INFO] Read data from DB: %v", item)
+	if len(item) == 0 {
+		panic("read data from DB failed")
+	}
+}
+
 func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	option := os.Args[1]
+	if option == "health_check" {
+		health_check()
+		return
+	}
+
 	baseline := os.Args[2] == "baseline"
 	if option == "create" {
 		tables(baseline)

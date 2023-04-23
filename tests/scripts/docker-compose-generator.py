@@ -12,6 +12,70 @@ services:
 
 # services
 
+# dynamodb
+# docker run -d -p 8000:8000 amazon/dynamodb-local
+dynamodb = """\
+  db:
+    image: amazon/dynamodb-local
+    hostname: dynamodb
+    networks:
+      - boki-net
+    ports:
+      - 8000:8000
+    # restart: always
+
+"""
+
+dynamodb_setup_hotel_f = """\
+  db-setup:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    command: bash -c "
+        /bokiflow-bin/singleop/init &&
+        /bokiflow-bin/hotel/init clean boki &&
+        /bokiflow-bin/hotel/init create boki &&
+        /bokiflow-bin/hotel/init populate boki &&
+        sleep infinity
+      "
+    environment:
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+       - db
+    healthcheck:
+      test: ["CMD-SHELL", "/bokiflow-bin/hotel/init health_check"]
+      interval: 3s
+      retries: 5
+      start_period: 3s
+      timeout: 30s
+
+"""
+
+dynamodb_setup_media_f = """\
+  db-setup:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    command: bash -c "
+        /bokiflow-bin/singleop/init &&
+        /bokiflow-bin/media/init clean boki &&
+        /bokiflow-bin/media/init create boki &&
+        /bokiflow-bin/media/init populate boki /bokiflow/data/compressed.json &&
+        sleep infinity
+      "
+    environment:
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+       - db
+    healthcheck:
+      test: ["CMD-SHELL", "/bokiflow-bin/media/init health_check"]
+      interval: 3s
+      retries: 5
+      start_period: 3s
+      timeout: 30s
+
+"""
+
 # zookeeper
 zookeeper = """\
   zookeeper:
@@ -31,7 +95,10 @@ zookeeper_setup_f = """\
     image: zookeeper:3.6.2
     command: /tmp/boki/zk_setup.sh
     depends_on:
-       - zookeeper
+      zookeeper:
+        condition: service_started
+      db-setup:
+        condition: service_healthy
     volumes:
       - {workdir}/config/zk_setup.sh:/tmp/boki/zk_setup.sh
       - {workdir}/config/zk_health_check:/tmp/boki/zk_health_check
@@ -284,9 +351,11 @@ sharedlog_funcs_f = """\
 
 """
 
-bokiflow_funcs_f = """\
+bokiflow_hotel_funcs_f = """\
   geo-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/geo", "1"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -300,6 +369,8 @@ bokiflow_funcs_f = """\
 
   profile-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/profile", "2"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -313,6 +384,8 @@ bokiflow_funcs_f = """\
 
   rate-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/rate", "3"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -326,6 +399,8 @@ bokiflow_funcs_f = """\
 
   recommendation-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/recommendation", "4"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -339,6 +414,8 @@ bokiflow_funcs_f = """\
 
   user-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/user", "5"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -352,6 +429,8 @@ bokiflow_funcs_f = """\
 
   hotel-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/hotel", "6"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -365,6 +444,8 @@ bokiflow_funcs_f = """\
 
   search-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/search", "7"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -378,6 +459,8 @@ bokiflow_funcs_f = """\
 
   flight-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/flight", "8"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -391,6 +474,8 @@ bokiflow_funcs_f = """\
 
   order-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/order", "9"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -404,6 +489,8 @@ bokiflow_funcs_f = """\
 
   frontend-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/frontend", "10"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -417,6 +504,8 @@ bokiflow_funcs_f = """\
 
   gateway-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/gateway", "11"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -430,6 +519,8 @@ bokiflow_funcs_f = """\
 
   singleop-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/singleop", "12"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
@@ -443,7 +534,222 @@ bokiflow_funcs_f = """\
 
   nop-service-{node_id}:
     image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
     entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/nop", "13"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+"""
+
+bokiflow_movie_funcs_f = """\
+  frontend-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Frontend", "1"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  cast-info-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/CastInfo", "2"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  review-storage-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/ReviewStorage", "3"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  user-review-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/UserReview", "4"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  movie-review-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/MovieReview", "5"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  compose-review-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/ComposeReview", "6"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  text-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Text", "7"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  user-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/User", "8"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  unique-id-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/UniqueId", "9"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  rating-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Rating", "10"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  movie-id-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/MovieId", "11"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  plot-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Plot", "12"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  movie-info-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/MovieInfo", "13"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  page-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Page", "14"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -484,26 +790,39 @@ if __name__ == '__main__':
     METALOG_REPLICAS = args.metalog_reps
     USERLOG_REPLICAS = args.userlog_reps
     INDEX_REPLICAS = args.index_reps
-    VERBOSE = 1
+    VERBOSE = 0
     IO_URING_ENTRIES = 64
     IO_URING_FD_SLOTS = 1024
 
     AVAILABLE_TEST_CASES = {
         'sharedlog': sharedlog_funcs_f,
-        'bokiflow': bokiflow_funcs_f,
+        'bokiflow-hotel': bokiflow_hotel_funcs_f,
+        'bokiflow-movie': bokiflow_movie_funcs_f,
     }
 
     # argument assertations
     if args.test_case not in AVAILABLE_TEST_CASES:
         raise Exception("invalid test case: '{}', need to be one of: {}".format(
                         args.test_case, list(AVAILABLE_TEST_CASES.keys())))
-    if args.test_case == 'bokiflow' and args.table_prefix == "":
+    if args.test_case.startswith('bokiflow-') and args.table_prefix == "":
         raise Exception("table prefix of bokiflow is not allowed to be empty")
 
     app_funcs_f = AVAILABLE_TEST_CASES[args.test_case]
+    if args.test_case == 'bokiflow-hotel':
+        db = dynamodb
+        db_setup_f = dynamodb_setup_hotel_f
+    elif args.test_case == 'bokiflow-movie':
+        db = dynamodb
+        db_setup_f = dynamodb_setup_media_f
+    else:
+        db = db_setup_f = ""
 
     dc_content = ''.join([
         dc_header,
+
+        db,
+        db_setup_f.format(table_prefix=args.table_prefix),
+
         zookeeper,
         zookeeper_setup_f.format(workdir=WORK_DIR),
 

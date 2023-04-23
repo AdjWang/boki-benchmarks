@@ -6,4 +6,5 @@ RUN apt update && \
     apt install -y curl
 
 COPY ./bokiflow/bin     /bokiflow-bin
+COPY ./bokiflow/internal/media/data /bokiflow/data
 COPY --from=boki     /boki/launcher       /boki/launcher

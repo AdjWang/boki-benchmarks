@@ -465,6 +465,10 @@ func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.
 	log.SetOutput(os.Stderr)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
+	// log.Printf("Type=%v", TYPE)
+	// log.Printf("TablePrefix=%v", kTablePrefix)
+	// log.Printf("SyncTimeout=%v", gSyncTimeout)
+
 	return &funcHandlerWrapper{
 		fnName:  funcName,
 		handler: f.handler,

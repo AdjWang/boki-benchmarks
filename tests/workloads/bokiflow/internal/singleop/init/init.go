@@ -20,7 +20,7 @@ func ClearAll() {
 }
 
 func main() {
-	log.SetFlags(log.Lshortfile)
+	log.SetFlags(log.LstdFlags | log.Llongfile)
 	log.SetOutput(os.Stderr)
 
 	if len(os.Args) >= 2 {

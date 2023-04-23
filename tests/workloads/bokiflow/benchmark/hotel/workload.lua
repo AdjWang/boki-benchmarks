@@ -239,6 +239,8 @@ local function user_login()
     return wrk.format(method, path, headers, body)
 end
 
+local req_count = 1
+
 request = function()
     -- cur_time = math.floor(socket.gettime())
     -- local search_ratio = 0.6
@@ -252,23 +254,24 @@ request = function()
     local user_ratio = 0.25
     local reserve_ratio = 0.25
 
-    -- request = search_hotel()
+    -- req = search_hotel()
     --return recommend()
-    -- request = user_login()
-    -- request = reserve_all()
+    -- req = user_login()
+    -- req = reserve_all()
     local coin = math.random()
-    local request
+    local req
     if coin < search_ratio then
-        request = search_hotel()
+        req = search_hotel()
     elseif coin < search_ratio + recommend_ratio then
-        request = recommend()
+        req = recommend()
     elseif coin < search_ratio + recommend_ratio + user_ratio then
-        request = user_login()
+        req = user_login()
     else
-        request = reserve_all()
+        req = reserve_all()
     end
-    print("request:", request)
-    return request
+    print("request:", req_count, req)
+    req_count = req_count + 1
+    return req
 end
 
 function dump(o)

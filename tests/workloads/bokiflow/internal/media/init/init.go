@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/eniac/Beldi/internal/media/core"
 	"github.com/eniac/Beldi/pkg/cayonlib"
 	"github.com/lithammer/shortuuid"
-	"io/ioutil"
-	"os"
 )
 
 var services = []string{"CastInfo", "ComposeReview", "Frontend", "MovieId", "MovieInfo", "MovieReview", "Page",
@@ -20,7 +22,7 @@ func tables(baseline bool) {
 	if baseline {
 		panic("Not implemented for baseline")
 	} else {
-		for ; ; {
+		for {
 			tablenames := []string{}
 			for _, service := range services {
 				cayonlib.CreateLambdaTables(service)
@@ -83,8 +85,25 @@ func populate(baseline bool, file string) {
 	movie(baseline, file)
 }
 
+func health_check() {
+	tablename := "MovieId"
+	key := "The Highwaymen"
+	item := cayonlib.LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
+	log.Printf("[INFO] Read data from DB: %v", item)
+	if len(item) == 0 {
+		panic("read data from DB failed")
+	}
+}
+
 func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	option := os.Args[1]
+	if option == "health_check" {
+		health_check()
+		return
+	}
+
 	baseline := os.Args[2] == "baseline"
 	if option == "create" {
 		tables(baseline)

@@ -1,5 +1,5 @@
-buildflags = -race
-# buildflags = 
+# buildflags = -race
+buildflags = 
 
 .PHONY: build clean deploy
 
@@ -19,6 +19,7 @@ singleop:
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bsingleop/bnop internal/singleop/nop/nop.go
 
 hotel-baseline:
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/init internal/hotel/init/init.go
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/geo internal/hotel/main/handlers/geo/geo.go
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/profile internal/hotel/main/handlers/profile/profile.go
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/rate internal/hotel/main/handlers/rate/rate.go
@@ -48,6 +49,7 @@ hotel:
 	# env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/hotel/collector internal/hotel/main/collector/collector.go
 
 media-baseline:
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/init internal/media/init/init.go
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/CastInfo internal/media/core/handlers/castInfo/main.go
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/ComposeReview internal/media/core/handlers/composeReview/main.go
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Frontend internal/media/core/handlers/frontend/main.go

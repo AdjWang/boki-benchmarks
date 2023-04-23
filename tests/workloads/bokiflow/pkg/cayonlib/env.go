@@ -247,9 +247,9 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	errCh := make(chan error)
 	for _, futureMeta := range fc.AsyncLogOps {
 		wg.Add(1)
-		go func(futureMeta types.FutureMeta) {
+		go func(ctx context.Context, futureMeta types.FutureMeta) {
 			if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, futureMeta); err != nil {
-				errCh <- err
+				errCh <- errors.Wrapf(err, "failed to read index for future: %+v", futureMeta)
 			} else {
 				// log.Printf("wait future=%+v done", future)
 				// seqNum, err := future.GetResult()
@@ -257,7 +257,7 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 				// 	futureMeta.LocalId, futureMeta.State, seqNum, err)
 			}
 			wg.Done()
-		}(futureMeta)
+		}(ctx, futureMeta)
 	}
 	waitCh := make(chan struct{})
 	go func() {

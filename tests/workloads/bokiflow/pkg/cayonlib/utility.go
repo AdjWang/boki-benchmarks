@@ -172,3 +172,43 @@ func dumpDeps(env *Env, logEntryMeta types.FutureMeta, depth int) string {
 func DumpDepChain(env *Env, logEntryMeta types.FutureMeta, logTip string) {
 	log.Printf("[DEBUG] Dep chain for log: %v\n%v\n", logTip, dumpDeps(env, logEntryMeta, 0))
 }
+
+func ListTables() {
+	// create the input configuration instance
+	input := &dynamodb.ListTablesInput{}
+
+	log.Printf("Tables:\n")
+
+	for {
+		// Get the list of tables
+		result, err := DBClient.ListTables(input)
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				switch aerr.Code() {
+				case dynamodb.ErrCodeInternalServerError:
+					log.Println(dynamodb.ErrCodeInternalServerError, aerr.Error())
+				default:
+					log.Println(aerr.Error())
+				}
+			} else {
+				// Print the error, cast err to awserr.Error to get the Code and
+				// Message from an error.
+				log.Println(err.Error())
+			}
+			return
+		}
+
+		for _, n := range result.TableNames {
+			log.Println(*n)
+		}
+
+		// assign the last read tablename as the start for our next call to the ListTables function
+		// the maximum number of table names returned in a call is 100 (default), which requires us to make
+		// multiple calls to the ListTables function to retrieve all table names
+		input.ExclusiveStartTableName = result.LastEvaluatedTableName
+
+		if result.LastEvaluatedTableName == nil {
+			break
+		}
+	}
+}

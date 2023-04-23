@@ -21,17 +21,12 @@ import (
 //		LastStepLogMeta    types.FutureMeta `mapstructure:"LastStepLogMeta"`
 //	}
 func TestInputWrapperSerialize(t *testing.T) {
-	dummyAsyncLogCtx := types.DebugNewAsyncLogContext()
+	dummyAsyncLogCtx := DebugNewAsyncLogContext()
 	dummyFutureMeta := types.FutureMeta{
 		LocalId: 0,
-		State:   0,
 	}
-	dummyAsyncLogCtx.Chain(dummyFutureMeta)
+	dummyAsyncLogCtx.ChainStep(dummyFutureMeta)
 	asyncLogCtxData, err := dummyAsyncLogCtx.Serialize()
-	if err != nil {
-		t.Fatal(err)
-	}
-	futureMetaData, err := dummyFutureMeta.Serialize()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,8 +41,7 @@ func TestInputWrapperSerialize(t *testing.T) {
 		TxnId:       "dummyTxnId",
 		Instruction: "dummyInstruction",
 
-		AsyncLogCtxPropagator:     string(asyncLogCtxData),
-		LastStepLogMetaPropagator: string(futureMetaData),
+		AsyncLogCtxPropagator: string(asyncLogCtxData),
 	}
 	t.Logf("iw=%+v", iw)
 	input := iw.Serialize()
@@ -61,16 +55,5 @@ func TestInputWrapperSerialize(t *testing.T) {
 		}
 		iw := ParseInput(jsonInput)
 		t.Logf("iw=%+v", iw)
-
-		if iw.CallerName != "" {
-			// err = env.FaasEnv.NewAsyncLogCtx([]byte(iw.AsyncLogPropagator))
-			// if err != nil {
-			// 	t.Fatal(err)
-			// }
-		}
-		iw.lastStepLogMeta, err = types.DeserializeFutureMeta([]byte(iw.LastStepLogMetaPropagator))
-		if err != nil {
-			t.Fatal(err)
-		}
 	}
 }

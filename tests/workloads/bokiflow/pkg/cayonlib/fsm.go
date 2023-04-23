@@ -120,7 +120,7 @@ func (fsm *FsmCommon[TLogEntry]) Catch(env *Env) {
 	for {
 		condLogEntry, err := env.FaasEnv.AsyncSharedLogReadNext(env.FaasCtx, tag, seqNum)
 		CHECK(err)
-		// log.Printf("fsm=%v Catch seqnum %v get log %+v", reflect.TypeOf(fsm.receiver), seqNum, condLogEntry)
+		// log.Printf("[DEBUG] fsm=%v Catch seqnum %v get log %+v", reflect.TypeOf(fsm.receiver), seqNum, condLogEntry)
 		if condLogEntry == nil {
 			break
 		}

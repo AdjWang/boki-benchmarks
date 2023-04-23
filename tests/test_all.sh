@@ -17,6 +17,7 @@ function setup_env {
     USERLOG_REPLICATION=$2
     INDEX_REPLICATION=$3
     TEST_CASE=$4
+    APP=$5
 
     # remove old files and folders
     rm -rf $WORK_DIR/config
@@ -24,7 +25,7 @@ function setup_env {
 
     cp $TEST_DIR/scripts/zk_setup.sh $WORK_DIR/config
     cp $TEST_DIR/scripts/zk_health_check/zk_health_check $WORK_DIR/config
-    cp $WORKLOAD_DIR/$TEST_CASE/nightcore_config.json $WORK_DIR/config
+    cp $WORKLOAD_DIR/$TEST_CASE/nightcore_config-$APP.json $WORK_DIR/config/nightcore_config.json
     cp $WORKLOAD_DIR/$TEST_CASE/run_launcher $WORK_DIR/config
 
     rm -rf $WORK_DIR/mnt
@@ -137,26 +138,11 @@ function debug {
     # sleep_count_down 12
     # assert_should_fail $LINENO
 
-    python3 $TEST_DIR/scripts/docker-compose-generator.py \
-        --metalog-reps=3 \
-        --userlog-reps=3 \
-        --index-reps=1 \
-        --test-case=sharedlog \
-        --workdir=$WORK_DIR \
-        --output=$WORK_DIR
+    TEST="abc"
 
-    setup_env 3 3 1 sharedlog
-
-    python3 $TEST_DIR/scripts/docker-compose-generator.py \
-        --metalog-reps=3 \
-        --userlog-reps=3 \
-        --index-reps=8 \
-        --test-case=bokiflow \
-        --table-prefix="abc" \
-        --workdir=$WORK_DIR \
-        --output=$WORK_DIR
-
-    setup_env 3 3 8 bokiflow
+    if [[ $TEST == "abc" ]]; then
+        echo "ok"
+    fi
 }
 
 function test_sharedlog {
@@ -220,7 +206,20 @@ function test_sharedlog {
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
 # docker run --rm -v $HOME/dev/boki-benchmarks/tests/workloads/bokiflow/benchmark/hotel:/tmp/bench ghcr.io/eniac/beldi/beldi:latest /root/beldi/tools/wrk -t 1 -c 1 -d 5 -s /tmp/bench/workload.lua http://10.0.2.15:9000 -R 1
 function test_bokiflow {
-    echo "========== test bokiflow =========="
+    APP=$1
+    if ! [[ "$APP" =~ ^(hotel|movie)$ ]]; then
+        echo "[ERROR] APP name should be either hotel or movie, given $APP"
+        exit 1
+    fi
+    if [[ $APP == "hotel" ]]; then
+        APP_DIRNAME=$APP
+        DB_DATA=""
+    else
+        APP_DIRNAME="media"
+        DB_DATA=$TEST_DIR/workloads/bokiflow/internal/media/data/compressed.json
+    fi
+
+    echo "========== test bokiflow $APP =========="
 
     # strange bug: head not generating EOF and just stucks. Only on my vm, tested ok in WSL.
     # TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
@@ -231,18 +230,13 @@ function test_bokiflow {
     python3 $TEST_DIR/scripts/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
-        --test-case=bokiflow \
+        --index-reps=1 \
+        --test-case=bokiflow-$APP \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 bokiflow
-
-    echo "restart dynamodb..."
-    docker stop $(docker ps -qf ancestor=amazon/dynamodb-local) 2>/dev/null || true
-    docker rm $(docker ps -aqf ancestor=amazon/dynamodb-local) 2>/dev/null || true
-    docker run -d -p 8000:8000 amazon/dynamodb-local
+    setup_env 3 3 1 bokiflow $APP
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -250,35 +244,37 @@ function test_bokiflow {
     echo "wait to startup..."
     sleep_count_down 15
 
-    echo "setup dynamodb..."
-    $TEST_DIR/workloads/bokiflow/bin/singleop/init
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init clean boki
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init create boki
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init populate boki
-
     echo "list functions"
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    echo "test singleop"
-    timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
-        assert_should_success $LINENO
-    echo ""
+    if [[ $APP == "hotel" ]]; then
+        echo "test singleop"
+        timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
+            assert_should_success $LINENO
+        echo ""
 
-    echo "test read request"
-    timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
-        http://localhost:9000/function/gateway ||
-        assert_should_success $LINENO
-    echo ""
+        echo "test read request"
+        timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
+            http://localhost:9000/function/gateway ||
+            assert_should_success $LINENO
+        echo ""
 
-    echo "test write request"
-    timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"reserve","Input":{"userId":"user1","hotelId":"75","flightId":"8"}}}' \
-        http://localhost:9000/function/gateway ||
-        assert_should_success $LINENO
-    echo ""
+        echo "test write request"
+        timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"reserve","Input":{"userId":"user1","hotelId":"75","flightId":"8"}}}' \
+            http://localhost:9000/function/gateway ||
+            assert_should_success $LINENO
+        echo ""
+    else    # $APP == "movie"
+        echo "test basic"
+        curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
+            http://localhost:9000/function/Frontend ||
+            assert_should_success $LINENO
+        echo ""
+    fi
 
     echo "test more requests"
-    wrk -t 2 -c 2 -d 150 -s $TEST_DIR/workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 5
+    wrk -t 2 -c 2 -d 150 -s $TEST_DIR/workloads/bokiflow/benchmark/$APP_DIRNAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then
@@ -300,7 +296,8 @@ clean)
     ;;
 run)
     # test_sharedlog
-    test_bokiflow
+    test_bokiflow hotel
+    # test_bokiflow movie
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"
