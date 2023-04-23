@@ -19,18 +19,18 @@ singleop:
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bsingleop/bnop internal/singleop/nop/nop.go
 
 hotel-baseline:
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/init internal/hotel/init/init.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/geo internal/hotel/main/handlers/geo/geo.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/profile internal/hotel/main/handlers/profile/profile.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/rate internal/hotel/main/handlers/rate/rate.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/recommendation internal/hotel/main/handlers/recommendation/recommendation.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/user internal/hotel/main/handlers/user/user.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/search internal/hotel/main/handlers/search/search.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/hotel internal/hotel/main/handlers/hotel/hotel.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/flight internal/hotel/main/handlers/flight/flight.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/order internal/hotel/main/handlers/order/order.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/frontend internal/hotel/main/handlers/frontend/frontend.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/gateway internal/hotel/main/handlers/gateway/gateway.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/init internal/hotel-baseline/init/init.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/geo internal/hotel-baseline/main/handlers/geo/geo.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/profile internal/hotel-baseline/main/handlers/profile/profile.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/rate internal/hotel-baseline/main/handlers/rate/rate.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/recommendation internal/hotel-baseline/main/handlers/recommendation/recommendation.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/user internal/hotel-baseline/main/handlers/user/user.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/search internal/hotel-baseline/main/handlers/search/search.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/hotel internal/hotel-baseline/main/handlers/hotel/hotel.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/flight internal/hotel-baseline/main/handlers/flight/flight.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/order internal/hotel-baseline/main/handlers/order/order.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/frontend internal/hotel-baseline/main/handlers/frontend/frontend.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bhotel/gateway internal/hotel-baseline/main/handlers/gateway/gateway.go
 
 hotel:
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/hotel/init internal/hotel/init/init.go
@@ -49,21 +49,21 @@ hotel:
 	# env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/hotel/collector internal/hotel/main/collector/collector.go
 
 media-baseline:
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/init internal/media/init/init.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/CastInfo internal/media/core/handlers/castInfo/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/ComposeReview internal/media/core/handlers/composeReview/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Frontend internal/media/core/handlers/frontend/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/MovieId internal/media/core/handlers/movieId/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/MovieInfo internal/media/core/handlers/movieInfo/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/MovieReview internal/media/core/handlers/movieReview/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Page internal/media/core/handlers/page/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Plot internal/media/core/handlers/plot/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Rating internal/media/core/handlers/rating/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/ReviewStorage internal/media/core/handlers/reviewStorage/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Text internal/media/core/handlers/text/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/UniqueId internal/media/core/handlers/uniqueId/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/User internal/media/core/handlers/user/main.go
-	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/UserReview internal/media/core/handlers/userReview/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/init internal/media-baseline/init/init.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/CastInfo internal/media-baseline/core/handlers/castInfo/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/ComposeReview internal/media-baseline/core/handlers/composeReview/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Frontend internal/media-baseline/core/handlers/frontend/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/MovieId internal/media-baseline/core/handlers/movieId/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/MovieInfo internal/media-baseline/core/handlers/movieInfo/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/MovieReview internal/media-baseline/core/handlers/movieReview/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Page internal/media-baseline/core/handlers/page/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Plot internal/media-baseline/core/handlers/plot/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Rating internal/media-baseline/core/handlers/rating/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/ReviewStorage internal/media-baseline/core/handlers/reviewStorage/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/Text internal/media-baseline/core/handlers/text/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/UniqueId internal/media-baseline/core/handlers/uniqueId/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/User internal/media-baseline/core/handlers/user/main.go
+	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE" -o bin/bmedia/UserReview internal/media-baseline/core/handlers/userReview/main.go
 
 media:
 	env GOOS=linux go build $(buildflags) -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/media/init internal/media/init/init.go
