@@ -62,7 +62,7 @@ for HOST in $ALL_STORAGE_HOSTS; do
 done
 
 ssh -q $MANAGER_HOST -- TABLE_PREFIX=$TABLE_PREFIX docker stack deploy \
-    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
+    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml --resolve-image always boki-experiment
 sleep 60
 
 for HOST in $ALL_ENGINE_HOSTS; do
@@ -77,6 +77,7 @@ mkdir -p $EXP_DIR
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
+# start evaluation
 scp -q $ROOT_DIR/workloads/workflow/boki/benchmark/hotel/workload.lua $CLIENT_HOST:/tmp
 
 ssh -q $CLIENT_HOST -- $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
@@ -98,3 +99,19 @@ ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
     /tmp/hotel/init clean cayon
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
+mkdir $EXP_DIR/logs/engines
+for HOST in $ALL_ENGINE_HOSTS; do
+	mkdir $EXP_DIR/logs/engines/$HOST
+	scp -q -r $HOST:/mnt/inmem/boki/output $EXP_DIR/logs/engines/$HOST
+done
+
+# mkdir $EXP_DIR/logs/storages
+# for HOST in $ALL_STORAGE_HOSTS; do
+# 	mkdir $EXP_DIR/logs/storages/$HOST
+# 	scp -q $HOST:/mnt/storage/prof.out $EXP_DIR/logs/storages/$HOST
+# done
+
+# useless for now since all PROF logs are presenting in the container log
+# ssh -q $MANAGER_HOST -- "docker service ls | grep boki-experiment_boki | awk '{print \$1}' | xargs -l docker service logs > /tmp/services.log 2>&1"
+# scp -q $MANAGER_HOST:/tmp/services.log $EXP_DIR/logs/services.log

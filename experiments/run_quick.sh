@@ -122,26 +122,34 @@ echo ""
 if [[ ! -z $RUN_WORKFLOW_BOKI ]] && [[ $RUN_WORKFLOW_BOKI == "y" ]]; then
 echo "====== Start running BokiFlow experiments ======"
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel
-
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
-
-# $BASE_DIR/run_once.sh qps100 100
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel
+# 
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# 
+# # $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps200 200
-$BASE_DIR/run_once.sh qps500 500
-
+# $BASE_DIR/run_once.sh qps500 500
+# $BASE_DIR/run_once.sh qps1800 1800
+# $BASE_DIR/run_once.sh qps2000 2000
+# 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
-echo "DEBUG exit point"
-exit 0
+# echo "DEBUG exit point"
+# exit 0
 
 BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps150 150
+$BASE_DIR/run_once.sh qps200 200
+$BASE_DIR/run_once.sh qps500 500
+$BASE_DIR/run_once.sh qps800 800
+$BASE_DIR/run_once.sh qps1000 1000
+$BASE_DIR/run_once.sh qps1500 1500
+$BASE_DIR/run_once.sh qps2000 2000
 
-# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "DEBUG exit point"
 exit 0
 

@@ -1,0 +1,140 @@
+{
+    "bokiexp-client": {
+        "dns": "ip-172-31-36-219.us-east-2.compute.internal",
+        "instance_id": "i-0a78fb7b50b63fbf7",
+        "ip": "172.31.36.219",
+        "role": "client"
+    },
+    "bokiexp-engine-1": {
+        "dns": "ip-172-31-39-18.us-east-2.compute.internal",
+        "instance_id": "i-016c2df64fc286bd4",
+        "ip": "172.31.39.18",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-engine-2": {
+        "dns": "ip-172-31-44-92.us-east-2.compute.internal",
+        "instance_id": "i-0b90e3b3b435fdab5",
+        "ip": "172.31.44.92",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-engine-3": {
+        "dns": "ip-172-31-37-166.us-east-2.compute.internal",
+        "instance_id": "i-03c0756c70aa9c67d",
+        "ip": "172.31.37.166",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-engine-4": {
+        "dns": "ip-172-31-35-134.us-east-2.compute.internal",
+        "instance_id": "i-0d5e9b12e0147b636",
+        "ip": "172.31.35.134",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-engine-5": {
+        "dns": "ip-172-31-40-11.us-east-2.compute.internal",
+        "instance_id": "i-04831cde236e0fa38",
+        "ip": "172.31.40.11",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-engine-6": {
+        "dns": "ip-172-31-38-121.us-east-2.compute.internal",
+        "instance_id": "i-04f3cde59595c9eb3",
+        "ip": "172.31.38.121",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-engine-7": {
+        "dns": "ip-172-31-44-20.us-east-2.compute.internal",
+        "instance_id": "i-0b014f421b7edb7e8",
+        "ip": "172.31.44.20",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-engine-8": {
+        "dns": "ip-172-31-46-240.us-east-2.compute.internal",
+        "instance_id": "i-0824f392d313779ce",
+        "ip": "172.31.46.240",
+        "labels": [
+            "engine_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-gateway": {
+        "dns": "ip-172-31-37-160.us-east-2.compute.internal",
+        "instance_id": "i-04051ba9e821c8eab",
+        "ip": "172.31.37.160",
+        "role": "manager"
+    },
+    "bokiexp-sequencer-1": {
+        "dns": "ip-172-31-33-221.us-east-2.compute.internal",
+        "instance_id": "i-0863453e4b9c31b61",
+        "ip": "172.31.33.221",
+        "labels": [
+            "sequencer_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-sequencer-2": {
+        "dns": "ip-172-31-40-31.us-east-2.compute.internal",
+        "instance_id": "i-033af94fddd466e10",
+        "ip": "172.31.40.31",
+        "labels": [
+            "sequencer_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-sequencer-3": {
+        "dns": "ip-172-31-33-248.us-east-2.compute.internal",
+        "instance_id": "i-02135f5140549da46",
+        "ip": "172.31.33.248",
+        "labels": [
+            "sequencer_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-storage-1": {
+        "dns": "ip-172-31-34-121.us-east-2.compute.internal",
+        "instance_id": "i-01f0f8460475c2644",
+        "ip": "172.31.34.121",
+        "labels": [
+            "storage_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-storage-2": {
+        "dns": "ip-172-31-35-151.us-east-2.compute.internal",
+        "instance_id": "i-01071890a59cd99a8",
+        "ip": "172.31.35.151",
+        "labels": [
+            "storage_node=true"
+        ],
+        "role": "worker"
+    },
+    "bokiexp-storage-3": {
+        "dns": "ip-172-31-46-232.us-east-2.compute.internal",
+        "instance_id": "i-02503418246d72e15",
+        "ip": "172.31.46.232",
+        "labels": [
+            "storage_node=true"
+        ],
+        "role": "worker"
+    }
+}

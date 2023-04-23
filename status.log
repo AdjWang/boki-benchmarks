@@ -1,0 +1,238 @@
+{
+    "InstanceStatuses": [
+        {
+            "InstanceId": "i-0a8778ec9e425f8b2", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-0ed99499a6c5b64a3", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-0effae565235e559c", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "ok", 
+                "Details": [
+                    {
+                        "Status": "passed", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "ok", 
+                "Details": [
+                    {
+                        "Status": "passed", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-0d68ffa78d9a3f4a7", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-09722e7d868b85a43", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-045c366f29aaaeff5", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-02f9383e5b96d3b4d", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-0b907e1b6a39a9a7c", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }, 
+        {
+            "InstanceId": "i-00260ae18fb16ba0e", 
+            "InstanceState": {
+                "Code": 16, 
+                "Name": "running"
+            }, 
+            "AvailabilityZone": "us-east-2c", 
+            "SystemStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }, 
+            "InstanceStatus": {
+                "Status": "initializing", 
+                "Details": [
+                    {
+                        "Status": "initializing", 
+                        "Name": "reachability"
+                    }
+                ]
+            }
+        }
+    ]
+}
