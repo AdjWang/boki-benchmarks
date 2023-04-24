@@ -32,10 +32,10 @@ dynamodb_setup_hotel_f = """\
     networks:
       - boki-net
     command: bash -c "
-        /bokiflow-bin/singleop/init &&
-        /bokiflow-bin/hotel/init clean boki &&
-        /bokiflow-bin/hotel/init create boki &&
-        /bokiflow-bin/hotel/init populate boki &&
+        /bokiflow-bin/{baseline_prefix}singleop/init &&
+        /bokiflow-bin/{baseline_prefix}hotel/init clean {benchmark_mode} &&
+        /bokiflow-bin/{baseline_prefix}hotel/init create {benchmark_mode} &&
+        /bokiflow-bin/{baseline_prefix}hotel/init populate {benchmark_mode} &&
         sleep infinity
       "
     environment:
@@ -43,7 +43,7 @@ dynamodb_setup_hotel_f = """\
     depends_on:
        - db
     healthcheck:
-      test: ["CMD-SHELL", "/bokiflow-bin/hotel/init health_check"]
+      test: ["CMD-SHELL", "/bokiflow-bin/{baseline_prefix}hotel/init health_check {benchmark_mode}"]
       interval: 3s
       retries: 5
       start_period: 3s
@@ -57,10 +57,10 @@ dynamodb_setup_media_f = """\
     networks:
       - boki-net
     command: bash -c "
-        /bokiflow-bin/singleop/init &&
-        /bokiflow-bin/media/init clean boki &&
-        /bokiflow-bin/media/init create boki &&
-        /bokiflow-bin/media/init populate boki /bokiflow/data/compressed.json &&
+        /bokiflow-bin/{baseline_prefix}singleop/init &&
+        /bokiflow-bin/{baseline_prefix}media/init clean {benchmark_mode} &&
+        /bokiflow-bin/{baseline_prefix}media/init create {benchmark_mode} &&
+        /bokiflow-bin/{baseline_prefix}media/init populate {benchmark_mode} /bokiflow/data/compressed.json &&
         sleep infinity
       "
     environment:
@@ -68,7 +68,7 @@ dynamodb_setup_media_f = """\
     depends_on:
        - db
     healthcheck:
-      test: ["CMD-SHELL", "/bokiflow-bin/media/init health_check"]
+      test: ["CMD-SHELL", "/bokiflow-bin/{baseline_prefix}media/init health_check {benchmark_mode}"]
       interval: 3s
       retries: 5
       start_period: 3s
@@ -356,7 +356,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/geo", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/geo", "1"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -371,7 +371,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/profile", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/profile", "2"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -386,7 +386,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/rate", "3"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/rate", "3"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -401,7 +401,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/recommendation", "4"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/recommendation", "4"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -416,7 +416,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/user", "5"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/user", "5"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -431,7 +431,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/hotel", "6"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/hotel", "6"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -446,7 +446,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/search", "7"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/search", "7"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -461,7 +461,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/flight", "8"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/flight", "8"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -476,7 +476,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/order", "9"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/order", "9"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -491,7 +491,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/frontend", "10"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/frontend", "10"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -506,7 +506,7 @@ bokiflow_hotel_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/hotel/gateway", "11"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}hotel/gateway", "11"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -554,7 +554,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Frontend", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/Frontend", "1"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -569,7 +569,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/CastInfo", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/CastInfo", "2"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -584,7 +584,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/ReviewStorage", "3"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/ReviewStorage", "3"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -599,7 +599,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/UserReview", "4"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/UserReview", "4"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -614,7 +614,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/MovieReview", "5"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/MovieReview", "5"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -629,7 +629,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/ComposeReview", "6"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/ComposeReview", "6"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -644,7 +644,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Text", "7"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/Text", "7"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -659,7 +659,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/User", "8"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/User", "8"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -674,7 +674,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/UniqueId", "9"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/UniqueId", "9"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -689,7 +689,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Rating", "10"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/Rating", "10"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -704,7 +704,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/MovieId", "11"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/MovieId", "11"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -719,7 +719,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Plot", "12"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/Plot", "12"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -734,7 +734,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/MovieInfo", "13"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/MovieInfo", "13"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -749,7 +749,7 @@ bokiflow_movie_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/media/Page", "14"]
+    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/{baseline_prefix}media/Page", "14"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -797,7 +797,9 @@ if __name__ == '__main__':
     AVAILABLE_TEST_CASES = {
         'sharedlog': sharedlog_funcs_f,
         'bokiflow-hotel': bokiflow_hotel_funcs_f,
+        'bokiflow-hotel-baseline': bokiflow_hotel_funcs_f,
         'bokiflow-movie': bokiflow_movie_funcs_f,
+        'bokiflow-movie-baseline': bokiflow_movie_funcs_f,
     }
 
     # argument assertations
@@ -808,20 +810,26 @@ if __name__ == '__main__':
         raise Exception("table prefix of bokiflow is not allowed to be empty")
 
     app_funcs_f = AVAILABLE_TEST_CASES[args.test_case]
-    if args.test_case == 'bokiflow-hotel':
+    if args.test_case.startswith('bokiflow-hotel'):
         db = dynamodb
         db_setup_f = dynamodb_setup_hotel_f
-    elif args.test_case == 'bokiflow-movie':
+        baseline = args.test_case.endswith('-baseline')
+    elif args.test_case.startswith('bokiflow-movie'):
         db = dynamodb
         db_setup_f = dynamodb_setup_media_f
+        baseline = args.test_case.endswith('-baseline')
     else:
         db = db_setup_f = ""
+        baseline = False
+    baseline_prefix = ('b' if baseline else '')
 
     dc_content = ''.join([
         dc_header,
 
         db,
-        db_setup_f.format(table_prefix=args.table_prefix),
+        db_setup_f.format(table_prefix=args.table_prefix,
+                          benchmark_mode=('baseline' if baseline else 'beldi'),
+                          baseline_prefix=baseline_prefix),
 
         zookeeper,
         zookeeper_setup_f.format(workdir=WORK_DIR),
@@ -877,6 +885,7 @@ if __name__ == '__main__':
             workdir=WORK_DIR,
             node_id=i,
             table_prefix=args.table_prefix,
+            baseline_prefix=baseline_prefix,
         ) for i in range(1, 1+INDEX_REPLICAS)],
         network_config,
     ])

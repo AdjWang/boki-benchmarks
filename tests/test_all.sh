@@ -207,16 +207,23 @@ function test_sharedlog {
 # docker run --rm -v $HOME/dev/boki-benchmarks/tests/workloads/bokiflow/benchmark/hotel:/tmp/bench ghcr.io/eniac/beldi/beldi:latest /root/beldi/tools/wrk -t 1 -c 1 -d 5 -s /tmp/bench/workload.lua http://10.0.2.15:9000 -R 1
 function test_bokiflow {
     APP=$1
-    if ! [[ "$APP" =~ ^(hotel|movie)$ ]]; then
-        echo "[ERROR] APP name should be either hotel or movie, given $APP"
+    if ! [[ "$APP" =~ ^(hotel|movie|hotel-baseline|movie-baseline)$ ]]; then
+        echo "[ERROR] APP name should be either hotel or hotel-baseline or movie or movie-baseline, given $APP"
         exit 1
     fi
-    if [[ $APP == "hotel" ]]; then
-        APP_DIRNAME=$APP
+
+    if [[ $APP == hotel* ]]; then
+        WORKLOAD_DIRNAME="hotel"
         DB_DATA=""
     else
-        APP_DIRNAME="media"
+        WORKLOAD_DIRNAME="media"
         DB_DATA=$TEST_DIR/workloads/bokiflow/internal/media/data/compressed.json
+    fi
+
+    if [[ $APP == *baseline ]]; then
+        BASELINE=1
+    else
+        BASELINE=0
     fi
 
     echo "========== test bokiflow $APP =========="
@@ -248,7 +255,7 @@ function test_bokiflow {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    if [[ $APP == "hotel" ]]; then
+    if [[ $APP == hotel* ]]; then
         echo "test singleop"
         timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
             assert_should_success $LINENO
@@ -265,7 +272,7 @@ function test_bokiflow {
             http://localhost:9000/function/gateway ||
             assert_should_success $LINENO
         echo ""
-    else    # $APP == "movie"
+    else # $APP == movie*
         echo "test basic"
         curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
             http://localhost:9000/function/Frontend ||
@@ -274,7 +281,7 @@ function test_bokiflow {
     fi
 
     echo "test more requests"
-    wrk -t 2 -c 2 -d 150 -s $TEST_DIR/workloads/bokiflow/benchmark/$APP_DIRNAME/workload.lua http://localhost:9000 -R 5
+    BASELINE=$BASELINE wrk -t 2 -c 2 -d 150 -s $TEST_DIR/workloads/bokiflow/benchmark/$WORKLOAD_DIRNAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then
@@ -296,8 +303,10 @@ clean)
     ;;
 run)
     # test_sharedlog
-    test_bokiflow hotel
+    # test_bokiflow hotel
+    # test_bokiflow hotel-baseline
     # test_bokiflow movie
+    test_bokiflow movie-baseline
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

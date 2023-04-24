@@ -2,6 +2,7 @@ package main
 
 import (
 	// "fmt"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -17,18 +18,35 @@ import (
 var services = []string{"user", "search", "flight", "frontend", "geo", "order",
 	"hotel", "profile", "rate", "recommendation", "gateway"}
 
+var baselinePrefix = ""
+
 func tables(baseline bool) {
 	if baseline {
-		panic("Not implemented for baseline")
-	} else {
-		for {
-			tablenames := []string{}
-			for _, service := range services {
-				beldilib.CreateLambdaTables(service)
-				tablenames = append(tablenames, service)
+		for _, service := range services {
+			tablename := baselinePrefix + service
+			for {
+				beldilib.CreateBaselineTable(tablename)
+				if beldilib.WaitUntilActive(tablename) {
+					break
+				}
 			}
-			if beldilib.WaitUntilAllActive(tablenames) {
-				break
+		}
+	} else {
+		for _, service := range services {
+			for {
+				beldilib.CreateLambdaTables(service)
+				if beldilib.WaitUntilAllActive([]string{service, fmt.Sprintf("%s-collector", service), fmt.Sprintf("%s-log", service)}) {
+					break
+				}
+			}
+		}
+		ss := []string{"flight", "frontend", "order", "hotel"}
+		for _, service := range ss {
+			for {
+				beldilib.CreateMainTable(fmt.Sprintf("%s-local", service))
+				if beldilib.WaitUntilActive(fmt.Sprintf("%s-local", service)) {
+					break
+				}
 			}
 		}
 	}
@@ -36,11 +54,20 @@ func tables(baseline bool) {
 
 func deleteTables(baseline bool) {
 	if baseline {
-		panic("Not implemented for baseline")
+		for _, service := range services {
+			service := baselinePrefix + service
+			beldilib.DeleteTable(service)
+			beldilib.WaitUntilDeleted(service)
+		}
 	} else {
 		for _, service := range services {
 			beldilib.DeleteLambdaTables(service)
-			// beldilib.WaitUntilAllDeleted([]string{service})
+			beldilib.WaitUntilAllDeleted([]string{service, fmt.Sprintf("%s-collector", service), fmt.Sprintf("%s-log", service)})
+		}
+		ss := []string{"flight", "frontend", "order", "hotel"}
+		for _, service := range ss {
+			beldilib.DeleteTable(fmt.Sprintf("%s-local", service))
+			beldilib.WaitUntilDeleted(fmt.Sprintf("%s-local", service))
 		}
 	}
 }
@@ -387,7 +414,7 @@ func populate(baseline bool) {
 }
 
 func health_check() {
-	tablename := "flight"
+	tablename := baselinePrefix + "flight"
 	key := strconv.Itoa(0)
 	item := beldilib.LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
 	log.Printf("[INFO] Read data from DB: %v", item)
@@ -400,12 +427,16 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Llongfile)
 
 	option := os.Args[1]
+	baseline := os.Args[2] == "baseline"
+	if baseline {
+		baselinePrefix = "b"
+	}
+
 	if option == "health_check" {
 		health_check()
 		return
 	}
 
-	baseline := os.Args[2] == "baseline"
 	if option == "create" {
 		tables(baseline)
 	} else if option == "populate" {

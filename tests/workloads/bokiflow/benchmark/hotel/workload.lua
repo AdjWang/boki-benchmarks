@@ -13,6 +13,7 @@ math.random()
 -- end
 
 -- local gatewayPath = os.getenv("ENDPOINT")
+local baseline_prefix = ''
 
 local function get_user()
     local id = math.random(0, 500)
@@ -47,8 +48,8 @@ local function search_hotel()
 
     local method = "POST"
 
-    -- local path = '/asyncFunction/gateway'
-    local path = '/function/gateway'
+    -- local path = '/asyncFunction/'..baseline_prefix..'gateway'
+    local path = '/function/'..baseline_prefix..'gateway'
     -- local param = {
     --     InstanceId = uuid(),
     --     CallerName = "",
@@ -100,8 +101,8 @@ local function recommend()
     local lon = -122.095 + (math.random(0, 325) - 157.0) / 1000.0
 
     local method = "POST"
-    -- local path = '/asyncFunction/gateway'
-    local path = '/function/gateway'
+    -- local path = '/asyncFunction/'..baseline_prefix..'gateway'
+    local path = '/function/'..baseline_prefix..'gateway'
 
     -- local param = {
     --     InstanceId = uuid(),
@@ -169,8 +170,8 @@ end
 
 local function reserve_all()
     local method = "POST"
-    -- local path = '/asyncFunction/gateway'
-    local path = '/function/gateway'
+    -- local path = '/asyncFunction/'..baseline_prefix..'gateway'
+    local path = '/function/'..baseline_prefix..'gateway'
 
     -- local param = {
     --     InstanceId = uuid(),
@@ -208,7 +209,7 @@ local function user_login()
     local user_name, password = get_user()
     local method = "POST"
     -- local path = '/asyncFunction/gateway'
-    local path = '/function/gateway'
+    local path = '/function/'..baseline_prefix..'gateway'
     -- local param = {
     --     InstanceId = uuid(),
     --     CallerName = "",
@@ -237,6 +238,17 @@ local function user_login()
     headers["Content-Type"] = "application/json"
 
     return wrk.format(method, path, headers, body)
+end
+
+init = function(args)
+  local baseline = os.getenv("BASELINE")
+  if baseline == '1' then
+    print("running baseline")
+    baseline_prefix = 'b'
+  else
+    print("running beldi")
+    baseline_prefix = ''
+  end
 end
 
 local req_count = 1

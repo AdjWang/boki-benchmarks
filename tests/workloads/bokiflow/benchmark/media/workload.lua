@@ -1041,6 +1041,19 @@ local function uuid()
     return string.random_hex(64)
 end
 
+local baseline_prefix = ''
+
+init = function(args)
+  local baseline = os.getenv("BASELINE")
+  if baseline == '1' then
+    print("running baseline")
+    baseline_prefix = 'b'
+  else
+    print("running beldi")
+    baseline_prefix = ''
+  end
+end
+
 request = function()
     local movie_index = math.random(1000)
     local user_index = math.random(0, 999)
@@ -1050,9 +1063,9 @@ request = function()
     local rating = math.random(0, 10)
     local text = string.random(256)
 
-    -- local path = '/asyncFunction/Frontend'
+    -- local path = '/asyncFunction/'..baseline_prefix..'Frontend'
     -- DEBUG
-    local path = '/function/Frontend'
+    local path = '/function/'..baseline_prefix..'Frontend'
     local method = "POST"
     local headers = {}
     --local body = "username=" .. username .. "&password=" .. password .. "&title=" ..

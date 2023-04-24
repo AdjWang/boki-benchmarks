@@ -2,11 +2,12 @@ package beldilib
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	"time"
 )
 
 func CreateMainTable(lambdaId string) {
@@ -174,7 +175,7 @@ func DeleteLambdaTables(lambdaId string) {
 }
 
 func WaitUntilDeleted(lambda string) {
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(lambda)})
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
@@ -199,7 +200,7 @@ func WaitUntilAllDeleted(lambdas []string) {
 
 func WaitUntilActive(lambda string) bool {
 	counter := 0
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(lambda)})
 		if err != nil {
 			counter += 1

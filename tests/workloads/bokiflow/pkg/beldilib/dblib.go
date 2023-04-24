@@ -1,11 +1,12 @@
 package beldilib
 
 import (
-	"log"
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/mitchellh/mapstructure"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -113,6 +114,7 @@ func LibCondWrite(tablename string, key string, update map[expression.NameBuilde
 	cond expression.ConditionBuilder) bool {
 	pk := aws.JSONValue{"K": key}
 	Key, err := dynamodbattribute.MarshalMap(pk)
+	CHECK(err)
 	updateBuilder := expression.UpdateBuilder{}
 	for k, v := range update {
 		updateBuilder = updateBuilder.Set(k, v)
