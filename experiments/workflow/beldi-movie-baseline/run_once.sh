@@ -30,7 +30,7 @@ TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev \
-    cp -r /beldi-bin/bmedia /tmp/
+    cp -r /boliflow-bin/bmedia /tmp/
 
 scp -q $ROOT_DIR/workloads/workflow/beldi/internal/media/data/compressed.json $CLIENT_HOST:/tmp
 

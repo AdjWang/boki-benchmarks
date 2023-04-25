@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euxo pipefail
+
 BASE_DIR=`realpath $(dirname $0)`
 ROOT_DIR=`realpath $BASE_DIR/../../..`
 
@@ -28,7 +30,7 @@ TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev \
-    cp -r /beldi-bin/bhotel /tmp/
+    cp -r /bokiflow-bin/bhotel /tmp/
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
     /tmp/bhotel/init create baseline
@@ -63,7 +65,7 @@ ssh -q $MANAGER_HOST -- TABLE_PREFIX=$TABLE_PREFIX docker stack deploy \
 sleep 60
 
 for HOST in $ALL_ENGINE_HOSTS; do
-    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service faas-engine --machine-host $HOST`
+    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
     echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
 done
 sleep 10
