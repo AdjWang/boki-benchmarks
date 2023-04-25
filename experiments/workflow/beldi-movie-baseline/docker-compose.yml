@@ -67,7 +67,7 @@ services:
 
   frontend:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bFrontend", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Frontend", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -80,7 +80,7 @@ services:
 
   cast-info-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bCastInfo", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/CastInfo", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -93,7 +93,7 @@ services:
 
   review-storage-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bReviewStorage", "3"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/ReviewStorage", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -106,7 +106,7 @@ services:
 
   user-review-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bUserReview", "4"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/UserReview", "4"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -119,7 +119,7 @@ services:
 
   movie-review-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bMovieReview", "5"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/MovieReview", "5"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -132,7 +132,7 @@ services:
 
   compose-review-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bComposeReview", "6"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/ComposeReview", "6"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -145,7 +145,7 @@ services:
 
   text-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bText", "7"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Text", "7"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -158,7 +158,7 @@ services:
 
   user-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bUser", "8"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/User", "8"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -171,7 +171,7 @@ services:
 
   unique-id-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bUniqueId", "9"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/UniqueId", "9"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -184,7 +184,7 @@ services:
 
   rating-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bRating", "10"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Rating", "10"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -197,7 +197,7 @@ services:
 
   movie-id-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bMovieId", "11"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/MovieId", "11"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -210,7 +210,7 @@ services:
 
   plot-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bPlot", "12"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Plot", "12"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -223,7 +223,7 @@ services:
 
   movie-info-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bMovieInfo", "13"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/MovieInfo", "13"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -236,7 +236,7 @@ services:
 
   page-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/bPage", "14"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Page", "14"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:

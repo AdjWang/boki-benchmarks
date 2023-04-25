@@ -13,6 +13,7 @@ math.random()
 -- end
 
 -- local gatewayPath = os.getenv("ENDPOINT")
+local baseline_prefix = ''
 
 local function get_user()
     local id = math.random(0, 500)
@@ -47,7 +48,7 @@ local function search_hotel()
 
     local method = "POST"
 
-    local path = '/asyncFunction/gateway'
+    local path = '/asyncFunction/'..baseline_prefix..'gateway'
     -- local param = {
     --     InstanceId = uuid(),
     --     CallerName = "",
@@ -97,7 +98,7 @@ local function recommend()
     local lon = -122.095 + (math.random(0, 325) - 157.0) / 1000.0
 
     local method = "POST"
-    local path = '/asyncFunction/gateway'
+    local path = '/asyncFunction/'..baseline_prefix..'gateway'
 
     -- local param = {
     --     InstanceId = uuid(),
@@ -165,7 +166,7 @@ end
 
 local function reserve_all()
     local method = "POST"
-    local path = '/asyncFunction/gateway'
+    local path = '/asyncFunction/'..baseline_prefix..'gateway'
 
     -- local param = {
     --     InstanceId = uuid(),
@@ -202,7 +203,7 @@ end
 local function user_login()
     local user_name, password = get_user()
     local method = "POST"
-    local path = '/asyncFunction/gateway'
+    local path = '/asyncFunction/'..baseline_prefix..'gateway'
     -- local param = {
     --     InstanceId = uuid(),
     --     CallerName = "",
@@ -233,6 +234,19 @@ local function user_login()
     return wrk.format(method, path, headers, body)
 end
 
+function init(rand_seed)
+    math.randomseed(rand_seed)
+    
+    local baseline = os.getenv("BASELINE")
+    if baseline == '1' then
+        print("running baseline")
+        baseline_prefix = 'b'
+    else
+        print("running beldi")
+        baseline_prefix = ''
+    end
+end
+
 request = function()
     -- cur_time = math.floor(socket.gettime())
     local search_ratio = 0.6
@@ -254,8 +268,4 @@ request = function()
     else
         return reserve_all()
     end
-end
-
-function init(rand_seed)
-    math.randomseed(rand_seed)
 end
