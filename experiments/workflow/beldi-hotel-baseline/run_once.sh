@@ -1,6 +1,4 @@
 #!/bin/bash
-set -euxo pipefail
-
 BASE_DIR=`realpath $(dirname $0)`
 ROOT_DIR=`realpath $BASE_DIR/../../..`
 
@@ -10,7 +8,6 @@ EXP_DIR=$BASE_DIR/results/$1
 QPS=$2
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
-DOCKERCOMPOSE_GENERATOR=$ROOT_DIR/scripts/docker-compose-generator.py
 WRK_DIR=/usr/local/bin
 
 MANAGER_HOST=`$HELPER_SCRIPT get-docker-manager-host --base-dir=$BASE_DIR`
@@ -31,12 +28,12 @@ TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev \
-    cp -r /bokiflow-bin/hotel /tmp/
+    cp -r /beldi-bin/bhotel /tmp/
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/hotel/init create cayon
+    /tmp/bhotel/init create baseline
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/hotel/init populate cayon
+    /tmp/bhotel/init populate baseline
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
@@ -62,11 +59,11 @@ for HOST in $ALL_STORAGE_HOSTS; do
 done
 
 ssh -q $MANAGER_HOST -- TABLE_PREFIX=$TABLE_PREFIX docker stack deploy \
-    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml --resolve-image always boki-experiment
+    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
 sleep 60
 
 for HOST in $ALL_ENGINE_HOSTS; do
-    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
+    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service faas-engine --machine-host $HOST`
     echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
 done
 sleep 10
@@ -77,7 +74,6 @@ mkdir -p $EXP_DIR
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
-# start evaluation
 scp -q $ROOT_DIR/workloads/workflow/boki/benchmark/hotel/workload.lua $CLIENT_HOST:/tmp
 
 ssh -q $CLIENT_HOST -- $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
@@ -96,12 +92,6 @@ scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/hotel/init clean cayon
+    /tmp/bhotel/init clean baseline
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
-
-mkdir $EXP_DIR/logs/engines
-for HOST in $ALL_ENGINE_HOSTS; do
-	mkdir $EXP_DIR/logs/engines/$HOST
-	scp -q -r $HOST:/mnt/inmem/boki/output $EXP_DIR/logs/engines/$HOST
-done

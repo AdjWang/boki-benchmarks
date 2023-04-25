@@ -28,16 +28,16 @@ sleep 40
 TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || true)
 TABLE_PREFIX="${TABLE_PREFIX}-"
 
-# ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-#     adjwang/boki-beldibench:dev \
-#     cp -r /bokiflow-bin/bmedia /tmp
-# ssh -q $CLIENT_HOST -- sudo rm -rf /tmp/media
-# ssh -q $CLIENT_HOST -- sudo mv /tmp/bmedia /tmp/media
-# 
-# scp -q $ROOT_DIR/workloads/workflow/beldi/internal/media/data/compressed.json $CLIENT_HOST:/tmp
-# 
-# ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-#     /tmp/media/init populate baseline /tmp/compressed.json
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
+    adjwang/boki-beldibench:dev \
+    cp -r /beldi-bin/bmedia /tmp/
+
+scp -q $ROOT_DIR/workloads/workflow/beldi/internal/media/data/compressed.json $CLIENT_HOST:/tmp
+
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
+    /tmp/bmedia/init create baseline
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
+    /tmp/bmedia/init populate baseline /tmp/compressed.json
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
@@ -94,5 +94,8 @@ sleep 10
 
 scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
+
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
+    /tmp/bmedia/init clean baseline
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
