@@ -16,8 +16,8 @@ ENTRY_HOST=`$HELPER_SCRIPT get-service-host --base-dir=$BASE_DIR --service=boki-
 ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
 
 $HELPER_SCRIPT generate-docker-compose --base-dir=$BASE_DIR
-scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:~
-scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:~
+scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:/tmp
+scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:/tmp
 
 ssh -q $MANAGER_HOST -- docker stack rm boki-experiment
 
@@ -27,7 +27,7 @@ TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
 TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    zjia/boki-beldibench:sosp-ae \
+    adjwang/boki-beldibench:dev \
     cp -r /beldi-bin/media /tmp/
 
 scp -q $ROOT_DIR/workloads/workflow/beldi/internal/media/data/compressed.json $CLIENT_HOST:/tmp
@@ -61,11 +61,11 @@ for HOST in $ALL_STORAGE_HOSTS; do
 done
 
 ssh -q $MANAGER_HOST -- TABLE_PREFIX=$TABLE_PREFIX docker stack deploy \
-    -c ~/docker-compose-generated.yml -c ~/docker-compose.yml boki-experiment
+    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
 sleep 60
 
 for HOST in $ALL_ENGINE_HOSTS; do
-    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service faas-engine --machine-host $HOST`
+    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
     echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
 done
 sleep 10

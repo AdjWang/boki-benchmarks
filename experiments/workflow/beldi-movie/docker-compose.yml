@@ -17,7 +17,7 @@ services:
     restart: always
 
   boki-engine:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-engine-{{.Task.Slot}}
     entrypoint:
       - /boki/engine
@@ -41,7 +41,7 @@ services:
     restart: always
 
   boki-gateway:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-gateway
     ports:
       - 8080:8080
@@ -66,7 +66,7 @@ services:
     restart: always
 
   frontend:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/Frontend", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -79,7 +79,7 @@ services:
     restart: always
 
   cast-info-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/CastInfo", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -92,7 +92,7 @@ services:
     restart: always
 
   review-storage-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/ReviewStorage", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -105,7 +105,7 @@ services:
     restart: always
 
   user-review-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/UserReview", "4"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -118,7 +118,7 @@ services:
     restart: always
 
   movie-review-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/MovieReview", "5"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -131,7 +131,7 @@ services:
     restart: always
 
   compose-review-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/ComposeReview", "6"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -144,7 +144,7 @@ services:
     restart: always
 
   text-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/Text", "7"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -157,7 +157,7 @@ services:
     restart: always
 
   user-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/User", "8"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -170,7 +170,7 @@ services:
     restart: always
 
   unique-id-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/UniqueId", "9"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -183,7 +183,7 @@ services:
     restart: always
 
   rating-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/Rating", "10"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -196,7 +196,7 @@ services:
     restart: always
 
   movie-id-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/MovieId", "11"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -209,7 +209,7 @@ services:
     restart: always
 
   plot-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/Plot", "12"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -222,7 +222,7 @@ services:
     restart: always
 
   movie-info-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/MovieInfo", "13"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -235,7 +235,7 @@ services:
     restart: always
 
   page-service:
-    image: zjia/boki-beldibench:sosp-ae
+    image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/media/Page", "14"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
