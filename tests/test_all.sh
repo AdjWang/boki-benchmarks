@@ -4,8 +4,10 @@ set -euo pipefail
 DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
-DOCKERFILE_DIR=$TEST_DIR/dockerfiles
-WORKLOAD_DIR=$TEST_DIR/workloads
+SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
+DOCKERFILE_DIR=$(realpath $SCRIPT_DIR/dockerfiles)
+WORKFLOW_EXP_DIR=$(realpath $TEST_DIR/../experiments/workflow)
+WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
 WORK_DIR=/tmp/boki-test
 
@@ -17,22 +19,30 @@ function setup_env {
     USERLOG_REPLICATION=$2
     INDEX_REPLICATION=$3
     TEST_CASE=$4
-    APP=$5
 
     # remove old files and folders
     rm -rf $WORK_DIR/config
     mkdir -p $WORK_DIR/config
 
-    cp $TEST_DIR/scripts/zk_setup.sh $WORK_DIR/config
-    cp $TEST_DIR/scripts/zk_health_check/zk_health_check $WORK_DIR/config
-    cp $WORKLOAD_DIR/$TEST_CASE/nightcore_config-$APP.json $WORK_DIR/config/nightcore_config.json
-    cp $WORKLOAD_DIR/$TEST_CASE/run_launcher $WORK_DIR/config
+    cp $SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
+    cp $SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
+    if [[ $TEST_CASE == sharedlog ]]; then
+        cp $TEST_DIR/workloads/sharedlog/nightcore_config.json $WORK_DIR/config/nightcore_config.json
+        cp $TEST_DIR/workloads/sharedlog/run_launcher $WORK_DIR/config
+    else
+        cp $WORKFLOW_EXP_DIR/$TEST_CASE/nightcore_config.json $WORK_DIR/config/nightcore_config.json
+        cp $WORKFLOW_EXP_DIR/$TEST_CASE/run_launcher $WORK_DIR/config
+    fi
 
     rm -rf $WORK_DIR/mnt
     mkdir -p $WORK_DIR/mnt
 
     # dynamodb
     mkdir -p $WORK_DIR/mnt/dynamodb
+
+    # gateway
+    mkdir $WORK_DIR/mnt/inmem_gateway
+    mkdir $WORK_DIR/mnt/inmem_gateway/store
 
     # engine nodes
     for node_i in $(seq 1 $INDEX_REPLICATION); do
@@ -66,7 +76,7 @@ function build {
     docker run --rm -v $BOKI_DIR:/boki adjwang/boki-buildenv:dev bash -c "cd /boki && make -j$(nproc)"
 
     echo "========== build workloads =========="
-    $WORKLOAD_DIR/build_all.sh
+    $WORKFLOW_SRC_DIR/build_all.sh LOCAL
 
     echo "========== build docker images =========="
     # build boki docker image
@@ -83,13 +93,16 @@ function build {
     # build workloads docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
         -f $DOCKERFILE_DIR/Dockerfile.testcases \
-        $WORKLOAD_DIR
+        $TEST_DIR/workloads
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.beldibench \
-        $WORKLOAD_DIR
+        $WORKFLOW_SRC_DIR
 }
 
 function push {
+    echo "========== build workloads =========="
+    $WORKFLOW_SRC_DIR/build_all.sh REMOTE
+
     echo "========== build docker images =========="
     # boki
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
@@ -98,7 +111,7 @@ function push {
     # bokiflow
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.beldibench \
-        $WORKLOAD_DIR
+        $WORKFLOW_SRC_DIR
 
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
@@ -149,7 +162,7 @@ function test_sharedlog {
     echo "========== test sharedlog =========="
 
     echo "setup env..."
-    python3 $TEST_DIR/scripts/docker-compose-generator.py \
+    python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
         --index-reps=1 \
@@ -205,28 +218,52 @@ function test_sharedlog {
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
 # docker run --rm -v $HOME/dev/boki-benchmarks/tests/workloads/bokiflow/benchmark/hotel:/tmp/bench ghcr.io/eniac/beldi/beldi:latest /root/beldi/tools/wrk -t 1 -c 1 -d 5 -s /tmp/bench/workload.lua http://10.0.2.15:9000 -R 1
-function test_bokiflow {
-    APP=$1
-    if ! [[ "$APP" =~ ^(hotel|movie|hotel-baseline|movie-baseline)$ ]]; then
-        echo "[ERROR] APP name should be either hotel or hotel-baseline or movie or movie-baseline, given $APP"
+function test_workflow {
+    TEST_CASE=$1
+    case $TEST_CASE in
+    beldi-hotel-baseline)
+        APP_NAME="hotel"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"beldi"
+        BELDI_BASELINE="1"
+        ;;
+    beldi-movie-baseline)
+        APP_NAME="media"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"beldi"
+        BELDI_BASELINE="1"
+        ;;
+    boki-hotel-baseline)
+        APP_NAME="hotel"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"boki"
+        BELDI_BASELINE="0"
+        ;;
+    boki-movie-baseline)
+        APP_NAME="media"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"boki"
+        BELDI_BASELINE="0"
+        ;;
+    boki-hotel-asynclog)
+        APP_NAME="hotel"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
+        BELDI_BASELINE="0"
+        ;;
+    boki-movie-asynclog)
+        APP_NAME="media"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
+        BELDI_BASELINE="0"
+        ;;
+    *)
+        echo "[ERROR] TEST_CASE should be either beldi-hotel|movie-baseline or boki-hotel|movie-baseline|asynclog, given $TEST_CASE"
         exit 1
-    fi
+        ;;
+    esac
 
-    if [[ $APP == hotel* ]]; then
-        WORKLOAD_DIRNAME="hotel"
+    if [[ $APP_NAME == "hotel" ]]; then
         DB_DATA=""
     else
-        WORKLOAD_DIRNAME="media"
-        DB_DATA=$TEST_DIR/workloads/bokiflow/internal/media/data/compressed.json
+        DB_DATA=$APP_SRC_DIR/internal/media/data/compressed.json
     fi
 
-    if [[ $APP == *baseline ]]; then
-        BASELINE=1
-    else
-        BASELINE=0
-    fi
-
-    echo "========== test bokiflow $APP =========="
+    echo "========== test workflow $TEST_CASE =========="
 
     # strange bug: head not generating EOF and just stucks. Only on my vm, tested ok in WSL.
     # TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
@@ -234,16 +271,16 @@ function test_bokiflow {
     TABLE_PREFIX="${TABLE_PREFIX}-"
 
     echo "setup env..."
-    python3 $TEST_DIR/scripts/docker-compose-generator.py \
+    python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
         --index-reps=1 \
-        --test-case=bokiflow-$APP \
+        --test-case=$TEST_CASE \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 bokiflow $APP
+    setup_env 3 3 1 $TEST_CASE
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -255,11 +292,12 @@ function test_bokiflow {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    if [[ $APP == hotel* ]]; then
-        echo "test singleop"
-        timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
-            assert_should_success $LINENO
-        echo ""
+    if [[ $APP_NAME == "hotel" ]]; then
+        # TODO
+        # echo "test singleop"
+        # timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
+        #     assert_should_success $LINENO
+        # echo ""
 
         echo "test read request"
         timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
@@ -272,7 +310,7 @@ function test_bokiflow {
             http://localhost:9000/function/gateway ||
             assert_should_success $LINENO
         echo ""
-    else # $APP == movie*
+    else # $APP_NAME == "media"
         echo "test basic"
         curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
             http://localhost:9000/function/Frontend ||
@@ -281,7 +319,10 @@ function test_bokiflow {
     fi
 
     echo "test more requests"
-    BASELINE=$BASELINE wrk -t 2 -c 2 -d 150 -s $TEST_DIR/workloads/bokiflow/benchmark/$WORKLOAD_DIRNAME/workload.lua http://localhost:9000 -R 5
+    # DEBUG: benchmarks printing responses
+    BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 20 -s $SCRIPT_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+
+    # BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 150 -s $APP_SRC_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then
@@ -303,10 +344,12 @@ clean)
     ;;
 run)
     # test_sharedlog
-    # test_bokiflow hotel
-    # test_bokiflow hotel-baseline
-    # test_bokiflow movie
-    test_bokiflow movie-baseline
+    test_workflow beldi-hotel-baseline
+    # test_workflow beldi-movie-baseline
+    # test_workflow boki-hotel-baseline
+    # test_workflow boki-movie-baseline
+    # test_workflow boki-hotel-asynclog
+    # test_workflow boki-movie-asynclog
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

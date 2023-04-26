@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/eniac/Beldi/internal/hotel/main/data"
 	"github.com/eniac/Beldi/internal/hotel/main/flight"
 	"github.com/eniac/Beldi/internal/hotel/main/hotel"
 	"github.com/eniac/Beldi/pkg/beldilib"
-	"os"
-	"strconv"
-	"time"
 )
 
 var services = []string{"user", "search", "flight", "frontend", "geo", "order",
@@ -16,7 +19,7 @@ var services = []string{"user", "search", "flight", "frontend", "geo", "order",
 
 func tables(baseline bool) {
 	if baseline {
-		for ; ; {
+		for {
 			tablenames := []string{}
 			for _, service := range services {
 				tablename := fmt.Sprintf("b%s", service)
@@ -29,7 +32,7 @@ func tables(baseline bool) {
 			}
 		}
 	} else {
-		for ; ; {
+		for {
 			tablenames := []string{}
 			for _, service := range services {
 				beldilib.CreateLambdaTables(service)
@@ -408,9 +411,31 @@ func populate(baseline bool) {
 	addFlights(baseline)
 }
 
+func health_check(baseline bool) {
+	var tablename string
+	if baseline {
+		tablename = "bflight"
+	} else {
+		tablename = "flight"
+	}
+	key := strconv.Itoa(0)
+	item := beldilib.LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
+	log.Printf("[INFO] Read data from DB: %v", item)
+	if len(item) == 0 {
+		panic("read data from DB failed")
+	}
+}
+
 func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	option := os.Args[1]
 	baseline := os.Args[2] == "baseline"
+	if option == "health_check" {
+		health_check(baseline)
+		return
+	}
+
 	if option == "create" {
 		tables(baseline)
 	} else if option == "populate" {

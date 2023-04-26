@@ -1,0 +1,8 @@
+FROM adjwang/boki:dev as boki
+FROM ubuntu:focal
+
+COPY ./beldi/bin        /beldi-bin
+COPY ./boki/bin         /bokiflow-bin
+COPY ./boki/internal/media/data /bokiflow/data
+COPY ./asynclog/bin     /asynclog-bin
+COPY --from=boki     /boki/launcher       /boki/launcher

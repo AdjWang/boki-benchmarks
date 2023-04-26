@@ -5,13 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/eniac/Beldi/internal/media/core"
 	"github.com/eniac/Beldi/pkg/beldilib"
 	"github.com/lithammer/shortuuid"
-	"io/ioutil"
-	"os"
-	"time"
 )
 
 var services = []string{"CastInfo", "ComposeReview", "Frontend", "MovieId", "MovieInfo", "MovieReview", "Page",
@@ -19,7 +21,7 @@ var services = []string{"CastInfo", "ComposeReview", "Frontend", "MovieId", "Mov
 
 func tables(baseline bool) {
 	if baseline {
-		for ; ; {
+		for {
 			tablenames := []string{}
 			for _, service := range services {
 				tablename := fmt.Sprintf("b%s", service)
@@ -32,7 +34,7 @@ func tables(baseline bool) {
 			}
 		}
 	} else {
-		for ; ; {
+		for {
 			tablenames := []string{}
 			for _, service := range services {
 				beldilib.CreateLambdaTables(service)
@@ -99,9 +101,31 @@ func populate(baseline bool, file string) {
 	movie(baseline, file)
 }
 
+func health_check(baseline bool) {
+	var tablename string
+	if baseline {
+		tablename = "bMovieId"
+	} else {
+		tablename = "MovieId"
+	}
+	key := "The Highwaymen"
+	item := beldilib.LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
+	log.Printf("[INFO] Read data from DB: %v", item)
+	if len(item) == 0 {
+		panic("read data from DB failed")
+	}
+}
+
 func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	option := os.Args[1]
 	baseline := os.Args[2] == "baseline"
+	if option == "health_check" {
+		health_check(baseline)
+		return
+	}
+
 	if option == "create" {
 		tables(baseline)
 	} else if option == "populate" {

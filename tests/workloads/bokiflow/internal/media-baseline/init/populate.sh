@@ -1,2 +1,0 @@
-#go run ./internal/media-baseline/init/init.go populate $(pwd)/internal/media-baseline/data/compressed.json baseline
-go run ./internal/media-baseline/init/init.go populate $(pwd)/internal/media-baseline/data/compressed.json beldi

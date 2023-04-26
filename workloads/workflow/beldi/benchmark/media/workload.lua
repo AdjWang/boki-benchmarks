@@ -9,6 +9,7 @@ math.random();
 math.random()
 
 -- local frontendPath = os.getenv("ENDPOINT")
+local baseline_prefix = ''
 
 local charset = { 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'a', 's',
                   'd', 'f', 'g', 'h', 'j', 'k', 'l', 'z', 'x', 'c', 'v', 'b', 'n', 'm', 'Q',
@@ -1050,7 +1051,7 @@ request = function()
     local rating = math.random(0, 10)
     local text = string.random(256)
 
-    local path = '/asyncFunction/Frontend'
+    local path = '/asyncFunction/'..baseline_prefix..'Frontend'
     local method = "POST"
     local headers = {}
     --local body = "username=" .. username .. "&password=" .. password .. "&title=" ..
@@ -1090,6 +1091,13 @@ request = function()
     return wrk.format(method, path, headers, body)
 end
 
-function init(rand_seed)
-    math.randomseed(rand_seed)
+function init(args)
+    local baseline = os.getenv("BASELINE")
+    if baseline == '1' then
+        print("benchmarking beldi baseline")
+        baseline_prefix = 'b'
+    else
+        print("benchmarking beldi")
+        baseline_prefix = ''
+    end
 end
