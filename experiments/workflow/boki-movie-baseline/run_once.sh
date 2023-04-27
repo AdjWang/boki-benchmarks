@@ -76,7 +76,7 @@ mkdir -p $EXP_DIR
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
-scp -q $ROOT_DIR/workloads/workflow/bokiflow/benchmark/media/workload.lua $CLIENT_HOST:/tmp
+scp -q $ROOT_DIR/workloads/workflow/boki/benchmark/media/workload.lua $CLIENT_HOST:/tmp
 
 ssh -q $CLIENT_HOST --  $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
     -s /tmp/workload.lua \

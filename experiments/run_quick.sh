@@ -1,4 +1,6 @@
 #!/bin/bash
+set -uxo pipefail
+
 ROOT_DIR=`realpath $(dirname $0)/..`
 
 # Message queue workload for BokiQueue and Pulsar

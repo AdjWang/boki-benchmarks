@@ -590,9 +590,9 @@ ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
     cp -r {bin_path} /tmp/
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
-    /tmp/{app_name}/init create {init_mode}
+    /tmp/{app_dir}/init create {init_mode}
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
-    /tmp/{app_name}/init populate {init_mode}
+    /tmp/{app_dir}/init populate {init_mode}
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
@@ -633,7 +633,7 @@ mkdir -p $EXP_DIR
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
-scp -q $ROOT_DIR/workloads/workflow/{workflow_name}/benchmark/{bench_name}/workload.lua $CLIENT_HOST:/tmp
+scp -q $ROOT_DIR/workloads/workflow/{workflow_dir}/benchmark/{bench_dir}/workload.lua $CLIENT_HOST:/tmp
 
 ssh -q $CLIENT_HOST -- {wrk_env} $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \\
     -s /tmp/workload.lua \\
@@ -651,7 +651,7 @@ scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
-    /tmp/{app_name}/init clean {init_mode}
+    /tmp/{app_dir}/init clean {init_mode}
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
@@ -667,17 +667,29 @@ def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlo
     bin_path_parts = bin_path.split('/')
     assert len(bin_path_parts) == 3
     assert len(bin_path_parts[1].split('-')) == 2
+
     workflow_name = bin_path_parts[1].split('-')[0]
+    if workflow_name == "bokiflow":
+        workflow_dir = "boki"
+    else:
+        workflow_dir = workflow_name
+
     app_name = bin_path_parts[2]
+    app_dir = app_name
+
     bench_name = app_name.lstrip('b')
     if bench_name == "movie":
-        bench_name = "media"
+        bench_dir = "media"
+    else:
+        bench_dir = bench_name
+
     if db_init_mode == "baseline":
         baseline_prefix = 'b'
         wrk_env = "BASELINE=1"
     else:
         baseline_prefix = ''
         wrk_env = ""
+
     docker_compose_faas_f = docker_compose_faas_sharedlog_f if enable_sharedlog else docker_compose_faas_nightcore_f
 
     docker_compose = (docker_compose_common +
@@ -686,10 +698,10 @@ def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlo
     config_json = hotel_config_f.format(baseline_prefix=baseline_prefix)
     run_once_sh = run_once_sh_f.format(image_app=image_app,
                                        bin_path=bin_path,
-                                       app_name=app_name,
+                                       app_dir=app_dir,
                                        init_mode=db_init_mode,
-                                       workflow_name=workflow_name,
-                                       bench_name=bench_name,
+                                       workflow_dir=workflow_dir,
+                                       bench_dir=bench_dir,
                                        wrk_env=wrk_env)
     return docker_compose, config_json, run_once_sh
 
