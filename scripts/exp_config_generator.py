@@ -586,8 +586,9 @@ TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || 
 TABLE_PREFIX="${{TABLE_PREFIX}}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
-    {image_app} \\
-    cp -r {bin_path} /tmp && cp /bokiflow/data /tmp
+    {image_app} cp -r {bin_path} /tmp
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
+    {image_app} cp /bokiflow/data/compressed.json /tmp
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
     /tmp/{app_dir}/init create {init_mode}
@@ -687,12 +688,17 @@ def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlo
         wrk_env = ""
 
     docker_compose_faas_f = docker_compose_faas_sharedlog_f if enable_sharedlog else docker_compose_faas_nightcore_f
-    docker_compose_app_f = docker_compose_app_hotel_f if bench_name == "hotel" else docker_compose_app_movie_f
+    if bench_name == "hotel":
+        docker_compose_app_f = docker_compose_app_hotel_f
+        config_json_f = hotel_config_f
+    else:
+        docker_compose_app_f = docker_compose_app_movie_f
+        config_json_f = movie_config_f
 
     docker_compose = (docker_compose_common +
                       docker_compose_faas_f.format(image_faas=image_faas) +
                       docker_compose_app_f.format(image_app=image_app, bin_path=bin_path))
-    config_json = hotel_config_f.format(baseline_prefix=baseline_prefix)
+    config_json = config_json_f.format(baseline_prefix=baseline_prefix)
     run_once_sh = run_once_sh_f.format(image_app=image_app,
                                        bin_path=bin_path,
                                        app_dir=app_dir,

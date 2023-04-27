@@ -29,8 +29,9 @@ TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || 
 TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    adjwang/boki-beldibench:dev \
-    cp -r /bokiflow-bin/media /tmp && cp /bokiflow/data /tmp
+    adjwang/boki-beldibench:dev cp -r /bokiflow-bin/media /tmp
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
+    adjwang/boki-beldibench:dev cp /bokiflow/data/compressed.json /tmp
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
     /tmp/media/init create cayon
