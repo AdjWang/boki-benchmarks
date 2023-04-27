@@ -587,12 +587,12 @@ TABLE_PREFIX="${{TABLE_PREFIX}}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
     {image_app} \\
-    cp -r {bin_path} /tmp/
+    cp -r {bin_path} /tmp && cp /bokiflow/data /tmp
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
     /tmp/{app_dir}/init create {init_mode}
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
-    /tmp/{app_dir}/init populate {init_mode}
+    /tmp/{app_dir}/init populate {init_mode} /tmp/compressed.json
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
