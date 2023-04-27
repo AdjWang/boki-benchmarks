@@ -698,7 +698,7 @@ def dump_configs(dump_dir, config_generator):
     docker_compose, config_json, run_once_sh = config_generator()
     with open(dump_dir / "docker-compose.yml", "w") as f:
         f.write(docker_compose)
-    with open(dump_dir / "config.json", "w") as f:
+    with open(dump_dir / "nightcore_config.json", "w") as f:
         f.write(config_json)
     with open(dump_dir / "run_once.sh", "w") as f:
         f.write(run_once_sh)
