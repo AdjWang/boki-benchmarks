@@ -663,7 +663,6 @@ def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlo
     # then app_name = "bhotel"
     #      workflow_name = "beldi"
     #      bench_name = "hotel"
-    # NOTE that if app_name is "[b]movie", bench_name should be "media"
     bin_path_parts = bin_path.split('/')
     assert len(bin_path_parts) == 3
     assert len(bin_path_parts[1].split('-')) == 2
@@ -678,10 +677,7 @@ def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlo
     app_dir = app_name
 
     bench_name = app_name.lstrip('b')
-    if bench_name == "movie":
-        bench_dir = "media"
-    else:
-        bench_dir = bench_name
+    bench_dir = bench_name
 
     if db_init_mode == "baseline":
         baseline_prefix = 'b'
@@ -691,10 +687,11 @@ def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlo
         wrk_env = ""
 
     docker_compose_faas_f = docker_compose_faas_sharedlog_f if enable_sharedlog else docker_compose_faas_nightcore_f
+    docker_compose_app_f = docker_compose_app_hotel_f if bench_name == "hotel" else docker_compose_app_movie_f
 
     docker_compose = (docker_compose_common +
                       docker_compose_faas_f.format(image_faas=image_faas) +
-                      docker_compose_app_hotel_f.format(image_app=image_app, bin_path=bin_path))
+                      docker_compose_app_f.format(image_app=image_app, bin_path=bin_path))
     config_json = hotel_config_f.format(baseline_prefix=baseline_prefix)
     run_once_sh = run_once_sh_f.format(image_app=image_app,
                                        bin_path=bin_path,
@@ -722,7 +719,7 @@ def beldi_hotel_baseline():
 
 
 def beldi_movie_baseline():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/bmovie", db_init_mode="baseline", enable_sharedlog=False)
+    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/bmedia", db_init_mode="baseline", enable_sharedlog=False)
 
 
 def beldi_hotel():
@@ -730,7 +727,7 @@ def beldi_hotel():
 
 
 def beldi_movie():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/movie", db_init_mode="beldi", enable_sharedlog=False)
+    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/media", db_init_mode="beldi", enable_sharedlog=False)
 
 
 def boki_hotel_baseline():
@@ -738,7 +735,7 @@ def boki_hotel_baseline():
 
 
 def boki_movie_baseline():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/bokiflow-bin/movie", db_init_mode="cayon", enable_sharedlog=True)
+    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/bokiflow-bin/media", db_init_mode="cayon", enable_sharedlog=True)
 
 
 def boki_hotel_asynclog():
@@ -746,7 +743,7 @@ def boki_hotel_asynclog():
 
 
 def boki_movie_asynclog():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/asynclog-bin/movie", db_init_mode="cayon", enable_sharedlog=True)
+    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/asynclog-bin/media", db_init_mode="cayon", enable_sharedlog=True)
 
 
 IMAGE_FAAS = "adjwang/boki:dev"
@@ -754,7 +751,8 @@ IMAGE_APP = "adjwang/boki-beldibench:dev"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--workflow-dir', type=str, required=True, help="usually: boki-benchmarks/experiments/workflow")
+    parser.add_argument('--workflow-dir', type=str, required=True,
+                        help="usually: boki-benchmarks/experiments/workflow")
     args = parser.parse_args()
 
     workflow_dir = Path(args.workflow_dir)

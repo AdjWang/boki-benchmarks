@@ -30,12 +30,12 @@ TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev \
-    cp -r /bokiflow-bin/movie /tmp/
+    cp -r /bokiflow-bin/media /tmp/
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/movie/init create cayon
+    /tmp/media/init create cayon
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/movie/init populate cayon
+    /tmp/media/init populate cayon
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
@@ -94,7 +94,7 @@ scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/movie/init clean cayon
+    /tmp/media/init clean cayon
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 

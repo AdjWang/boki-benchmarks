@@ -65,52 +65,91 @@ services:
       - /mnt/inmem/store:/tmp/store
     restart: always
 
-  geo-service:
+  frontend:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/geo", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Frontend", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  profile-service:
+  cast-info-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/profile", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/CastInfo", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  rate-service:
+  review-storage-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/rate", "3"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/ReviewStorage", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  recommendation-service:
+  user-review-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/recommendation", "4"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/UserReview", "4"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=1000
+      - TABLE_PREFIX=${TABLE_PREFIX:?}
+    depends_on:
+      - boki-engine
+    restart: always
+
+  movie-review-service:
+    image: adjwang/boki-beldibench:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/MovieReview", "5"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=1000
+      - TABLE_PREFIX=${TABLE_PREFIX:?}
+    depends_on:
+      - boki-engine
+    restart: always
+
+  compose-review-service:
+    image: adjwang/boki-beldibench:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/ComposeReview", "6"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=1000
+      - TABLE_PREFIX=${TABLE_PREFIX:?}
+    depends_on:
+      - boki-engine
+    restart: always
+
+  text-service:
+    image: adjwang/boki-beldibench:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Text", "7"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
@@ -119,89 +158,89 @@ services:
 
   user-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/user", "5"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/User", "8"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  hotel-service:
+  unique-id-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/hotel", "6"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/UniqueId", "9"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  search-service:
+  rating-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/search", "7"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Rating", "10"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  flight-service:
+  movie-id-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/flight", "8"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/MovieId", "11"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  order-service:
+  plot-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/order", "9"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Plot", "12"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  frontend-service:
+  movie-info-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/frontend", "10"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/MovieInfo", "13"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
       - boki-engine
     restart: always
 
-  gateway-service:
+  page-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmovie/gateway", "11"]
+    entrypoint: ["/tmp/boki/run_launcher", "/beldi-bin/bmedia/Page", "14"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=8
+      - FAAS_GO_MAX_PROC_FACTOR=4
       - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
     depends_on:
