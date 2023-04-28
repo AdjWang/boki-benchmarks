@@ -1,21 +1,11 @@
-
-# args
-ifeq ($(DBENV),"")
-DBENV=REMOTE
-endif
-
 # COMPILE_FLAGS = -race
 COMPILE_FLAGS = 
-# TODO: turn to env var
-# LDFLAGS_DBENV = -X github.com/eniac/Beldi/pkg/beldilib.DBENV=$(DBENV) \
-# 				-X github.com/eniac/Beldi/pkg/cayonlib.DBENV=$(DBENV)
-LDFLAGS_DBENV = 
 
 LDFLAGS_BASELINE = -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BASELINE \
 				   -X github.com/eniac/Beldi/pkg/cayonlib.TYPE=BASELINE
 LDFLAGS_BELDI = -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI \
 				-X github.com/eniac/Beldi/pkg/cayonlib.TYPE=BELDI
-LDFLAGS_COMMON = -s -w $(LDFLAGS_DBENV)
+LDFLAGS_COMMON = -s -w
 
 .PHONY: build clean deploy
 

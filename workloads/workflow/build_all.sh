@@ -1,24 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-function print_usage {
-    echo "usage: build_all.sh LOCAL|REMOTE"
-    echo "LOCAL: connect to local dynamodb for debugging."
-    echo "REMOTE: connect to remote dynamodb for evaluating."
-}
-if [ $# -eq 0 ]; then
-    echo "[ERROR] not enough arguments"
-    print_usage
-    exit 1
-fi
-
-DBENV=$1
-if ! [[ "$DBENV" =~ ^(LOCAL|REMOTE)$ ]]; then
-    echo "[ERROR] invalid argument"
-    print_usage
-    exit 1
-fi
-
 PROJECT_DIR="$(realpath $(dirname "$0")/../..)"
 WORKFLOW_DIR=$PROJECT_DIR/workloads/workflow
 BOKI_DIR=$PROJECT_DIR/boki
@@ -51,7 +33,7 @@ function build_asynclog {
     # make media
     # make media-baseline
     # make singleop
-    make all -j$(nproc) DBENV=$DBENV
+    make all -j$(nproc)
 }
 
 build_beldi

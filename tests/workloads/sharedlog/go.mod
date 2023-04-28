@@ -20,4 +20,4 @@ require (
 
 replace cs.utexas.edu/zjia/faas => /home/adjwang/dev/boki-benchmarks/boki/worker/golang
 
-replace github.com/eniac/Beldi => /home/adjwang/dev/boki-benchmarks/tests/workloads/bokiflow
+replace github.com/eniac/Beldi => /home/adjwang/dev/boki-benchmarks/workloads/workflow/asynclog

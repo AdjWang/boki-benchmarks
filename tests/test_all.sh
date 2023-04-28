@@ -75,8 +75,11 @@ function build {
     echo "========== build boki =========="
     docker run --rm -v $BOKI_DIR:/boki adjwang/boki-buildenv:dev bash -c "cd /boki && make -j$(nproc)"
 
+    echo "========== build sharedlog =========="
+    $TEST_DIR/workloads/sharedlog/build.sh
+
     echo "========== build workloads =========="
-    $WORKFLOW_SRC_DIR/build_all.sh LOCAL
+    $WORKFLOW_SRC_DIR/build_all.sh
 
     echo "========== build docker images =========="
     # build boki docker image
@@ -343,10 +346,11 @@ clean)
     cleanup
     ;;
 run)
-    # test_sharedlog
-    test_workflow beldi-hotel-baseline
+    test_sharedlog
+    cleanup
+    # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    # test_workflow boki-hotel-baseline
+    test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
