@@ -1,12 +1,14 @@
 package cayonlib
 
 import (
+	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	"time"
 )
 
 func CreateMainTable(lambdaId string) {
@@ -63,7 +65,7 @@ func DeleteLambdaTables(lambdaId string) {
 }
 
 func WaitUntilDeleted(tablename string) {
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(kTablePrefix + tablename)})
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
@@ -87,7 +89,7 @@ func WaitUntilAllDeleted(tablenames []string) {
 
 func WaitUntilActive(tablename string) bool {
 	counter := 0
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(kTablePrefix + tablename)})
 		if err != nil {
 			counter += 1
@@ -133,4 +135,64 @@ func Populate(tablename string, key string, value interface{}, baseline bool) {
 			expression.Name("VERSION"): expression.Value(0),
 			expression.Name("V"):       expression.Value(value),
 		})
+}
+
+func ASSERT(cond bool, tip string) {
+	if !cond {
+		panic(fmt.Errorf("assertion failed: %v", tip))
+	}
+}
+
+type LogTimeTracer interface {
+	TraceStart()
+	TraceEnd()
+	Serialize() ([]byte, error)
+	String() string
+}
+
+type logTimeTracer struct {
+	TimeCount     time.Duration `json:"TimeCount"`
+	tracingCount  int
+	lastTimeStamp time.Time
+}
+
+func DeserializeLogTracer(data []byte) (LogTimeTracer, error) {
+	var tracer logTimeTracer
+	err := json.Unmarshal(data, &tracer)
+	if err != nil {
+		return nil, err
+	}
+	return &tracer, nil
+}
+
+func NewLogTracer() LogTimeTracer {
+	return &logTimeTracer{
+		TimeCount:     0,
+		tracingCount:  0,
+		lastTimeStamp: time.Now(),
+	}
+}
+
+func (tc *logTimeTracer) Serialize() ([]byte, error) {
+	ASSERT(tc.tracingCount == 0,
+		fmt.Sprintf("does not allow distributed tracing due to clock drift, count=%v", tc.tracingCount))
+	return json.Marshal(tc)
+}
+
+func (tc *logTimeTracer) TraceStart() {
+	tc.tracingCount++
+	if tc.tracingCount == 1 {
+		tc.lastTimeStamp = time.Now()
+	}
+}
+
+func (tc *logTimeTracer) TraceEnd() {
+	tc.tracingCount--
+	if tc.tracingCount == 0 {
+		tc.TimeCount += time.Since(tc.lastTimeStamp)
+	}
+}
+
+func (tc *logTimeTracer) String() string {
+	return fmt.Sprint(int64(tc.TimeCount / time.Microsecond))
 }

@@ -110,6 +110,8 @@ func (fsm *FsmCommon[TLogEntry]) resolveWithPendings(env *Env, condLogEntry *typ
 
 func (fsm *FsmCommon[TLogEntry]) Catch(env *Env) {
 	ASSERT(fsm.receiver != nil, "set receiver to fsm object self")
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
 
 	tag := fsm.receiver.GetTag()
 	seqNum := uint64(0)
@@ -242,6 +244,9 @@ func (fsm *FsmCommon[TLogEntry]) doResolve(env *Env, condLogEntry *types.CondLog
 // - true: applied
 // - false: discarded
 func ResolveLog(env *Env, tags []uint64, tagBuildMetas []types.TagMeta, seqNum uint64) bool {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	tag := tags[0] // only 1 in bokiflow
 	if tag == IntentLogTag {
 		panic("unreachable that a step is designed to never depend on an intent")

@@ -176,6 +176,7 @@ func CondWrite(env *Env, tablename string, key string,
 	// DEBUG
 	// log.Printf("[DEBUG] CondWrite before sync: %v", env.AsyncLogCtx)
 	// sync
+	env.LogTracer.TraceStart()
 	err := env.AsyncLogCtx.Sync(gSyncTimeout)
 	CHECK(err)
 	// resolve cond
@@ -189,6 +190,7 @@ func CondWrite(env *Env, tablename string, key string,
 			panic("unreachable")
 		}
 	}
+	env.LogTracer.TraceEnd()
 	// DEBUG
 	// log.Printf("[DEBUG] CondWrite resolved fsms: %v", env.FsmHub)
 

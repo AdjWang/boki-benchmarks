@@ -33,10 +33,10 @@ type InputWrapper struct {
 	Instruction string      `mapstructure:"Instruction"`
 	Async       bool        `mapstructure:"Async"`
 
-	// TODO: more graceful way to propagate
 	// Currently mapstructure+json would lose the type of the field, like
 	// []byte or types.FutureMeta, use string instead.
 	AsyncLogCtxPropagator string `mapstructure:"AsyncLogCtxPropagator"`
+	LogTracerPropagator   string `mapstructure:"LogTracerPropagator"`
 }
 
 func (iw *InputWrapper) Serialize() []byte {
@@ -73,6 +73,7 @@ type InvokeError struct {
 type OutputWrapper struct {
 	Status string
 	Output interface{}
+	Trace  string
 }
 
 func (ow *OutputWrapper) Serialize() []byte {
@@ -121,15 +122,21 @@ func PrepareEnv(ctx context.Context, iw *InputWrapper, lambdaId string, faasEnv 
 		FsmHub:  nil,
 
 		AsyncLogCtx: nil,
+		LogTracer:   nil,
 	}
-	env.FsmHub = NewFsmHub(env)
 	if iw.CallerName != "" {
 		asyncLogCtx, err := DeserializeAsyncLogContext(env.FaasEnv, []byte(iw.AsyncLogCtxPropagator))
 		CHECK(err)
 		env.AsyncLogCtx = asyncLogCtx
+
+		logTracer, err := DeserializeLogTracer([]byte(iw.LogTracerPropagator))
+		CHECK(err)
+		env.LogTracer = logTracer
 	} else {
 		env.AsyncLogCtx = NewAsyncLogContext(env.FaasEnv)
+		env.LogTracer = NewLogTracer()
 	}
+	NewFsmHub(env)
 
 	return env
 }
@@ -186,6 +193,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 		Instruction: env.Instruction,
 
 		AsyncLogCtxPropagator: "", // assign later
+		LogTracerPropagator:   "", // assign later
 	}
 	if iw.Instruction == "EXECUTE" {
 		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId),
@@ -209,6 +217,11 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	CHECK(err)
 	iw.AsyncLogCtxPropagator = string(asyncLogCtxData)
 	ASSERT(iw.AsyncLogCtxPropagator != "", fmt.Sprintf("invalid AsyncLogCtxPropagator from: %+v", env.AsyncLogCtx))
+
+	logTracerData, err := env.LogTracer.Serialize()
+	CHECK(err)
+	iw.LogTracerPropagator = string(logTracerData)
+	ASSERT(iw.LogTracerPropagator != "", fmt.Sprintf("invalid LogTracerPropagator from: %+v", env.LogTracer))
 
 	payload := iw.Serialize()
 	res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
@@ -266,6 +279,7 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 		Instruction: env.Instruction,
 
 		AsyncLogCtxPropagator: "", // assign later
+		LogTracerPropagator:   "", // assign later
 	}
 	if iw.Instruction == "EXECUTE" {
 		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId),
@@ -289,6 +303,11 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 	CHECK(err)
 	iw.AsyncLogCtxPropagator = string(asyncLogCtxData)
 	ASSERT(iw.AsyncLogCtxPropagator != "", fmt.Sprintf("invalid AsyncLogCtxPropagator from: %+v", env.AsyncLogCtx))
+
+	logTracerData, err := env.LogTracer.Serialize()
+	CHECK(err)
+	iw.LogTracerPropagator = string(logTracerData)
+	ASSERT(iw.LogTracerPropagator != "", fmt.Sprintf("invalid LogTracerPropagator from: %+v", env.LogTracer))
 
 	payload := iw.Serialize()
 	res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
@@ -332,6 +351,8 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 
 	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
 	CHECK(err)
+	logTracerData, err := env.LogTracer.Serialize()
+	CHECK(err)
 
 	iw := InputWrapper{
 		CallerName: env.LambdaId,
@@ -342,6 +363,7 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 		Input:      input,
 
 		AsyncLogCtxPropagator: string(asyncLogCtxData),
+		LogTracerPropagator:   string(logTracerData),
 	}
 	payload := iw.Serialize()
 	err = env.FaasEnv.InvokeFuncAsync(env.FaasCtx, callee, payload)
@@ -405,9 +427,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	} else {
 		output = f(env)
 	}
-	// assert true only for bokiflow that a user function must have steps
-	ASSERT(env.AsyncLogCtx.GetLastStepLogMeta().IsValid(),
-		fmt.Sprintf("last step meta: %+v should be valid", env.AsyncLogCtx.GetLastStepLogMeta()))
+	// if user func returned from recorded log, there may be no step logs here
 
 	if iw.CallerName != "" {
 		env.AsyncLogCtx.ChainStep(AsyncLogStepResult(env, iw.CallerId, iw.CallerStep, aws.JSONValue{
@@ -425,13 +445,16 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 
 	// clear pending logs at the end of the workflow
 	if iw.CallerName == "" {
+		env.LogTracer.TraceStart()
 		err := env.AsyncLogCtx.Sync(gSyncTimeout)
 		CHECK(err)
+		env.LogTracer.TraceEnd()
 	}
 
 	return OutputWrapper{
 		Status: "Success",
 		Output: output,
+		Trace:  env.LogTracer.String(),
 	}, nil
 }
 

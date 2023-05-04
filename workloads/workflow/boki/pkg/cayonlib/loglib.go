@@ -59,6 +59,9 @@ func (fsm *IntentFsm) applyLog(intentLog *IntentLogEntry) {
 }
 
 func (fsm *IntentFsm) Catch(env *Env) {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	tag := IntentStepStreamTag(fsm.instanceId)
 	seqNum := uint64(0)
 	if fsm.tail != nil {
@@ -101,6 +104,9 @@ func (fsm *IntentFsm) GetPostStepLog(stepNumber int32) *IntentLogEntry {
 }
 
 func ProposeNextStep(env *Env, data aws.JSONValue) (bool, *IntentLogEntry) {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	step := env.StepNumber
 	env.StepNumber += 1
 	intentLog := env.Fsm.GetStepLog(step)
@@ -123,6 +129,9 @@ func ProposeNextStep(env *Env, data aws.JSONValue) (bool, *IntentLogEntry) {
 }
 
 func LogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue) {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	LibAppendLog(env, IntentStepStreamTag(instanceId), &IntentLogEntry{
 		InstanceId: instanceId,
 		StepNumber: stepNumber,
@@ -132,6 +141,9 @@ func LogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONV
 }
 
 func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	intentLog := env.Fsm.GetPostStepLog(stepNumber)
 	if intentLog != nil {
 		return intentLog
@@ -145,6 +157,9 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 }
 
 func LibAppendLog(env *Env, tag uint64, data interface{}) uint64 {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	encoded := []byte{}
 	start := time.Now()
 	defer func() {

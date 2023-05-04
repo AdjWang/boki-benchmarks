@@ -113,6 +113,9 @@ func (fsm *IntentFsm) GetPostStepLog(stepNumber int32) *IntentLogEntry {
 }
 
 func AsyncProposeNextStep(env *Env, data aws.JSONValue, dep types.FutureMeta) (types.Future[uint64], *IntentLogEntry) {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	step := env.StepNumber
 	env.StepNumber += 1
 	intentLog := env.FsmHub.GetInstanceStepFsm().GetStepLog(step)
@@ -142,6 +145,9 @@ func AsyncProposeNextStep(env *Env, data aws.JSONValue, dep types.FutureMeta) (t
 }
 
 func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue, dep types.FutureMeta) types.Future[uint64] {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	return LibAsyncAppendLog(env, IntentStepStreamTag(instanceId),
 		[]types.TagMeta{
 			{
@@ -162,6 +168,9 @@ func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.
 }
 
 func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	intentLog := env.FsmHub.GetInstanceStepFsm().GetPostStepLog(stepNumber)
 	if intentLog != nil {
 		return intentLog
@@ -175,6 +184,9 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 }
 
 func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, dep types.FutureMeta) {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	future := LibAsyncAppendLog(env, tag, tagMeta, data,
 		func(cond types.CondHandle) {
 			cond.AddDep(dep)
@@ -194,6 +206,9 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 }
 
 func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, cond func(types.CondHandle)) types.Future[uint64] {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	serializedData, err := json.Marshal(data)
 	CHECK(err)
 	encoded := snappy.Encode(nil, serializedData)

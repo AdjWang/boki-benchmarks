@@ -30,6 +30,7 @@ type Env struct {
 	FsmHub  FsmHub
 	// Step flow
 	AsyncLogCtx AsyncLogContext
+	LogTracer   LogTimeTracer
 }
 
 type AsyncLogContext interface {
@@ -92,10 +93,9 @@ func (fsmhub *FsmHubImpl) String() string {
 	return clientStr + stepFsmStr + lockFsmStr + txnFsmStr + absFsmStr
 }
 
-func NewFsmHub(env *Env) FsmHub {
+func NewFsmHub(env *Env) {
 	stepFsm := NewIntentFsm(env.InstanceId)
-	stepFsm.Catch(env)
-	return &FsmHubImpl{
+	fsmHub := &FsmHubImpl{
 		env:           env,
 		stepFsm:       stepFsm,
 		lockFsms:      make(map[string]*LockFsm),
@@ -104,6 +104,8 @@ func NewFsmHub(env *Env) FsmHub {
 		txnFsmsMutex:  sync.RWMutex{},
 		absFsms:       make(map[uint64]Fsm),
 	}
+	env.FsmHub = fsmHub
+	stepFsm.Catch(env)
 }
 
 // Fsm is only used by depdency tracking, Env should use fsm raw allocators

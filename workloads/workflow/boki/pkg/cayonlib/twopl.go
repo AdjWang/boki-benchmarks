@@ -1,21 +1,22 @@
 package cayonlib
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"encoding/json"
 	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/snappy"
 	// "github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
 type LockLogEntry struct {
-	SeqNum     uint64  `json:"-"`
-	LockId     string  `json:"lockId"`
-	StepNumber int32   `json:"step"`
-	UnlockOp   bool    `json:"unlockOp"`
-	Holder     string  `json:"holder"`
+	SeqNum     uint64 `json:"-"`
+	LockId     string `json:"lockId"`
+	StepNumber int32  `json:"step"`
+	UnlockOp   bool   `json:"unlockOp"`
+	Holder     string `json:"holder"`
 }
 
 type LockFsm struct {
@@ -25,7 +26,7 @@ type LockFsm struct {
 	tail       *LockLogEntry
 }
 
-var lockFsms      = map[string]LockFsm{}
+var lockFsms = map[string]LockFsm{}
 var lockFsmsMutex = sync.RWMutex{}
 
 func getOrCreateLockFsm(lockId string) LockFsm {
@@ -126,6 +127,9 @@ func (fsm *LockFsm) Unlock(env *Env, holder string) {
 }
 
 func Lock(env *Env, tablename string, key string) bool {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	lockId := fmt.Sprintf("%s-%s", tablename, key)
 	fsm := getOrCreateLockFsm(lockId)
 	success := fsm.Lock(env, env.TxnId)
@@ -137,6 +141,9 @@ func Lock(env *Env, tablename string, key string) bool {
 }
 
 func Unlock(env *Env, tablename string, key string) {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	lockId := fmt.Sprintf("%s-%s", tablename, key)
 	fsm := getOrCreateLockFsm(lockId)
 	fsm.Unlock(env, env.TxnId)
@@ -166,7 +173,7 @@ func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool 
 			LambdaId: env.LambdaId,
 			TxnId:    env.TxnId,
 			Callee:   "",
-			WriteOp:  aws.JSONValue{
+			WriteOp: aws.JSONValue{
 				"tablename": tablename,
 				"key":       key,
 				"value":     value,

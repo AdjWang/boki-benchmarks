@@ -122,6 +122,9 @@ func (fsm *LockFsm) Unlock(env *Env, holder string) {
 }
 
 func Lock(env *Env, tablename string, key string) bool {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	lockId := fmt.Sprintf("%s-%s", tablename, key)
 	fsm := env.FsmHub.GetOrCreateLockFsm(lockId)
 	success := fsm.Lock(env, env.TxnId)
@@ -133,6 +136,9 @@ func Lock(env *Env, tablename string, key string) bool {
 }
 
 func Unlock(env *Env, tablename string, key string) {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	lockId := fmt.Sprintf("%s-%s", tablename, key)
 	fsm := env.FsmHub.GetOrCreateLockFsm(lockId)
 	fsm.Unlock(env, env.TxnId)
@@ -253,6 +259,9 @@ func AbortTxn(env *Env) {
 }
 
 func getAllTxnLogs(env *Env) []*TxnLogEntry {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	txnFsm := env.FsmHub.GetOrCreateTxnFsm(env.LambdaId, env.TxnId)
 	txnFsm.Catch(env)
 	return txnFsm.GetAllTxnLogs()
