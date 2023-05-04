@@ -68,7 +68,7 @@ type FsmHubImpl struct {
 	lockFsmsMutex sync.RWMutex
 	txnFsms       map[string]*TxnFsm
 	txnFsmsMutex  sync.RWMutex
-	// abstracted fsms required by depdency tracking
+	// abstracted fsms required by dependency tracking
 	absFsms map[uint64]Fsm
 }
 
@@ -188,6 +188,7 @@ func (fsmhub *FsmHubImpl) StoreBackTxnFsm(fsm *TxnFsm) {
 	fsmhub.txnFsmsMutex.Unlock()
 }
 
+// Implement AsyncLogContext
 type asyncLogContextImpl struct {
 	faasEnv types.Environment // delegation
 	mu      sync.Mutex

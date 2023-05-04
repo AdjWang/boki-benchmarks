@@ -166,7 +166,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 
 	// A concurrent step check can be placed here to speed up failing execute
 	// flow, but would introcude many tricky racing problems difficult to tackle with.
-	// Since the failure step log is believed to be at low ratio, so this optimization
+	// Since the failure step log is believed to be at low ratio, this optimization
 	// is trivial and thus deprecated.
 
 	// the new step log would:

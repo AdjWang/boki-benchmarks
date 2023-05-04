@@ -240,7 +240,7 @@ func (fsm *FsmCommon[TLogEntry]) doResolve(env *Env, condLogEntry *types.CondLog
 
 // Return:
 // - true: applied
-// - false: discard
+// - false: discarded
 func ResolveLog(env *Env, tags []uint64, tagBuildMetas []types.TagMeta, seqNum uint64) bool {
 	tag := tags[0] // only 1 in bokiflow
 	if tag == IntentLogTag {

@@ -112,37 +112,6 @@ func (fsm *IntentFsm) GetPostStepLog(stepNumber int32) *IntentLogEntry {
 	}
 }
 
-// func ProposeNextStep(env *Env, data aws.JSONValue) (bool, *IntentLogEntry) {
-// 	step := env.StepNumber
-// 	env.StepNumber += 1
-// 	intentLog := env.Fsm.GetStepLog(step)
-// 	if intentLog != nil {
-// 		return false, intentLog
-// 	}
-// 	intentLog = &IntentLogEntry{
-// 		InstanceId: env.InstanceId,
-// 		StepNumber: step,
-// 		PostStep:   false,
-// 		Data:       data,
-// 	}
-// 	seqNum := LibAppendLog(env, IntentStepStreamTag(env.InstanceId), &intentLog)
-// 	env.Fsm.Catch(env)
-// 	intentLog = env.Fsm.GetStepLog(step)
-// 	if intentLog == nil {
-// 		panic(fmt.Sprintf("Cannot find intent log for step %d", step))
-// 	}
-// 	return seqNum == intentLog.SeqNum, intentLog
-// }
-
-// func LogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue) {
-// 	LibAppendLog(env, IntentStepStreamTag(instanceId), &IntentLogEntry{
-// 		InstanceId: instanceId,
-// 		StepNumber: stepNumber,
-// 		PostStep:   true,
-// 		Data:       data,
-// 	})
-// }
-
 func AsyncProposeNextStep(env *Env, data aws.JSONValue, dep types.FutureMeta) (types.Future[uint64], *IntentLogEntry) {
 	step := env.StepNumber
 	env.StepNumber += 1
@@ -204,25 +173,6 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 	}
 	return env.FsmHub.GetInstanceStepFsm().GetPostStepLog(stepNumber)
 }
-
-// func LibAppendLog(env *Env, tag uint64, data interface{}) uint64 {
-// 	encoded := []byte{}
-// 	start := time.Now()
-// 	defer func() {
-// 		engineId, err := strconv.Atoi(os.Getenv("FAAS_ENGINE_ID"))
-// 		if err != nil {
-// 			engineId = -1
-// 		}
-// 		duration := time.Since(start)
-// 		fmt.Printf("[PROF] LibAppendLog engine=%v, tag=%v, duration=%v, datalen=%v\n", engineId, tag, duration.Seconds(), len(encoded))
-// 	}()
-// 	serializedData, err := json.Marshal(data)
-// 	CHECK(err)
-// 	encoded = snappy.Encode(nil, serializedData)
-// 	seqNum, err := env.FaasEnv.SharedLogAppend(env.FaasCtx, []uint64{tag}, encoded)
-// 	CHECK(err)
-// 	return seqNum
-// }
 
 func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, dep types.FutureMeta) {
 	future := LibAsyncAppendLog(env, tag, tagMeta, data,

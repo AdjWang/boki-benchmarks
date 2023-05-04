@@ -36,38 +36,6 @@ func NewLockFsm(lockId string) *LockFsm {
 	return this
 }
 
-// func (fsm *LockFsm) Catch(env *Env) {
-// 	tag := LockStreamTag(fsm.lockId)
-// 	for {
-// 		logEntry, err := env.FaasEnv.AsyncSharedLogReadNext(env.FaasCtx, tag, fsm.tailSeqNum)
-// 		CHECK(err)
-// 		if logEntry == nil {
-// 			break
-// 		}
-// 		decoded, err := snappy.Decode(nil, logEntry.Data)
-// 		CHECK(err)
-// 		var lockLog LockLogEntry
-// 		err = json.Unmarshal(decoded, &lockLog)
-// 		CHECK(err)
-// 		if lockLog.LockId == fsm.lockId && lockLog.StepNumber == fsm.stepNumber {
-// 			// log.Printf("[INFO] Found my log: seqnum=%d, step=%d", logEntry.SeqNum, lockLog.StepNumber)
-// 			lockLog.SeqNum = logEntry.SeqNum
-// 			if lockLog.UnlockOp {
-// 				if fsm.tail == nil || fsm.tail.UnlockOp || fsm.tail.Holder != lockLog.Holder {
-// 					panic(fmt.Sprintf("Invalid Unlock op for lock %s and holder %s", fsm.lockId, lockLog.Holder))
-// 				}
-// 			} else {
-// 				if fsm.tail != nil && !fsm.tail.UnlockOp {
-// 					panic(fmt.Sprintf("Invalid Lock op for lock %s and holder %s", fsm.lockId, lockLog.Holder))
-// 				}
-// 			}
-// 			fsm.tail = &lockLog
-// 			fsm.stepNumber++
-// 		}
-// 		fsm.tailSeqNum = logEntry.SeqNum + 1
-// 	}
-// }
-
 func (fsm *LockFsm) ApplyLog(logEntry *types.CondLogEntry) bool {
 	decoded, err := snappy.Decode(nil, logEntry.Data)
 	CHECK(err)
