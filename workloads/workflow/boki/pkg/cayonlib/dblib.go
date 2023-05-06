@@ -24,6 +24,7 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			Key:            Key,
 			ConsistentRead: aws.Bool(true),
 		})
+		CHECK(err)
 	} else {
 		expr, err := expression.NewBuilder().WithProjection(BuildProjection(projection)).Build()
 		CHECK(err)
@@ -34,8 +35,8 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			ExpressionAttributeNames: expr.Names(),
 			ConsistentRead:           aws.Bool(true),
 		})
+		CHECK(err)
 	}
-	CHECK(err)
 	item := aws.JSONValue{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, &item)
 	CHECK(err)
@@ -74,41 +75,44 @@ func LibScanWithLast(tablename string, projection []string, last map[string]*dyn
 			expr, err := expression.NewBuilder().Build()
 			CHECK(err)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
 				ConsistentRead:            aws.Bool(true),
 			})
+			CHECK(err)
 		} else {
 			expr, err := expression.NewBuilder().WithProjection(BuildProjection(projection)).Build()
 			CHECK(err)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
 				ProjectionExpression:      expr.Projection(),
 				ConsistentRead:            aws.Bool(true),
 			})
+			CHECK(err)
 		}
 	} else {
 		if len(projection) == 0 {
 			expr, err := expression.NewBuilder().Build()
 			CHECK(err)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
 				ConsistentRead:            aws.Bool(true),
 				ExclusiveStartKey:         last,
 			})
+			CHECK(err)
 		} else {
 			expr, err := expression.NewBuilder().WithProjection(BuildProjection(projection)).Build()
 			CHECK(err)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
@@ -116,9 +120,9 @@ func LibScanWithLast(tablename string, projection []string, last map[string]*dyn
 				ConsistentRead:            aws.Bool(true),
 				ExclusiveStartKey:         last,
 			})
+			CHECK(err)
 		}
 	}
-	CHECK(err)
 	var item []aws.JSONValue
 	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, &item)
 	CHECK(err)
