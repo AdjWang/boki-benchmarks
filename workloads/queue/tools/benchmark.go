@@ -27,6 +27,7 @@ var FLAGS_duration int
 var FLAGS_payload_size int
 var FLAGS_producer_interval int
 var FLAGS_consumer_interval int
+var FLAGS_producer_bsize int
 var FLAGS_consumer_bsize int
 var FLAGS_consumer_fix_shard bool
 var FLAGS_blocking_pop bool
@@ -45,6 +46,7 @@ func init() {
 	flag.IntVar(&FLAGS_payload_size, "payload_size", 64, "")
 	flag.IntVar(&FLAGS_producer_interval, "producer_interval", 4, "")
 	flag.IntVar(&FLAGS_consumer_interval, "consumer_interval", 4, "")
+	flag.IntVar(&FLAGS_producer_bsize, "producer_bsize", 1, "")
 	flag.IntVar(&FLAGS_consumer_bsize, "consumer_bsize", 1, "")
 	flag.BoolVar(&FLAGS_consumer_fix_shard, "consumer_fix_shard", false, "")
 	flag.BoolVar(&FLAGS_blocking_pop, "blocking_pop", false, "")
@@ -62,6 +64,7 @@ func invokeProducer(client *http.Client, queueIndex int, response *common.FnOutp
 		Duration:    FLAGS_duration,
 		PayloadSize: FLAGS_payload_size,
 		IntervalMs:  FLAGS_producer_interval,
+		BatchSize:   FLAGS_producer_bsize,
 	}
 	url := utils.BuildFunctionUrl(FLAGS_faas_gateway, FLAGS_fn_prefix+"QueueProducer")
 	if err := utils.JsonPostRequest(client, url, input, response); err != nil {
@@ -88,6 +91,8 @@ func invokeConsumer(client *http.Client, queueIndex int, shard int, response *co
 		log.Printf("[ERROR] Consumer request failed: %v", err)
 	} else if !response.Success {
 		log.Printf("[ERROR] Consumer request failed: %s", response.Message)
+	} else {
+		log.Printf("[DEBUG] Consumer messages: %s", response.Message)
 	}
 }
 
@@ -155,7 +160,7 @@ func main() {
 			MaxIdleConns:    FLAGS_num_producer + FLAGS_num_consumer,
 			IdleConnTimeout: 30 * time.Second,
 		},
-		Timeout: time.Duration(FLAGS_duration*2) * time.Second,
+		Timeout: time.Duration(FLAGS_duration*10) * time.Second,
 	}
 
 	var wg sync.WaitGroup

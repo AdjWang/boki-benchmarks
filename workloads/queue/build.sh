@@ -1,22 +1,17 @@
 #!/bin/bash
+set -euo pipefail
 
-BASE_DIR="$(realpath $(dirname "$0"))"
-mkdir -p $BASE_DIR/bin
+APP_DIR="$(realpath $(dirname "$0"))"
+PROJECT_DIR=$(realpath $APP_DIR/../../)
+BOKI_DIR=$(realpath $PROJECT_DIR/boki)
 
-BOKI_DIR=$1
-if [ -z "$BOKI_DIR" ]; then
-    BOKI_DIR="/src/boki"
-fi
-# remove trailing slash
-# BOKI_DIR=$(echo "$BOKI_DIR" | sed 's:/*$::')
-BOKI_DIR=$(realpath "$BOKI_DIR")
+cd $APP_DIR
 go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
 go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
+go mod tidy
 
 export CGO_ENABLED=0
-
-( cd $BASE_DIR && \
-    go build -o bin/main main.go && \
-    go build -o bin/init_queues tools/init_queues.go && \
-    go build -o bin/benchmark tools/benchmark.go
-)
+go build -o bin/main main.go
+go build -o bin/init_queues tools/init_queues.go
+go build -o bin/benchmark tools/benchmark.go
+cd -

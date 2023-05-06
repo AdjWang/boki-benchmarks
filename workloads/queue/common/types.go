@@ -10,6 +10,7 @@ type ProducerFnInput struct {
 	Duration    int    `json:"duration"`
 	PayloadSize int    `json:"payloadSize"`
 	IntervalMs  int    `json:"interval"`
+	BatchSize   int    `json:"batchSize"`
 }
 
 type ConsumerFnInput struct {

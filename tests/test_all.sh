@@ -6,6 +6,9 @@ TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
 DOCKERFILE_DIR=$(realpath $SCRIPT_DIR/dockerfiles)
+
+QUEUE_EXP_DIR=$(realpath $TEST_DIR/../experiments/queue)
+QUEUE_SRC_DIR=$(realpath $TEST_DIR/../workloads/queue)
 WORKFLOW_EXP_DIR=$(realpath $TEST_DIR/../experiments/workflow)
 WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
@@ -26,7 +29,10 @@ function setup_env {
 
     cp $SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
     cp $SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
-    if [[ $TEST_CASE == sharedlog ]]; then
+    if [[ $TEST_CASE == queue ]]; then
+        cp $QUEUE_EXP_DIR/boki/nightcore_config.json $WORK_DIR/config/nightcore_config.json
+        cp $QUEUE_EXP_DIR/boki/run_launcher $WORK_DIR/config
+    elif [[ $TEST_CASE == sharedlog ]]; then
         cp $TEST_DIR/workloads/sharedlog/nightcore_config.json $WORK_DIR/config/nightcore_config.json
         cp $TEST_DIR/workloads/sharedlog/run_launcher $WORK_DIR/config
     else
@@ -71,17 +77,35 @@ function setup_env {
     done
 }
 
-function build {
-    echo "========== build boki =========="
-    docker run --rm -v $BOKI_DIR:/boki adjwang/boki-buildenv:dev bash -c "cd /boki && make -j$(nproc)"
+function build_queue {
+    echo "========== build queue =========="
+    $QUEUE_SRC_DIR/build.sh
 
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-queuebench:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.queuebench \
+        $QUEUE_SRC_DIR
+}
+function build_workflow {
     echo "========== build sharedlog =========="
     $TEST_DIR/workloads/sharedlog/build.sh
 
     echo "========== build workloads =========="
     $WORKFLOW_SRC_DIR/build_all.sh
 
-    echo "========== build docker images =========="
+    # build test docker image
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.testcases \
+        $TEST_DIR/workloads
+
+    # build app docker image
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.beldibench \
+        $WORKFLOW_SRC_DIR
+}
+function build_boki {
+    echo "========== build boki =========="
+    docker run --rm -v $BOKI_DIR:/boki adjwang/boki-buildenv:dev bash -c "cd /boki && make -j$(nproc)"
+
     # build boki docker image
     if [ $DEBUG_BUILD -eq 1 ]; then
         $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
@@ -92,33 +116,6 @@ function build {
             -f $DOCKERFILE_DIR/Dockerfile.boki \
             $BOKI_DIR
     fi
-
-    # build workloads docker image
-    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
-        -f $DOCKERFILE_DIR/Dockerfile.testcases \
-        $TEST_DIR/workloads
-    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
-        -f $DOCKERFILE_DIR/Dockerfile.beldibench \
-        $WORKFLOW_SRC_DIR
-}
-
-function push {
-    echo "========== build workloads =========="
-    $WORKFLOW_SRC_DIR/build_all.sh REMOTE
-
-    echo "========== build docker images =========="
-    # boki
-    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki:dev \
-        -f $DOCKERFILE_DIR/Dockerfile.boki \
-        $BOKI_DIR
-    # bokiflow
-    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
-        -f $DOCKERFILE_DIR/Dockerfile.beldibench \
-        $WORKFLOW_SRC_DIR
-
-    echo "========== push docker images =========="
-    docker push adjwang/boki:dev
-    docker push adjwang/boki-beldibench:dev
 }
 
 function cleanup {
@@ -154,11 +151,10 @@ function debug {
     # sleep_count_down 12
     # assert_should_fail $LINENO
 
-    TEST="abc"
-
-    if [[ $TEST == "abc" ]]; then
-        echo "ok"
-    fi
+    set -euxo pipefail
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-queuebench:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.queuebench \
+        $QUEUE_SRC_DIR
 }
 
 function test_sharedlog {
@@ -217,6 +213,50 @@ function test_sharedlog {
     if [ $(docker ps -a -f name=boki-test-* -f status=exited -q | wc -l) -ne 0 ]; then
         failed $LINENO
     fi
+}
+
+function test_queue {
+    APP_NAME="queue"
+    APP_SRC_DIR=$QUEUE_SRC_DIR/"queue"
+
+    QUEUE_PREFIX=$(echo $RANDOM | md5sum | head -c8)
+    QUEUE_PREFIX="${QUEUE_PREFIX}-"
+
+    echo "setup env..."
+    python3 $SCRIPT_DIR/docker-compose-generator.py \
+        --metalog-reps=3 \
+        --userlog-reps=3 \
+        --index-reps=1 \
+        --test-case=queue \
+        --workdir=$WORK_DIR \
+        --output=$WORK_DIR
+
+    setup_env 3 3 1 queue
+
+    echo "setup cluster..."
+    cd $WORK_DIR && docker compose up -d
+
+    echo "wait to startup..."
+    sleep_count_down 15
+
+    echo "list functions"
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
+        assert_should_success $LINENO
+
+    NUM_SHARDS=2
+    INTERVAL1=800     # ms
+    INTERVAL2=500     # ms
+    NUM_PRODUCER=2
+    NUM_CONSUMER=2
+
+    set -x
+    $QUEUE_SRC_DIR/bin/benchmark \
+        --faas_gateway=localhost:9000 --fn_prefix=slib \
+        --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
+        --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
+        --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
+        --consumer_fix_shard=true \
+        --payload_size=1024 --duration=3
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
@@ -337,23 +377,30 @@ debug)
     debug $LINENO
     ;;
 build)
-    build
+    build_boki
+    build_queue
+    # build_workflow
     ;;
 push)
-    push
+    echo "========== push docker images =========="
+    docker push adjwang/boki:dev
+    docker push adjwang/boki-queuebench:dev
+    docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
     ;;
 run)
-    test_sharedlog
-    cleanup
+    # test_sharedlog
+    # cleanup
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    test_workflow boki-hotel-baseline
+    # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
+
+    test_queue
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"
