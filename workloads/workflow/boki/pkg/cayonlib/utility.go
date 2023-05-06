@@ -193,6 +193,10 @@ func (tc *logTimeTracer) TraceEnd() {
 	}
 }
 
+func (tc *logTimeTracer) TraceAdd(t time.Duration) {
+	tc.TimeCount += t
+}
+
 func (tc *logTimeTracer) String() string {
 	return fmt.Sprint(int64(tc.TimeCount / time.Microsecond))
 }

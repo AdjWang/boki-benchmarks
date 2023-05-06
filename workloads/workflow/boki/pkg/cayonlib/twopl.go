@@ -127,9 +127,6 @@ func (fsm *LockFsm) Unlock(env *Env, holder string) {
 }
 
 func Lock(env *Env, tablename string, key string) bool {
-	env.LogTracer.TraceStart()
-	defer env.LogTracer.TraceEnd()
-
 	lockId := fmt.Sprintf("%s-%s", tablename, key)
 	fsm := getOrCreateLockFsm(lockId)
 	success := fsm.Lock(env, env.TxnId)
@@ -141,9 +138,6 @@ func Lock(env *Env, tablename string, key string) bool {
 }
 
 func Unlock(env *Env, tablename string, key string) {
-	env.LogTracer.TraceStart()
-	defer env.LogTracer.TraceEnd()
-
 	lockId := fmt.Sprintf("%s-%s", tablename, key)
 	fsm := getOrCreateLockFsm(lockId)
 	fsm.Unlock(env, env.TxnId)

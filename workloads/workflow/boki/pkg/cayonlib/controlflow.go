@@ -125,6 +125,7 @@ func PrepareEnv(iw *InputWrapper, lambdaId string) *Env {
 }
 
 func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string) {
+	env.LogTracer.TraceStart()
 	newLog, preInvokeLog := ProposeNextStep(env, aws.JSONValue{
 		"type":       "PreInvoke",
 		"instanceId": shortuuid.New(),
@@ -139,9 +140,11 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 		if resultLog != nil {
 			CheckLogDataField(resultLog, "type", "InvokeResult")
 			log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
+			env.LogTracer.TraceEnd()
 			return resultLog.Data["output"], instanceId
 		}
 	}
+	env.LogTracer.TraceEnd()
 
 	iw := InputWrapper{
 		CallerName:  env.LambdaId,
@@ -155,6 +158,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 
 		LogTracerPropagator: "", // assign later
 	}
+	env.LogTracer.TraceStart()
 	if iw.Instruction == "EXECUTE" {
 		LibAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId), &TxnLogEntry{
 			LambdaId: env.LambdaId,
@@ -163,6 +167,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 			WriteOp:  aws.JSONValue{},
 		})
 	}
+	env.LogTracer.TraceEnd()
 	logTracerData, err := env.LogTracer.Serialize()
 	CHECK(err)
 	iw.LogTracerPropagator = string(logTracerData)
@@ -182,6 +187,9 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 }
 
 func ProposeInvoke(env *Env, callee string) *IntentLogEntry {
+	env.LogTracer.TraceStart()
+	defer env.LogTracer.TraceEnd()
+
 	newLog, preInvokeLog := ProposeNextStep(env, aws.JSONValue{
 		"type":       "PreInvoke",
 		"instanceId": shortuuid.New(),
@@ -196,6 +204,7 @@ func ProposeInvoke(env *Env, callee string) *IntentLogEntry {
 }
 
 func AssignedSyncInvoke(env *Env, callee string, input interface{}, preInvokeLog *IntentLogEntry) (interface{}, string) {
+	env.LogTracer.TraceStart()
 	CheckLogDataField(preInvokeLog, "type", "PreInvoke")
 	CheckLogDataField(preInvokeLog, "callee", callee)
 
@@ -205,6 +214,7 @@ func AssignedSyncInvoke(env *Env, callee string, input interface{}, preInvokeLog
 	if resultLog != nil {
 		CheckLogDataField(resultLog, "type", "InvokeResult")
 		log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
+		env.LogTracer.TraceEnd()
 		return resultLog.Data["output"], instanceId
 	}
 
@@ -228,6 +238,7 @@ func AssignedSyncInvoke(env *Env, callee string, input interface{}, preInvokeLog
 			WriteOp:  aws.JSONValue{},
 		})
 	}
+	env.LogTracer.TraceEnd()
 	logTracerData, err := env.LogTracer.Serialize()
 	CHECK(err)
 	iw.LogTracerPropagator = string(logTracerData)
@@ -247,6 +258,7 @@ func AssignedSyncInvoke(env *Env, callee string, input interface{}, preInvokeLog
 }
 
 func AsyncInvoke(env *Env, callee string, input interface{}) string {
+	env.LogTracer.TraceStart()
 	newLog, preInvokeLog := ProposeNextStep(env, aws.JSONValue{
 		"type":       "PreInvoke",
 		"instanceId": shortuuid.New(),
@@ -261,9 +273,11 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 		if resultLog != nil {
 			CheckLogDataField(resultLog, "type", "InvokeResult")
 			log.Printf("[INFO] Seen InvokeResult log for step %d", preInvokeLog.StepNumber)
+			env.LogTracer.TraceEnd()
 			return instanceId
 		}
 	}
+	env.LogTracer.TraceEnd()
 
 	logTracerData, err := env.LogTracer.Serialize()
 	CHECK(err)
@@ -292,9 +306,6 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 }
 
 func getAllTxnLogs(env *Env) []*TxnLogEntry {
-	env.LogTracer.TraceStart()
-	defer env.LogTracer.TraceEnd()
-
 	tag := TransactionStreamTag(env.LambdaId, env.TxnId)
 	seqNum := uint64(0)
 	results := make([]*TxnLogEntry, 0)
@@ -364,6 +375,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		panic("Baseline type not supported")
 	}
 
+	env.LogTracer.TraceStart()
 	if iw.Async == false || iw.CallerName == "" {
 		LibAppendLog(env, IntentLogTag, aws.JSONValue{
 			"InstanceId": env.InstanceId,
@@ -378,6 +390,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			"ST":         time.Now().Unix(),
 		})
 	}
+	env.LogTracer.TraceEnd()
 	//ok := LibPut(env.IntentTable, aws.JSONValue{"InstanceId": env.InstanceId},
 	//	aws.JSONValue{"DONE": false, "ASYNC": iw.Async})
 	//if !ok {
@@ -402,6 +415,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		output = f(env)
 	}
 
+	env.LogTracer.TraceStart()
 	if iw.CallerName != "" {
 		LogStepResult(env, iw.CallerId, iw.CallerStep, aws.JSONValue{
 			"type":   "InvokeResult",
@@ -413,6 +427,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		"DONE":       true,
 		"TS":         time.Now().Unix(),
 	})
+	env.LogTracer.TraceEnd()
 
 	return OutputWrapper{
 		Status: "Success",
@@ -437,8 +452,12 @@ func (w *funcHandlerWrapper) Call(ctx context.Context, input []byte) ([]byte, er
 	env := PrepareEnv(iw, w.fnName)
 	env.FaasCtx = ctx
 	env.FaasEnv = w.env
+
+	env.LogTracer.TraceStart()
 	env.Fsm = NewIntentFsm(env.InstanceId)
 	env.Fsm.Catch(env)
+	env.LogTracer.TraceEnd()
+
 	ow, err := wrapperInternal(w.handler, iw, env)
 	if err != nil {
 		return nil, err

@@ -141,6 +141,7 @@ func LibScan(tablename string, projection []string) []aws.JSONValue {
 func CondWrite(env *Env, tablename string, key string,
 	update map[expression.NameBuilder]expression.OperandBuilder,
 	cond expression.ConditionBuilder) {
+	env.LogTracer.TraceStart()
 	newLog, preWriteLog := ProposeNextStep(env, aws.JSONValue{
 		"type":  "PreWrite",
 		"key":   key,
@@ -157,9 +158,11 @@ func CondWrite(env *Env, tablename string, key string,
 			CheckLogDataField(resultLog, "table", tablename)
 			CheckLogDataField(resultLog, "key", key)
 			log.Printf("[INFO] Seen PostWrite log for step %d", preWriteLog.StepNumber)
+			env.LogTracer.TraceEnd()
 			return
 		}
 	}
+	env.LogTracer.TraceEnd()
 
 	Key, err := dynamodbattribute.MarshalMap(aws.JSONValue{"K": key})
 	CHECK(err)
@@ -190,11 +193,13 @@ func CondWrite(env *Env, tablename string, key string,
 		AssertConditionFailure(err)
 	}
 
+	env.LogTracer.TraceStart()
 	LogStepResult(env, env.InstanceId, preWriteLog.StepNumber, aws.JSONValue{
 		"type":  "PostWrite",
 		"key":   key,
 		"table": tablename,
 	})
+	env.LogTracer.TraceEnd()
 }
 
 func Write(env *Env, tablename string, key string, update map[expression.NameBuilder]expression.OperandBuilder) {
@@ -202,12 +207,14 @@ func Write(env *Env, tablename string, key string, update map[expression.NameBui
 }
 
 func Read(env *Env, tablename string, key string) interface{} {
+	env.LogTracer.TraceStart()
 	step := env.StepNumber
 	newLog := false
 	intentLog := env.Fsm.GetStepLog(step)
 	if intentLog != nil {
 		env.StepNumber += 1
 	} else {
+		env.LogTracer.TraceEnd()
 		// log.Printf("[INFO] Read data from DB")
 		item := LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
 		var res interface{}
@@ -216,6 +223,7 @@ func Read(env *Env, tablename string, key string) interface{} {
 		} else {
 			res = nil
 		}
+		env.LogTracer.TraceStart()
 		newLog, intentLog = ProposeNextStep(env, aws.JSONValue{
 			"type":   "Read",
 			"key":    key,
@@ -229,22 +237,26 @@ func Read(env *Env, tablename string, key string) interface{} {
 		CheckLogDataField(intentLog, "table", tablename)
 		log.Printf("[INFO] Seen Read log for step %d", intentLog.StepNumber)
 	}
+	env.LogTracer.TraceEnd()
 	return intentLog.Data["result"]
 }
 
 func Scan(env *Env, tablename string) interface{} {
+	env.LogTracer.TraceStart()
 	step := env.StepNumber
 	newLog := false
 	intentLog := env.Fsm.GetStepLog(step)
 	if intentLog != nil {
 		env.StepNumber += 1
 	} else {
+		env.LogTracer.TraceEnd()
 		// log.Printf("[INFO] Scan data from DB")
 		items := LibScan(tablename, []string{"V"})
 		var res []interface{}
 		for _, item := range items {
 			res = append(res, item["V"])
 		}
+		env.LogTracer.TraceStart()
 		newLog, intentLog = ProposeNextStep(env, aws.JSONValue{
 			"type":   "Scan",
 			"table":  tablename,
@@ -256,6 +268,7 @@ func Scan(env *Env, tablename string) interface{} {
 		CheckLogDataField(intentLog, "table", tablename)
 		log.Printf("[INFO] Seen Scan log for step %d", intentLog.StepNumber)
 	}
+	env.LogTracer.TraceEnd()
 	return intentLog.Data["result"]
 }
 
