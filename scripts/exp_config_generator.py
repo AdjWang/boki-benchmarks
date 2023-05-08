@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import argparse
+from functools import partial
 
 docker_compose_common = """\
 version: "3.8"
@@ -188,7 +189,134 @@ docker_compose_faas_sharedlog_f = """\
 
 """
 
-docker_compose_app_hotel_f = """\
+queue_docker_compose_f = """\
+  consumer-fn:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "2"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  producer-fn:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/queuebench-bin/main", "1"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+"""
+
+queue_nightcore_config = """\
+[
+    { "funcName": "slibQueueProducer", "funcId": 1, "minWorkers": 32, "maxWorkers": 32 },
+    { "funcName": "slibQueueConsumer", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 }
+]
+"""
+
+queue_run_once_f = """\
+#!/bin/bash
+set -euxo pipefail
+
+BASE_DIR=`realpath $(dirname $0)`
+ROOT_DIR=`realpath $BASE_DIR/../../..`
+
+EXP_DIR=$BASE_DIR/results/$1
+
+NUM_SHARDS=$2
+INTERVAL1=$3
+INTERVAL2=$4
+NUM_PRODUCER=$5
+if [[ $# == 6 ]]; then
+    NUM_PBATCHSIZE=$6   # producer batch size
+else
+    NUM_PBATCHSIZE=1
+fi
+NUM_CONSUMER=$NUM_SHARDS
+
+HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
+
+MANAGER_HOST=`$HELPER_SCRIPT get-docker-manager-host --base-dir=$BASE_DIR`
+CLIENT_HOST=`$HELPER_SCRIPT get-client-host --base-dir=$BASE_DIR`
+ENTRY_HOST=`$HELPER_SCRIPT get-service-host --base-dir=$BASE_DIR --service=boki-gateway`
+ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
+
+$HELPER_SCRIPT generate-docker-compose --base-dir=$BASE_DIR
+scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:/tmp
+scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:/tmp
+
+ssh -q $MANAGER_HOST -- docker stack rm boki-experiment
+
+sleep 40
+
+scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
+
+for host in $ALL_HOSTS; do
+    scp -q $BASE_DIR/nightcore_config.json $host:/tmp/nightcore_config.json
+done
+
+ALL_ENGINE_HOSTS=`$HELPER_SCRIPT get-machine-with-label --base-dir=$BASE_DIR --machine-label=engine_node`
+for HOST in $ALL_ENGINE_HOSTS; do
+    scp -q $BASE_DIR/run_launcher $HOST:/tmp/run_launcher
+    ssh -q $HOST -- sudo rm -rf /mnt/inmem/boki
+    ssh -q $HOST -- sudo mkdir -p /mnt/inmem/boki
+    ssh -q $HOST -- sudo mkdir -p /mnt/inmem/boki/output /mnt/inmem/boki/ipc
+    ssh -q $HOST -- sudo cp /tmp/run_launcher /mnt/inmem/boki/run_launcher
+    ssh -q $HOST -- sudo cp /tmp/nightcore_config.json /mnt/inmem/boki/func_config.json
+done
+
+ALL_STORAGE_HOSTS=`$HELPER_SCRIPT get-machine-with-label --base-dir=$BASE_DIR --machine-label=storage_node`
+for HOST in $ALL_STORAGE_HOSTS; do
+    ssh -q $HOST -- sudo rm -rf   /mnt/storage/logdata
+    ssh -q $HOST -- sudo mkdir -p /mnt/storage/logdata
+done
+
+ssh -q $MANAGER_HOST -- docker stack deploy \\
+    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
+sleep 60
+
+for HOST in $ALL_ENGINE_HOSTS; do
+    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
+    echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
+done
+
+QUEUE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || true)
+
+sleep 10
+
+rm -rf $EXP_DIR
+mkdir -p $EXP_DIR
+
+ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
+ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
+
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
+    {image_app} \\
+    cp /queuebench-bin/benchmark /tmp/benchmark
+
+ssh -q $CLIENT_HOST -- /tmp/benchmark \\
+    --faas_gateway=$ENTRY_HOST:8080 --fn_prefix=slib \\
+    --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \\
+    --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \\
+    --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \\
+    --producer_bsize=$NUM_PBATCHSIZE \\
+    --consumer_fix_shard=true \\
+    --payload_size=1024 --duration=180 >$EXP_DIR/results.log
+
+$HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
+"""
+
+workflow_hotel_docker_compose_f = """\
   geo-service:
     image: {image_app}
     entrypoint: ["/tmp/boki/run_launcher", "{bin_path}/geo", "1"]
@@ -334,7 +462,7 @@ docker_compose_app_hotel_f = """\
 
 """
 
-docker_compose_app_movie_f = """\
+workflow_movie_docker_compose_f = """\
   frontend:
     image: {image_app}
     entrypoint: ["/tmp/boki/run_launcher", "{bin_path}/Frontend", "1"]
@@ -519,7 +647,7 @@ docker_compose_app_movie_f = """\
 
 """
 
-hotel_config_f = """\
+hotel_nightcore_config_f = """\
 [
     {{ "funcName": "{baseline_prefix}geo", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 }},
     {{ "funcName": "{baseline_prefix}profile", "funcId": 2, "minWorkers": 8, "maxWorkers": 8 }},
@@ -535,7 +663,7 @@ hotel_config_f = """\
 ]
 """
 
-movie_config_f = """\
+movie_nightcore_config_f = """\
 [
     {{ "funcName": "{baseline_prefix}Frontend", "funcId": 1, "minWorkers": 16, "maxWorkers": 16 }},
     {{ "funcName": "{baseline_prefix}CastInfo", "funcId": 2, "minWorkers": 8, "maxWorkers": 8 }},
@@ -554,7 +682,7 @@ movie_config_f = """\
 ]
 """
 
-run_once_sh_f = """\
+workflow_run_once_sh_f = """\
 #!/bin/bash
 set -euxo pipefail
 
@@ -659,7 +787,18 @@ $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/l
 """
 
 
-def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlog):
+def queue_config(image_faas, image_app):
+    docker_compose_faas_f = docker_compose_faas_sharedlog_f
+    docker_compose_app_f = queue_docker_compose_f
+    docker_compose = (docker_compose_common +
+                      docker_compose_faas_f.format(image_faas=image_faas) +
+                      docker_compose_app_f.format(image_app=image_app))
+    config_json = queue_nightcore_config
+    run_once_sh = queue_run_once_f.format(image_app=image_app)
+    return docker_compose, config_json, run_once_sh
+
+
+def workflow_config(image_faas, image_app, bin_path, db_init_mode, enable_sharedlog):
     # e.g. bin_path = "/beldi-bin/bhotel"
     # then app_name = "bhotel"
     #      workflow_name = "beldi"
@@ -689,23 +828,23 @@ def config_common(image_faas, image_app, bin_path, db_init_mode, enable_sharedlo
 
     docker_compose_faas_f = docker_compose_faas_sharedlog_f if enable_sharedlog else docker_compose_faas_nightcore_f
     if bench_name == "hotel":
-        docker_compose_app_f = docker_compose_app_hotel_f
-        config_json_f = hotel_config_f
+        docker_compose_app_f = workflow_hotel_docker_compose_f
+        config_json_f = hotel_nightcore_config_f
     else:
-        docker_compose_app_f = docker_compose_app_movie_f
-        config_json_f = movie_config_f
+        docker_compose_app_f = workflow_movie_docker_compose_f
+        config_json_f = movie_nightcore_config_f
 
     docker_compose = (docker_compose_common +
                       docker_compose_faas_f.format(image_faas=image_faas) +
                       docker_compose_app_f.format(image_app=image_app, bin_path=bin_path))
     config_json = config_json_f.format(baseline_prefix=baseline_prefix)
-    run_once_sh = run_once_sh_f.format(image_app=image_app,
-                                       bin_path=bin_path,
-                                       app_dir=app_dir,
-                                       init_mode=db_init_mode,
-                                       workflow_dir=workflow_dir,
-                                       bench_dir=bench_dir,
-                                       wrk_env=wrk_env)
+    run_once_sh = workflow_run_once_sh_f.format(image_app=image_app,
+                                                bin_path=bin_path,
+                                                app_dir=app_dir,
+                                                init_mode=db_init_mode,
+                                                workflow_dir=workflow_dir,
+                                                bench_dir=bench_dir,
+                                                wrk_env=wrk_env)
     return docker_compose, config_json, run_once_sh
 
 
@@ -721,52 +860,61 @@ def dump_configs(dump_dir, config_generator):
 
 
 def beldi_hotel_baseline():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/bhotel", db_init_mode="baseline", enable_sharedlog=False)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/beldi-bin/bhotel", db_init_mode="baseline", enable_sharedlog=False)
 
 
 def beldi_movie_baseline():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/bmedia", db_init_mode="baseline", enable_sharedlog=False)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/beldi-bin/bmedia", db_init_mode="baseline", enable_sharedlog=False)
 
 
 def beldi_hotel():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/hotel", db_init_mode="beldi", enable_sharedlog=False)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/beldi-bin/hotel", db_init_mode="beldi", enable_sharedlog=False)
 
 
 def beldi_movie():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/beldi-bin/media", db_init_mode="beldi", enable_sharedlog=False)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/beldi-bin/media", db_init_mode="beldi", enable_sharedlog=False)
 
 
 def boki_hotel_baseline():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/bokiflow-bin/hotel", db_init_mode="cayon", enable_sharedlog=True)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/bokiflow-bin/hotel", db_init_mode="cayon", enable_sharedlog=True)
 
 
 def boki_movie_baseline():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/bokiflow-bin/media", db_init_mode="cayon", enable_sharedlog=True)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/bokiflow-bin/media", db_init_mode="cayon", enable_sharedlog=True)
 
 
 def boki_hotel_asynclog():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/asynclog-bin/hotel", db_init_mode="cayon", enable_sharedlog=True)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/asynclog-bin/hotel", db_init_mode="cayon", enable_sharedlog=True)
 
 
 def boki_movie_asynclog():
-    return config_common(IMAGE_FAAS, IMAGE_APP, bin_path="/asynclog-bin/media", db_init_mode="cayon", enable_sharedlog=True)
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/asynclog-bin/media", db_init_mode="cayon", enable_sharedlog=True)
 
 
 IMAGE_FAAS = "adjwang/boki:dev"
-IMAGE_APP = "adjwang/boki-beldibench:dev"
+WORKFLOW_IMAGE_APP = "adjwang/boki-beldibench:dev"
+QUEUE_IMAGE_APP = "adjwang/boki-queuebench:dev"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--workflow-dir', type=str, required=True,
-                        help="usually: boki-benchmarks/experiments/workflow")
+    parser.add_argument('--exp-dir', type=str, required=True,
+                        help="e.g. boki-benchmarks/experiments")
+    parser.add_argument('--exp-name', type=str, required=True,
+                        help="queue|workflow")
     args = parser.parse_args()
 
-    workflow_dir = Path(args.workflow_dir)
-    dump_configs(workflow_dir / "beldi-hotel-baseline", beldi_hotel_baseline)
-    dump_configs(workflow_dir / "beldi-movie-baseline", beldi_movie_baseline)
-    dump_configs(workflow_dir / "beldi-hotel", beldi_hotel)
-    dump_configs(workflow_dir / "beldi-movie", beldi_movie)
-    dump_configs(workflow_dir / "boki-hotel-baseline", boki_hotel_baseline)
-    dump_configs(workflow_dir / "boki-movie-baseline", boki_movie_baseline)
-    dump_configs(workflow_dir / "boki-hotel-asynclog", boki_hotel_asynclog)
-    dump_configs(workflow_dir / "boki-movie-asynclog", boki_movie_asynclog)
+    if args.exp_name == "queue":
+        queue_dir = Path(args.exp_dir) / "queue"
+        dump_configs(queue_dir / "boki", partial(queue_config, IMAGE_FAAS, QUEUE_IMAGE_APP))
+    elif args.exp_name == "workflow":
+        workflow_dir = Path(args.exp_dir) / "workflow"
+        dump_configs(workflow_dir / "beldi-hotel-baseline", beldi_hotel_baseline)
+        dump_configs(workflow_dir / "beldi-movie-baseline", beldi_movie_baseline)
+        dump_configs(workflow_dir / "beldi-hotel", beldi_hotel)
+        dump_configs(workflow_dir / "beldi-movie", beldi_movie)
+        dump_configs(workflow_dir / "boki-hotel-baseline", boki_hotel_baseline)
+        dump_configs(workflow_dir / "boki-movie-baseline", boki_movie_baseline)
+        dump_configs(workflow_dir / "boki-hotel-asynclog", boki_hotel_asynclog)
+        dump_configs(workflow_dir / "boki-movie-asynclog", boki_movie_asynclog)
+    else:
+        raise Exception(f"unknown exp_name: {args.exp_name}, should be one of [queue, workflow]")

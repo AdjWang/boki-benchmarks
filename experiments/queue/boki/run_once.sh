@@ -1,5 +1,5 @@
 #!/bin/bash
-set -uxo pipefail
+set -euxo pipefail
 
 BASE_DIR=`realpath $(dirname $0)`
 ROOT_DIR=`realpath $BASE_DIR/../../..`
@@ -10,6 +10,11 @@ NUM_SHARDS=$2
 INTERVAL1=$3
 INTERVAL2=$4
 NUM_PRODUCER=$5
+if [[ $# == 6 ]]; then
+    NUM_PBATCHSIZE=$6   # producer batch size
+else
+    NUM_PBATCHSIZE=1
+fi
 NUM_CONSUMER=$NUM_SHARDS
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
@@ -20,8 +25,8 @@ ENTRY_HOST=`$HELPER_SCRIPT get-service-host --base-dir=$BASE_DIR --service=boki-
 ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
 
 $HELPER_SCRIPT generate-docker-compose --base-dir=$BASE_DIR
-scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:~
-scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:~
+scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:/tmp
+scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:/tmp
 
 ssh -q $MANAGER_HOST -- docker stack rm boki-experiment
 
@@ -50,7 +55,7 @@ for HOST in $ALL_STORAGE_HOSTS; do
 done
 
 ssh -q $MANAGER_HOST -- docker stack deploy \
-    -c ~/docker-compose-generated.yml -c ~/docker-compose.yml boki-experiment
+    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
 sleep 60
 
 for HOST in $ALL_ENGINE_HOSTS; do
@@ -58,28 +63,28 @@ for HOST in $ALL_ENGINE_HOSTS; do
     echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
 done
 
-QUEUE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+QUEUE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || true)
 
 sleep 10
 
-if [[ -d $EXP_DIR ]]; then
-    rm -rf $EXP_DIR
-fi
+rm -rf $EXP_DIR
 mkdir -p $EXP_DIR
 
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    zjia/boki-queuebench:sosp-ae \
+    adjwang/boki-queuebench:dev \
     cp /queuebench-bin/benchmark /tmp/benchmark
 
 ssh -q $CLIENT_HOST -- /tmp/benchmark \
-    --faas_gateway=$ENTRY_HOST:9000 --fn_prefix=slib \
+    --faas_gateway=$ENTRY_HOST:8080 --fn_prefix=slib \
     --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
     --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
     --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
+    --producer_bsize=$NUM_PBATCHSIZE \
     --consumer_fix_shard=true \
-    --payload_size=1024 --duration=60 >$EXP_DIR/results.log
+    --payload_size=1024 --duration=180 >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
