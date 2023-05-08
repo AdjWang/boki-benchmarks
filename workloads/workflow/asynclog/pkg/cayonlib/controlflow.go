@@ -33,7 +33,6 @@ type InputWrapper struct {
 	Instruction string      `mapstructure:"Instruction"`
 	Async       bool        `mapstructure:"Async"`
 
-	// TODO: more graceful way to propagate
 	// Currently mapstructure+json would lose the type of the field, like
 	// []byte or types.FutureMeta, use string instead.
 	AsyncLogCtxPropagator string `mapstructure:"AsyncLogCtxPropagator"`

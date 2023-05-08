@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"cs.utexas.edu/zjia/faas-queue/common"
@@ -159,7 +158,7 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 	}
 	latencies := make([]int, 0, 128)
 	startTime := time.Now()
-	messages := make([]string, 0, 128)
+	// messages := make([]string, 0, 128)
 	for time.Since(startTime) < duration {
 		var err error
 		var payload string
@@ -190,13 +189,13 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 		}
 		delay := time.Since(utils.ParseTime(payload))
 		latencies = append(latencies, int(delay.Microseconds()))
-		messages = append(messages, utils.ParseSeqNum(payload))
+		// messages = append(messages, utils.ParseSeqNum(payload))
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
 	return &common.FnOutput{
 		Success:   true,
 		Duration:  time.Since(startTime).Seconds(),
 		Latencies: latencies,
-		Message:   strings.Join(messages, ","),
+		// Message:   strings.Join(messages, ","),
 	}, nil
 }
