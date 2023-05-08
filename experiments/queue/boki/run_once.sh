@@ -33,6 +33,7 @@ ssh -q $MANAGER_HOST -- docker stack rm boki-experiment
 sleep 40
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
+ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
 
 for host in $ALL_HOSTS; do
     scp -q $BASE_DIR/nightcore_config.json $host:/tmp/nightcore_config.json
