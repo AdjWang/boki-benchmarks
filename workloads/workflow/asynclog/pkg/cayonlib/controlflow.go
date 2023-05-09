@@ -444,7 +444,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	}).GetMeta())
 
 	// clear pending logs at the end of the workflow
-	if iw.CallerName == "" {
+	if iw.Async || iw.CallerName == "" {
 		env.LogTracer.TraceStart()
 		err := env.AsyncLogCtx.Sync(gSyncTimeout)
 		CHECK(err)

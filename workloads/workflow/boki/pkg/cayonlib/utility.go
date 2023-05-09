@@ -146,14 +146,20 @@ func ASSERT(cond bool, tip string) {
 type LogTimeTracer interface {
 	TraceStart()
 	TraceEnd()
+	TraceAdd(t time.Duration)
+	TraceAddTotal(t time.Duration)
 	Serialize() ([]byte, error)
-	String() string
+	LogString() string
+	TotalString() string
+	DebugString() string
 }
 
 type logTimeTracer struct {
 	TimeCount     time.Duration `json:"TimeCount"`
 	tracingCount  int
 	lastTimeStamp time.Time
+
+	TotalTimeCount time.Duration `json:"TotalTimeCount"`
 }
 
 func DeserializeLogTracer(data []byte) (LogTimeTracer, error) {
@@ -197,6 +203,18 @@ func (tc *logTimeTracer) TraceAdd(t time.Duration) {
 	tc.TimeCount += t
 }
 
-func (tc *logTimeTracer) String() string {
+func (tc *logTimeTracer) TraceAddTotal(t time.Duration) {
+	tc.TotalTimeCount += t
+}
+
+func (tc *logTimeTracer) LogString() string {
 	return fmt.Sprint(int64(tc.TimeCount / time.Microsecond))
+}
+
+func (tc *logTimeTracer) TotalString() string {
+	return fmt.Sprint(int64(tc.TotalTimeCount / time.Microsecond))
+}
+
+func (tc *logTimeTracer) DebugString() string {
+	return fmt.Sprint(tc.TimeCount)
 }

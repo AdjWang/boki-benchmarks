@@ -260,11 +260,16 @@ request = function()
     -- local user_ratio = 0.005
     -- local reserve_ratio = 0.005
 
+    -- -- DEBUG
+    -- local search_ratio = 0.25
+    -- local recommend_ratio = 0.25
+    -- local user_ratio = 0.25
+    -- local reserve_ratio = 0.25
     -- DEBUG
-    local search_ratio = 0.25
-    local recommend_ratio = 0.25
-    local user_ratio = 0.25
-    local reserve_ratio = 0.25
+    local search_ratio = 1.0
+    local recommend_ratio = 0
+    local user_ratio = 0
+    local reserve_ratio = 0
 
     -- req = search_hotel()
     --return recommend()

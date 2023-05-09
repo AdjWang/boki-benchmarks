@@ -346,8 +346,8 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
-    cleanup
+    # test_sharedlog
+    # cleanup
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
     test_workflow boki-hotel-baseline

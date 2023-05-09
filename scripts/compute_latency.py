@@ -5,6 +5,7 @@ import argparse
 
 import numpy as np
 
+
 def parse_async_results(file_path):
     results = []
     with open(file_path) as fin:
@@ -12,10 +13,16 @@ def parse_async_results(file_path):
             results.append(json.loads(line.strip()))
     return results
 
-def parse_log_trace_time(raw_data):
+
+def parse_log_trace_ratio(raw_data):
     json_data = base64.b64decode(raw_data)
     output = json.loads(json_data)
-    return output.get('Trace')
+    if 'TraceLog' not in output or 'TraceTotal' not in output:
+        return None, False
+    t_log = int(output.get('TraceLog'))
+    t_total = int(output.get('TraceTotal'))
+    return t_log/t_total, True
+
 
 def parse_trace_data(async_result_file_path, warmup_ratio=1.0/6, outlier_ratio=30):
     success_count = 0
@@ -29,9 +36,9 @@ def parse_trace_data(async_result_file_path, warmup_ratio=1.0/6, outlier_ratio=3
         recv_ts = entry['recvTs']
         dispatch_ts = entry['dispatchTs']
         finish_ts = entry['finishedTs']
-        trace_us = parse_log_trace_time(entry['output'])
-        if trace_us:
-            traces.append(int(trace_us) / (finish_ts - dispatch_ts))
+        trace_ratio, ok = parse_log_trace_ratio(entry['output'])
+        if ok:
+            traces.append(trace_ratio)
         if success_flag:
             success_count += 1
         if dispatch_ts > recv_ts:
@@ -45,11 +52,13 @@ def parse_trace_data(async_result_file_path, warmup_ratio=1.0/6, outlier_ratio=3
     filtered_traces = traces
     return filtered_latencies, filtered_traces, success_count / len(results[skip:])
 
+
 def get_percentages(datas):
     p50 = np.percentile(datas, 50)
     p99 = np.percentile(datas, 99)
     p99_9 = np.percentile(datas, 99.9)
     return p50, p99, p99_9
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

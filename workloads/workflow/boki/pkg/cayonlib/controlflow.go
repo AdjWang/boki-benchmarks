@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 
 	// "github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
@@ -67,9 +69,10 @@ type InvokeError struct {
 }
 
 type OutputWrapper struct {
-	Status string
-	Output interface{}
-	Trace  string
+	Status     string
+	Output     interface{}
+	TraceLog   string
+	TraceTotal string
 }
 
 func (ow *OutputWrapper) Serialize() []byte {
@@ -172,6 +175,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	CHECK(err)
 	iw.LogTracerPropagator = string(logTracerData)
 	ASSERT(iw.LogTracerPropagator != "", fmt.Sprintf("invalid LogTracerPropagator from: %+v", env.LogTracer))
+	log.Printf("[DEBUG] sync invoke: %v %v", iw.LogTracerPropagator, env.LogTracer.DebugString())
 
 	payload := iw.Serialize()
 	res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
@@ -180,6 +184,12 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	ow.Deserialize(res)
 	switch ow.Status {
 	case "Success":
+		tLog, err := strconv.ParseInt(ow.TraceLog, 10, 64)
+		CHECK(err)
+		env.LogTracer.TraceAdd(time.Duration(tLog) * time.Microsecond)
+		tTotal, err := strconv.ParseInt(ow.TraceTotal, 10, 64)
+		CHECK(err)
+		env.LogTracer.TraceAddTotal(time.Duration(tTotal) * time.Microsecond)
 		return ow.Output, iw.InstanceId
 	default:
 		panic("never happens")
@@ -371,6 +381,8 @@ func TPLAbort(env *Env) {
 }
 
 func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (OutputWrapper, error) {
+	start := time.Now()
+
 	if TYPE == "BASELINE" {
 		panic("Baseline type not supported")
 	}
@@ -429,10 +441,13 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	})
 	env.LogTracer.TraceEnd()
 
+	elapsed := time.Since(start)
+	env.LogTracer.TraceAddTotal(elapsed)
 	return OutputWrapper{
-		Status: "Success",
-		Output: output,
-		Trace:  env.LogTracer.String(),
+		Status:     "Success",
+		Output:     output,
+		TraceLog:   env.LogTracer.LogString(),
+		TraceTotal: env.LogTracer.TotalString(),
 	}, nil
 }
 
@@ -470,6 +485,9 @@ type funcHandlerFactory struct {
 }
 
 func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.FuncHandler, error) {
+	log.SetOutput(os.Stderr)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	return &funcHandlerWrapper{
 		fnName:  funcName,
 		handler: f.handler,
