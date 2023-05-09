@@ -328,7 +328,7 @@ function test_workflow {
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
 
-    echo "wait to startup..."
+    echo "waiting to startup..."
     sleep_count_down 15
 
     echo "list functions"
@@ -363,7 +363,7 @@ function test_workflow {
 
     echo "test more requests"
     # DEBUG: benchmarks printing responses
-    BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 20 -s $SCRIPT_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 3 -s $SCRIPT_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 
     # BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 150 -s $APP_SRC_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 }
@@ -378,13 +378,13 @@ debug)
     ;;
 build)
     build_boki
-    build_queue
-    # build_workflow
+    # build_queue
+    build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
-    docker push adjwang/boki-queuebench:dev
+    # docker push adjwang/boki-queuebench:dev
     docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -398,9 +398,9 @@ run)
     # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
-    # test_workflow boki-movie-asynclog
+    test_workflow boki-movie-asynclog
 
-    test_queue
+    # test_queue
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

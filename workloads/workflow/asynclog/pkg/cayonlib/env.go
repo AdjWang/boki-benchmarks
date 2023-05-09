@@ -32,6 +32,7 @@ type Env struct {
 	AsyncLogCtx AsyncLogContext
 }
 
+// All operations should be thread safe
 type AsyncLogContext interface {
 	GetLastStepLogMeta() types.FutureMeta
 	// used by other async logs
@@ -296,17 +297,26 @@ func (fc *asyncLogContextImpl) Serialize() ([]byte, error) {
 }
 
 func DeserializeAsyncLogContext(faasEnv types.Environment, data []byte) (AsyncLogContext, error) {
-	var asyncLogCtxPropagator asyncLogContextImpl
-	err := json.Unmarshal(data, &asyncLogCtxPropagator)
+	asyncLogOps, lastStep, err := DeserializeRawAsyncLogContext(data)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unresolvable data: %v", data)
+		return nil, err
 	}
 	return &asyncLogContextImpl{
 		faasEnv:         faasEnv,
 		mu:              sync.Mutex{},
-		AsyncLogOps:     asyncLogCtxPropagator.AsyncLogOps,
-		LastStepLogMeta: asyncLogCtxPropagator.LastStepLogMeta,
+		AsyncLogOps:     asyncLogOps,
+		LastStepLogMeta: lastStep,
 	}, nil
+}
+
+func DeserializeRawAsyncLogContext(data []byte) ([]types.FutureMeta, types.FutureMeta, error) {
+	var asyncLogCtxPropagator asyncLogContextImpl
+	err := json.Unmarshal(data, &asyncLogCtxPropagator)
+	if err != nil {
+		var temp types.FutureMeta
+		return nil, temp, errors.Wrapf(err, "unresolvable data: %v", data)
+	}
+	return asyncLogCtxPropagator.AsyncLogOps, asyncLogCtxPropagator.LastStepLogMeta, nil
 }
 
 // DEBUG

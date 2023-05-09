@@ -70,8 +70,9 @@ type InvokeError struct {
 }
 
 type OutputWrapper struct {
-	Status string
-	Output interface{}
+	Status                string
+	Output                interface{}
+	AsyncLogCtxPropagator string
 }
 
 func (ow *OutputWrapper) Serialize() []byte {
@@ -216,6 +217,14 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	ow.Deserialize(res)
 	switch ow.Status {
 	case "Success":
+		// chain async logs from subcalls
+		asyncLogOps, lastStepLogMeta, err := DeserializeRawAsyncLogContext([]byte(iw.AsyncLogCtxPropagator))
+		CHECK(err)
+		for _, op := range asyncLogOps {
+			env.AsyncLogCtx.ChainFuture(op)
+		}
+		// chain a step twice is harmless
+		env.AsyncLogCtx.ChainStep(lastStepLogMeta)
 		return ow.Output, iw.InstanceId
 	default:
 		panic("never happens")
@@ -296,6 +305,14 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 	ow.Deserialize(res)
 	switch ow.Status {
 	case "Success":
+		// chain async logs from subcalls
+		asyncLogOps, lastStepLogMeta, err := DeserializeRawAsyncLogContext([]byte(ow.AsyncLogCtxPropagator))
+		CHECK(err)
+		for _, op := range asyncLogOps {
+			env.AsyncLogCtx.ChainFuture(op)
+		}
+		// chain a step twice is harmless
+		env.AsyncLogCtx.ChainStep(lastStepLogMeta)
 		return ow.Output, iw.InstanceId
 	default:
 		panic("never happens")
@@ -345,6 +362,8 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 	payload := iw.Serialize()
 	err = env.FaasEnv.InvokeFuncAsync(env.FaasCtx, callee, payload)
 	CHECK(err)
+	// no need to chain steps from an async call since they are synchronized in
+	// wrapperInternal()
 	return iw.InstanceId
 }
 
@@ -362,7 +381,8 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	}
 
 	var intentLogFuture types.Future[uint64]
-	if iw.Async == false || iw.CallerName == "" {
+	if !iw.Async || iw.CallerName == "" {
+		// not async or outer call
 		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
 			"DONE":       false,
@@ -423,14 +443,18 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	}).GetMeta())
 
 	// clear pending logs at the end of the workflow
-	if iw.CallerName == "" {
+	if iw.Async || iw.CallerName == "" {
+		// ensure all logs are durable if exec on async or outer function
 		err := env.AsyncLogCtx.Sync(gSyncTimeout)
 		CHECK(err)
 	}
 
+	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
+	CHECK(err)
 	return OutputWrapper{
-		Status: "Success",
-		Output: output,
+		Status:                "Success",
+		Output:                output,
+		AsyncLogCtxPropagator: string(asyncLogCtxData),
 	}, nil
 }
 
