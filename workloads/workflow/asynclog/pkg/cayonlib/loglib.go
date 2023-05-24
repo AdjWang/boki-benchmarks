@@ -54,20 +54,19 @@ func (fsm *IntentFsm) ApplyLog(logEntry *types.CondLogEntry) bool {
 		fsm.applyLog(&intentLog)
 	}
 	// resolve cond
-	// TODO: resolve more complex conditions?
-	allCond := true
-	for _, cond := range logEntry.Cond {
-		if cond.Resolver == CondResolver_IsTheFirstStep {
-			recordedIntentLog := fsm.GetStepLog(intentLog.StepNumber)
-			if recordedIntentLog == nil {
-				panic(fmt.Sprintf("Cannot find intent log for step %d", intentLog.StepNumber))
-			}
-			allCond = allCond && (logEntry.SeqNum == recordedIntentLog.SeqNum)
-		} else {
-			panic("unreachable")
+	if intentLog.PostStep {
+		preStepLog := fsm.GetStepLog(intentLog.StepNumber)
+		// we believe a post step log must has a preceding PreStepLog
+		ASSERT(preStepLog != nil,
+			fmt.Sprintf("post step log %+v not has its pre step log in %+v", intentLog, fsm.stepLogs))
+		return true
+	} else {
+		recordedIntentLog := fsm.GetStepLog(intentLog.StepNumber)
+		if recordedIntentLog == nil {
+			panic(fmt.Sprintf("Cannot find intent log for step %d", intentLog.StepNumber))
 		}
+		return logEntry.SeqNum == recordedIntentLog.SeqNum
 	}
-	return allCond
 }
 
 func (fsm *IntentFsm) applyLog(intentLog *IntentLogEntry) {
@@ -133,10 +132,7 @@ func AsyncProposeNextStep(env *Env, data aws.JSONValue, depLocalId uint64) (type
 			},
 		},
 		&intentLog,
-		func(cond types.CondHandle) {
-			cond.AddDep(depLocalId)
-			cond.AddCond(CondResolver_IsTheFirstStep)
-		},
+		depLocalId,
 	)
 	return future, intentLog
 }
@@ -155,9 +151,7 @@ func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.
 			PostStep:   true,
 			Data:       data,
 		},
-		func(cond types.CondHandle) {
-			cond.AddDep(depLocalId)
-		},
+		depLocalId,
 	)
 }
 
@@ -175,10 +169,7 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 }
 
 func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, depLocalId uint64) {
-	future := LibAsyncAppendLog(env, tag, tagMeta, data,
-		func(cond types.CondHandle) {
-			cond.AddDep(depLocalId)
-		})
+	future := LibAsyncAppendLog(env, tag, tagMeta, data, depLocalId)
 	env.AsyncLogCtx.ChainStep(future.GetLocalId())
 	// sync until receives index
 	// If the async log is not propagated to a different engine, waiting for
@@ -193,11 +184,11 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 	// CHECK(err)
 }
 
-func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, cond func(types.CondHandle)) types.Future[uint64] {
+func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, depLocalId uint64) types.Future[uint64] {
 	serializedData, err := json.Marshal(data)
 	CHECK(err)
 	encoded := snappy.Encode(nil, serializedData)
-	future, err := env.FaasEnv.AsyncSharedLogCondAppend(env.FaasCtx, []uint64{tag}, tagMeta, encoded, cond)
+	future, err := env.FaasEnv.AsyncSharedLogCondAppend(env.FaasCtx, []uint64{tag}, tagMeta, encoded, []uint64{depLocalId})
 	CHECK(err)
 	return future
 }

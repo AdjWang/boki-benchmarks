@@ -148,7 +148,7 @@ func CHECK(err error) {
 // DEBUG
 func ASSERT(cond bool, tip string) {
 	if !cond {
-		panic(fmt.Errorf("assertion failed: %v", tip))
+		panic(fmt.Errorf("[ERROR] assertion failed: %v", tip))
 	}
 }
 
@@ -162,7 +162,7 @@ func dumpDeps(env *Env, logEntryLocalId uint64, depth int) string {
 	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, logEntryLocalId)
 	CHECK(err)
 	output := fmt.Sprintf("%v LocalId=%v SeqNum=%v %+v\n",
-		strings.Repeat("  ", depth), logEntryLocalId, logEntry.SeqNum, logEntry.TagBuildMeta)
+		strings.Repeat("  ", depth), logEntryLocalId, logEntry.SeqNum, logEntry.TagBuildMetas)
 	for _, depLogLocalId := range logEntry.Deps {
 		output += dumpDeps(env, depLogLocalId, depth+1)
 	}

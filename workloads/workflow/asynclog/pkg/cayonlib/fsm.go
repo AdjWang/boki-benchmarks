@@ -177,10 +177,14 @@ func getLogStateAuxData(auxData []byte) LogState {
 func (fsm *FsmCommon[TLogEntry]) doResolve(env *Env, condLogEntry *types.CondLogEntry) (LogState, uint64) {
 	// log.Printf("fsm=%v resolve log %+v", reflect.TypeOf(fsm.receiver), condLogEntry)
 	// 1. resolve deps
-	for _, depLogMeta := range condLogEntry.Deps {
-		depLogEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, depLogMeta)
+	for _, depLogLocalId := range condLogEntry.Deps {
+		if !types.IsLocalIdValid(depLogLocalId) {
+			// invalid local id is used as the initial dep now, just ignore it
+			continue
+		}
+		depLogEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, depLogLocalId)
 		CHECK(err)
-		// log.Printf("fsm=%v resolve log dep %+v get deplog %+v", reflect.TypeOf(fsm.receiver), depLogMeta, depLogEntry)
+		// log.Printf("fsm=%v resolve log dep 0x%064X get deplog %+v", reflect.TypeOf(fsm.receiver), depLogLocalId, depLogEntry)
 
 		// treat not resolved log as pending
 		logState := getLogStateAuxData(depLogEntry.AuxData)
@@ -199,7 +203,7 @@ func (fsm *FsmCommon[TLogEntry]) doResolve(env *Env, condLogEntry *types.CondLog
 			} else {
 				// delegate resolving to the target fsm
 				// A potential issue here is circular dependency, which causes infinite loop. Becareful!
-				if ok := ResolveLog(env, depLogEntry.Tags, depLogEntry.TagBuildMeta, depLogEntry.SeqNum); ok {
+				if ok := ResolveLog(env, depLogEntry.Tags, depLogEntry.TagBuildMetas, depLogEntry.SeqNum); ok {
 					logState = LogState{LogState_APPLIED}
 				} else {
 					logState = LogState{LogState_DISCARDED}

@@ -58,9 +58,6 @@ func (fsm *LockFsm) ApplyLog(logEntry *types.CondLogEntry) bool {
 		fsm.stepNumber++
 	}
 	// Lock log entries has no conds, so always return true
-	if len(logEntry.Cond) > 0 {
-		panic("unexpected")
-	}
 	return true
 }
 
@@ -176,9 +173,6 @@ func (fsm *TxnFsm) ApplyLog(logEntry *types.CondLogEntry) bool {
 		fsm.txnLogs[txnLog.SeqNum] = &txnLog
 	}
 	// Txn log entries has no conds, so always return true
-	if len(logEntry.Cond) > 0 {
-		panic("unexpected")
-	}
 	return true
 }
 
@@ -222,9 +216,9 @@ func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool 
 					"key":       key,
 					"value":     value,
 				},
-			}, func(cond types.CondHandle) {
-				cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
-			}).GetLocalId())
+			},
+			env.AsyncLogCtx.GetLastStepLocalId(),
+		).GetLocalId())
 		return true
 	} else {
 		return false

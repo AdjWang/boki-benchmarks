@@ -201,9 +201,8 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 				Callee:   callee,
 				WriteOp:  aws.JSONValue{},
 			},
-			func(cond types.CondHandle) {
-				cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
-			}).GetLocalId())
+			env.AsyncLogCtx.GetLastStepLocalId(),
+		).GetLocalId())
 	}
 	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
 	CHECK(err)
@@ -289,9 +288,8 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 				Callee:   callee,
 				WriteOp:  aws.JSONValue{},
 			},
-			func(cond types.CondHandle) {
-				cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
-			}).GetLocalId())
+			env.AsyncLogCtx.GetLastStepLocalId(),
+		).GetLocalId())
 	}
 	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
 	CHECK(err)
@@ -389,16 +387,12 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			"ASYNC":      iw.Async,
 			"INPUT":      iw.Input,
 			"ST":         time.Now().Unix(),
-		}, func(cond types.CondHandle) {
-			cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
-		})
+		}, env.AsyncLogCtx.GetLastStepLocalId())
 	} else {
 		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
 			"ST":         time.Now().Unix(),
-		}, func(cond types.CondHandle) {
-			cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
-		})
+		}, env.AsyncLogCtx.GetLastStepLocalId())
 	}
 	env.AsyncLogCtx.ChainFuture(intentLogFuture.GetLocalId())
 	//ok := LibPut(env.IntentTable, aws.JSONValue{"InstanceId": env.InstanceId},
@@ -438,9 +432,9 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		"InstanceId": env.InstanceId,
 		"DONE":       true,
 		"TS":         time.Now().Unix(),
-	}, func(cond types.CondHandle) {
-		cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
-	}).GetLocalId())
+	},
+		env.AsyncLogCtx.GetLastStepLocalId(),
+	).GetLocalId())
 
 	// clear pending logs at the end of the workflow
 	if iw.Async || iw.CallerName == "" {

@@ -237,6 +237,8 @@ func (fc *asyncLogContextImpl) ChainStep(stepFutureLocalId uint64) AsyncLogConte
 	return fc
 }
 
+// Sync relies on the blocking read index to ensure durability.
+// Note that indices are propagated from the storage node.
 func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
@@ -278,6 +280,8 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 		// log.Println("wait future all done without error")
 		// clear synchronized logs
 		fc.AsyncLogOps = make([]uint64, 0, 100)
+		// not clear LastStepLocalId here since the global log order depends
+		// on it, which is an independent mechanism with durability
 		return nil
 	}
 }
