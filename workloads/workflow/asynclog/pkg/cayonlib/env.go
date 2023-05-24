@@ -34,11 +34,11 @@ type Env struct {
 
 // All operations should be thread safe
 type AsyncLogContext interface {
-	GetLastStepLogMeta() types.FutureMeta
+	GetLastStepLocalId() uint64
 	// used by other async logs
-	ChainFuture(future types.FutureMeta) AsyncLogContext
+	ChainFuture(futureLocalId uint64) AsyncLogContext
 	// only and must be used by async step logs
-	ChainStep(stepFuture types.FutureMeta) AsyncLogContext
+	ChainStep(stepFutureLocalId uint64) AsyncLogContext
 	Sync(timeout time.Duration) error
 	Serialize() ([]byte, error)
 
@@ -195,44 +195,44 @@ type asyncLogContextImpl struct {
 	mu      sync.Mutex
 
 	// serializables
-	AsyncLogOps     []types.FutureMeta
-	LastStepLogMeta types.FutureMeta
+	AsyncLogOps     []uint64 // local ids
+	LastStepLocalId uint64   // local id
 }
 
 func DebugNewAsyncLogContext() AsyncLogContext {
 	return &asyncLogContextImpl{
 		faasEnv:         nil,
 		mu:              sync.Mutex{},
-		AsyncLogOps:     make([]types.FutureMeta, 0, 20),
-		LastStepLogMeta: types.InvalidFutureMeta,
+		AsyncLogOps:     make([]uint64, 0, 20),
+		LastStepLocalId: types.InvalidLocalId,
 	}
 }
 func NewAsyncLogContext(faasEnv types.Environment) AsyncLogContext {
 	return &asyncLogContextImpl{
 		faasEnv:         faasEnv,
 		mu:              sync.Mutex{},
-		AsyncLogOps:     make([]types.FutureMeta, 0, 20),
-		LastStepLogMeta: types.InvalidFutureMeta,
+		AsyncLogOps:     make([]uint64, 0, 20),
+		LastStepLocalId: types.InvalidLocalId,
 	}
 }
 
-func (fc *asyncLogContextImpl) GetLastStepLogMeta() types.FutureMeta {
+func (fc *asyncLogContextImpl) GetLastStepLocalId() uint64 {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
-	return fc.LastStepLogMeta
+	return fc.LastStepLocalId
 }
 
-func (fc *asyncLogContextImpl) ChainFuture(future types.FutureMeta) AsyncLogContext {
+func (fc *asyncLogContextImpl) ChainFuture(futureLocalId uint64) AsyncLogContext {
 	fc.mu.Lock()
-	fc.AsyncLogOps = append(fc.AsyncLogOps, future)
+	fc.AsyncLogOps = append(fc.AsyncLogOps, futureLocalId)
 	fc.mu.Unlock()
 	return fc
 }
 
-func (fc *asyncLogContextImpl) ChainStep(stepFuture types.FutureMeta) AsyncLogContext {
+func (fc *asyncLogContextImpl) ChainStep(stepFutureLocalId uint64) AsyncLogContext {
 	fc.mu.Lock()
-	fc.AsyncLogOps = append(fc.AsyncLogOps, stepFuture)
-	fc.LastStepLogMeta = stepFuture
+	fc.AsyncLogOps = append(fc.AsyncLogOps, stepFutureLocalId)
+	fc.LastStepLocalId = stepFutureLocalId
 	fc.mu.Unlock()
 	return fc
 }
@@ -247,11 +247,11 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 
 	wg := sync.WaitGroup{}
 	errCh := make(chan error)
-	for _, futureMeta := range fc.AsyncLogOps {
+	for _, localId := range fc.AsyncLogOps {
 		wg.Add(1)
-		go func(ctx context.Context, futureMeta types.FutureMeta) {
-			if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, futureMeta); err != nil {
-				errCh <- errors.Wrapf(err, "failed to read index for future: %+v", futureMeta)
+		go func(ctx context.Context, localId uint64) {
+			if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, localId); err != nil {
+				errCh <- errors.Wrapf(err, "failed to read index for future: %+v", localId)
 			} else {
 				// log.Printf("wait future=%+v done", future)
 				// seqNum, err := future.GetResult()
@@ -259,7 +259,7 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 				// 	futureMeta.LocalId, futureMeta.State, seqNum, err)
 			}
 			wg.Done()
-		}(ctx, futureMeta)
+		}(ctx, localId)
 	}
 	waitCh := make(chan struct{})
 	go func() {
@@ -277,7 +277,7 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	case <-waitCh:
 		// log.Println("wait future all done without error")
 		// clear synchronized logs
-		fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
+		fc.AsyncLogOps = make([]uint64, 0, 100)
 		return nil
 	}
 }
@@ -305,23 +305,22 @@ func DeserializeAsyncLogContext(faasEnv types.Environment, data []byte) (AsyncLo
 		faasEnv:         faasEnv,
 		mu:              sync.Mutex{},
 		AsyncLogOps:     asyncLogOps,
-		LastStepLogMeta: lastStep,
+		LastStepLocalId: lastStep,
 	}, nil
 }
 
-func DeserializeRawAsyncLogContext(data []byte) ([]types.FutureMeta, types.FutureMeta, error) {
+func DeserializeRawAsyncLogContext(data []byte) ([]uint64, uint64, error) {
 	var asyncLogCtxPropagator asyncLogContextImpl
 	err := json.Unmarshal(data, &asyncLogCtxPropagator)
 	if err != nil {
-		var temp types.FutureMeta
-		return nil, temp, errors.Wrapf(err, "unresolvable data: %v", data)
+		return nil, 0, errors.Wrapf(err, "unresolvable data: %v", data)
 	}
-	return asyncLogCtxPropagator.AsyncLogOps, asyncLogCtxPropagator.LastStepLogMeta, nil
+	return asyncLogCtxPropagator.AsyncLogOps, asyncLogCtxPropagator.LastStepLocalId, nil
 }
 
 // DEBUG
 func (fc *asyncLogContextImpl) String() string {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
-	return fmt.Sprintf("log chain: %+v, last log: %+v", fc.AsyncLogOps, fc.LastStepLogMeta)
+	return fmt.Sprintf("log chain: %+v, last log: %+v", fc.AsyncLogOps, fc.LastStepLocalId)
 }

@@ -140,11 +140,11 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 		"instanceId": shortuuid.New(),
 		"callee":     callee,
 		"input":      input,
-	}, env.AsyncLogCtx.GetLastStepLogMeta())
+	}, env.AsyncLogCtx.GetLastStepLocalId())
 	// if stepFuture is nil, then intentLog is the recorded step before;
 	// if stepFuture is not nil, then intentLog is the newly append step;
 	if stepFuture != nil {
-		env.AsyncLogCtx.ChainStep(stepFuture.GetMeta())
+		env.AsyncLogCtx.ChainStep(stepFuture.GetLocalId())
 	} else {
 		preInvokeLog := intentLog
 		instanceId := preInvokeLog.Data["instanceId"].(string)
@@ -202,8 +202,8 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 				WriteOp:  aws.JSONValue{},
 			},
 			func(cond types.CondHandle) {
-				cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
-			}).GetMeta())
+				cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
+			}).GetLocalId())
 	}
 	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
 	CHECK(err)
@@ -237,9 +237,9 @@ func ProposeInvoke(env *Env, callee string, input interface{}) (types.Future[uin
 		"instanceId": shortuuid.New(),
 		"callee":     callee,
 		"input":      input,
-	}, env.AsyncLogCtx.GetLastStepLogMeta())
+	}, env.AsyncLogCtx.GetLastStepLocalId())
 	if stepFuture != nil {
-		env.AsyncLogCtx.ChainStep(stepFuture.GetMeta())
+		env.AsyncLogCtx.ChainStep(stepFuture.GetLocalId())
 	}
 	return stepFuture, intentLog
 }
@@ -290,8 +290,8 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 				WriteOp:  aws.JSONValue{},
 			},
 			func(cond types.CondHandle) {
-				cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
-			}).GetMeta())
+				cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
+			}).GetLocalId())
 	}
 	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
 	CHECK(err)
@@ -325,9 +325,9 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 		"instanceId": shortuuid.New(),
 		"callee":     callee,
 		"input":      input,
-	}, env.AsyncLogCtx.GetLastStepLogMeta())
+	}, env.AsyncLogCtx.GetLastStepLocalId())
 	if stepFuture != nil {
-		env.AsyncLogCtx.ChainStep(stepFuture.GetMeta())
+		env.AsyncLogCtx.ChainStep(stepFuture.GetLocalId())
 	} else {
 		preInvokeLog := intentLog
 		instanceId := preInvokeLog.Data["instanceId"].(string)
@@ -373,11 +373,11 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	}
 
 	if iw.CallerName != "" {
-		ASSERT(env.AsyncLogCtx.GetLastStepLogMeta().IsValid(),
-			fmt.Sprintf("last step meta: %+v should be valid", env.AsyncLogCtx.GetLastStepLogMeta()))
+		ASSERT(types.IsLocalIdValid(env.AsyncLogCtx.GetLastStepLocalId()),
+			fmt.Sprintf("last step meta: %+v should be valid", env.AsyncLogCtx.GetLastStepLocalId()))
 	} else {
-		ASSERT(!env.AsyncLogCtx.GetLastStepLogMeta().IsValid(),
-			fmt.Sprintf("last step meta: %+v should be invalid", env.AsyncLogCtx.GetLastStepLogMeta()))
+		ASSERT(!types.IsLocalIdValid(env.AsyncLogCtx.GetLastStepLocalId()),
+			fmt.Sprintf("last step meta: %+v should be invalid", env.AsyncLogCtx.GetLastStepLocalId()))
 	}
 
 	var intentLogFuture types.Future[uint64]
@@ -390,17 +390,17 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			"INPUT":      iw.Input,
 			"ST":         time.Now().Unix(),
 		}, func(cond types.CondHandle) {
-			cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
+			cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
 		})
 	} else {
 		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
 			"ST":         time.Now().Unix(),
 		}, func(cond types.CondHandle) {
-			cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
+			cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
 		})
 	}
-	env.AsyncLogCtx.ChainFuture(intentLogFuture.GetMeta())
+	env.AsyncLogCtx.ChainFuture(intentLogFuture.GetLocalId())
 	//ok := LibPut(env.IntentTable, aws.JSONValue{"InstanceId": env.InstanceId},
 	//	aws.JSONValue{"DONE": false, "ASYNC": iw.Async})
 	//if !ok {
@@ -425,22 +425,22 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		output = f(env)
 	}
 	// assert true only for bokiflow that a user function must have steps
-	ASSERT(env.AsyncLogCtx.GetLastStepLogMeta().IsValid(),
-		fmt.Sprintf("last step meta: %+v should be valid", env.AsyncLogCtx.GetLastStepLogMeta()))
+	ASSERT(types.IsLocalIdValid(env.AsyncLogCtx.GetLastStepLocalId()),
+		fmt.Sprintf("last step meta: %+v should be valid", env.AsyncLogCtx.GetLastStepLocalId()))
 
 	if iw.CallerName != "" {
 		env.AsyncLogCtx.ChainStep(AsyncLogStepResult(env, iw.CallerId, iw.CallerStep, aws.JSONValue{
 			"type":   "InvokeResult",
 			"output": output,
-		}, env.AsyncLogCtx.GetLastStepLogMeta()).GetMeta())
+		}, env.AsyncLogCtx.GetLastStepLocalId()).GetLocalId())
 	}
 	env.AsyncLogCtx.ChainFuture(LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
 		"InstanceId": env.InstanceId,
 		"DONE":       true,
 		"TS":         time.Now().Unix(),
 	}, func(cond types.CondHandle) {
-		cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
-	}).GetMeta())
+		cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
+	}).GetLocalId())
 
 	// clear pending logs at the end of the workflow
 	if iw.Async || iw.CallerName == "" {

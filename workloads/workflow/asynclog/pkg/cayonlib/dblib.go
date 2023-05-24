@@ -164,7 +164,7 @@ func CondWrite(env *Env, tablename string, key string,
 		"type":  "PreWrite",
 		"key":   key,
 		"table": tablename,
-	}, env.AsyncLogCtx.GetLastStepLogMeta())
+	}, env.AsyncLogCtx.GetLastStepLocalId())
 	if stepFuture == nil {
 		if fnGetLoggedStepResult(preWriteLog) {
 			return
@@ -172,14 +172,14 @@ func CondWrite(env *Env, tablename string, key string,
 			panic("unreachable")
 		}
 	}
-	env.AsyncLogCtx.ChainStep(stepFuture.GetMeta())
+	env.AsyncLogCtx.ChainStep(stepFuture.GetLocalId())
 	// DEBUG
 	// log.Printf("[DEBUG] CondWrite before sync: %v", env.AsyncLogCtx)
 	// sync
 	err := env.AsyncLogCtx.Sync(gSyncTimeout)
 	CHECK(err)
 	// resolve cond
-	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
+	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetLocalId())
 	CHECK(err)
 	if applied := ResolveLog(env, logEntry.Tags, logEntry.TagBuildMeta, logEntry.SeqNum); !applied {
 		// discarded
@@ -225,7 +225,7 @@ func CondWrite(env *Env, tablename string, key string,
 		"type":  "PostWrite",
 		"key":   key,
 		"table": tablename,
-	}, stepFuture.GetMeta()).GetMeta())
+	}, stepFuture.GetLocalId()).GetLocalId())
 }
 
 func Write(env *Env, tablename string, key string, update map[expression.NameBuilder]expression.OperandBuilder) {
@@ -257,14 +257,14 @@ func Read(env *Env, tablename string, key string) interface{} {
 			"key":    key,
 			"table":  tablename,
 			"result": res,
-		}, env.AsyncLogCtx.GetLastStepLogMeta())
+		}, env.AsyncLogCtx.GetLastStepLocalId())
 		if newLogFuture == nil {
 			CheckLogDataField(intentReadLog, "type", "Read")
 			CheckLogDataField(intentReadLog, "key", key)
 			CheckLogDataField(intentReadLog, "table", tablename)
 			log.Printf("[INFO] Seen Read log for step %d", intentReadLog.StepNumber)
 		} else {
-			env.AsyncLogCtx.ChainStep(newLogFuture.GetMeta())
+			env.AsyncLogCtx.ChainStep(newLogFuture.GetLocalId())
 		}
 		return intentReadLog.Data["result"]
 	}
@@ -291,13 +291,13 @@ func Scan(env *Env, tablename string) interface{} {
 			"type":   "Scan",
 			"table":  tablename,
 			"result": res,
-		}, env.AsyncLogCtx.GetLastStepLogMeta())
+		}, env.AsyncLogCtx.GetLastStepLocalId())
 		if newLogFuture == nil {
 			CheckLogDataField(intentScanLog, "type", "Scan")
 			CheckLogDataField(intentScanLog, "table", tablename)
 			log.Printf("[INFO] Seen Scan log for step %d", intentScanLog.StepNumber)
 		} else {
-			env.AsyncLogCtx.ChainStep(newLogFuture.GetMeta())
+			env.AsyncLogCtx.ChainStep(newLogFuture.GetLocalId())
 		}
 		return intentScanLog.Data["result"]
 	}

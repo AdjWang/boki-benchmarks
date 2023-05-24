@@ -2,9 +2,6 @@ package cayonlib
 
 import (
 	"fmt"
-	"os"
-	"strconv"
-	"time"
 
 	// "log"
 	"encoding/json"
@@ -145,19 +142,9 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 }
 
 func LibAppendLog(env *Env, tag uint64, data interface{}) uint64 {
-	encoded := []byte{}
-	start := time.Now()
-	defer func() {
-		engineId, err := strconv.Atoi(os.Getenv("FAAS_ENGINE_ID"))
-		if err != nil {
-			engineId = -1
-		}
-		duration := time.Since(start)
-		fmt.Printf("[PROF] LibAppendLog engine=%v, tag=%v, duration=%v, datalen=%v\n", engineId, tag, duration.Seconds(), len(encoded))
-	}()
 	serializedData, err := json.Marshal(data)
 	CHECK(err)
-	encoded = snappy.Encode(nil, serializedData)
+	encoded := snappy.Encode(nil, serializedData)
 	seqNum, err := env.FaasEnv.SharedLogAppend(env.FaasCtx, []uint64{tag}, encoded)
 	CHECK(err)
 	return seqNum

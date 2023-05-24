@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"cs.utexas.edu/zjia/faas/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -159,18 +158,18 @@ func DumpStackTrace() {
 	log.Printf("[DEBUG] Stack trace : %s ", string(buf[:n]))
 }
 
-func dumpDeps(env *Env, logEntryMeta types.FutureMeta, depth int) string {
-	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, logEntryMeta)
+func dumpDeps(env *Env, logEntryLocalId uint64, depth int) string {
+	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, logEntryLocalId)
 	CHECK(err)
 	output := fmt.Sprintf("%v LocalId=%v SeqNum=%v %+v\n",
-		strings.Repeat("  ", depth), logEntryMeta.LocalId, logEntry.SeqNum, logEntry.TagBuildMeta)
-	for _, depLogMeta := range logEntry.Deps {
-		output += dumpDeps(env, depLogMeta, depth+1)
+		strings.Repeat("  ", depth), logEntryLocalId, logEntry.SeqNum, logEntry.TagBuildMeta)
+	for _, depLogLocalId := range logEntry.Deps {
+		output += dumpDeps(env, depLogLocalId, depth+1)
 	}
 	return output
 }
-func DumpDepChain(env *Env, logEntryMeta types.FutureMeta, logTip string) {
-	log.Printf("[DEBUG] Dep chain for log: %v\n%v\n", logTip, dumpDeps(env, logEntryMeta, 0))
+func DumpDepChain(env *Env, logEntryLocalId uint64, logTip string) {
+	log.Printf("[DEBUG] Dep chain for log: %v\n%v\n", logTip, dumpDeps(env, logEntryLocalId, 0))
 }
 
 func ListTables() {

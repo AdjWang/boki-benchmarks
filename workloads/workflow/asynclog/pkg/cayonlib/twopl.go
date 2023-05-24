@@ -97,7 +97,7 @@ func (fsm *LockFsm) Lock(env *Env, holder string) bool {
 			StepNumber: fsm.stepNumber,
 			UnlockOp:   false,
 			Holder:     holder,
-		}, env.AsyncLogCtx.GetLastStepLogMeta())
+		}, env.AsyncLogCtx.GetLastStepLocalId())
 
 	fsm.Catch(env)
 	return fsm.holder() == holder
@@ -118,7 +118,7 @@ func (fsm *LockFsm) Unlock(env *Env, holder string) {
 			StepNumber: fsm.stepNumber,
 			UnlockOp:   true,
 			Holder:     holder,
-		}, env.AsyncLogCtx.GetLastStepLogMeta())
+		}, env.AsyncLogCtx.GetLastStepLocalId())
 }
 
 func Lock(env *Env, tablename string, key string) bool {
@@ -223,8 +223,8 @@ func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool 
 					"value":     value,
 				},
 			}, func(cond types.CondHandle) {
-				cond.AddDep(env.AsyncLogCtx.GetLastStepLogMeta())
-			}).GetMeta())
+				cond.AddDep(env.AsyncLogCtx.GetLastStepLocalId())
+			}).GetLocalId())
 		return true
 	} else {
 		return false

@@ -112,7 +112,7 @@ func (fsm *IntentFsm) GetPostStepLog(stepNumber int32) *IntentLogEntry {
 	}
 }
 
-func AsyncProposeNextStep(env *Env, data aws.JSONValue, dep types.FutureMeta) (types.Future[uint64], *IntentLogEntry) {
+func AsyncProposeNextStep(env *Env, data aws.JSONValue, depLocalId uint64) (types.Future[uint64], *IntentLogEntry) {
 	step := env.StepNumber
 	env.StepNumber += 1
 	intentLog := env.FsmHub.GetInstanceStepFsm().GetStepLog(step)
@@ -134,14 +134,14 @@ func AsyncProposeNextStep(env *Env, data aws.JSONValue, dep types.FutureMeta) (t
 		},
 		&intentLog,
 		func(cond types.CondHandle) {
-			cond.AddDep(dep)
+			cond.AddDep(depLocalId)
 			cond.AddCond(CondResolver_IsTheFirstStep)
 		},
 	)
 	return future, intentLog
 }
 
-func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue, dep types.FutureMeta) types.Future[uint64] {
+func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue, depLocalId uint64) types.Future[uint64] {
 	return LibAsyncAppendLog(env, IntentStepStreamTag(instanceId),
 		[]types.TagMeta{
 			{
@@ -156,7 +156,7 @@ func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.
 			Data:       data,
 		},
 		func(cond types.CondHandle) {
-			cond.AddDep(dep)
+			cond.AddDep(depLocalId)
 		},
 	)
 }
@@ -174,12 +174,12 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 	return env.FsmHub.GetInstanceStepFsm().GetPostStepLog(stepNumber)
 }
 
-func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, dep types.FutureMeta) {
+func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, depLocalId uint64) {
 	future := LibAsyncAppendLog(env, tag, tagMeta, data,
 		func(cond types.CondHandle) {
-			cond.AddDep(dep)
+			cond.AddDep(depLocalId)
 		})
-	env.AsyncLogCtx.ChainStep(future.GetMeta())
+	env.AsyncLogCtx.ChainStep(future.GetLocalId())
 	// sync until receives index
 	// If the async log is not propagated to a different engine, waiting for
 	// the seqnum is enough to gaurantee read-your-write consistency.
@@ -187,7 +187,7 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 	CHECK(err)
 
 	// // But wait for index is fast enough so no need to do this optimization.
-	// indexFuture, err := env.FaasEnv.AsyncSharedLogReadIndex(env.FaasCtx, future.GetMeta())
+	// indexFuture, err := env.FaasEnv.AsyncSharedLogReadIndex(env.FaasCtx, future.GetLocalId())
 	// CHECK(err)
 	// err = indexFuture.Await(gSyncTimeout)
 	// CHECK(err)
