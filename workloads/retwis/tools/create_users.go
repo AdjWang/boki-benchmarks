@@ -28,6 +28,8 @@ func init() {
 }
 
 func createUsers() {
+	log.Println("[INFO] Create users")
+
 	client := utils.NewFaasClient(FLAGS_faas_gateway, FLAGS_concurrency)
 	for i := 0; i < FLAGS_num_users; i++ {
 		client.AddJsonFnCall(FLAGS_fn_prefix+"RetwisRegister", utils.JSONValue{
@@ -49,6 +51,8 @@ func createUsers() {
 }
 
 func createFollowers() {
+	log.Println("[INFO] Create followers")
+
 	userIds1 := make([]int, 0, 1024)
 	userIds2 := make([]int, 0, 1024)
 	for i := 0; i < FLAGS_num_users; i++ {
@@ -91,6 +95,8 @@ func createFollowers() {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Llongfile)
+
 	flag.Parse()
 	createUsers()
 	createFollowers()

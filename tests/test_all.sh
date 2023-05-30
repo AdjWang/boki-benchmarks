@@ -9,6 +9,8 @@ DOCKERFILE_DIR=$(realpath $SCRIPT_DIR/dockerfiles)
 
 QUEUE_EXP_DIR=$(realpath $TEST_DIR/../experiments/queue)
 QUEUE_SRC_DIR=$(realpath $TEST_DIR/../workloads/queue)
+RETWIS_EXP_DIR=$(realpath $TEST_DIR/../experiments/retwis)
+RETWIS_SRC_DIR=$(realpath $TEST_DIR/../workloads/retwis)
 WORKFLOW_EXP_DIR=$(realpath $TEST_DIR/../experiments/workflow)
 WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
@@ -32,6 +34,9 @@ function setup_env {
     if [[ $TEST_CASE == queue ]]; then
         cp $QUEUE_EXP_DIR/boki/nightcore_config.json $WORK_DIR/config/nightcore_config.json
         cp $QUEUE_EXP_DIR/boki/run_launcher $WORK_DIR/config
+    elif [[ $TEST_CASE == retwis ]]; then
+        cp $RETWIS_EXP_DIR/boki/nightcore_config.json $WORK_DIR/config/nightcore_config.json
+        cp $RETWIS_EXP_DIR/boki/run_launcher $WORK_DIR/config
     elif [[ $TEST_CASE == sharedlog ]]; then
         cp $TEST_DIR/workloads/sharedlog/nightcore_config.json $WORK_DIR/config/nightcore_config.json
         cp $TEST_DIR/workloads/sharedlog/run_launcher $WORK_DIR/config
@@ -84,6 +89,14 @@ function build_queue {
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-queuebench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.queuebench \
         $QUEUE_SRC_DIR
+}
+function build_retwis {
+    echo "========== build retwis =========="
+    $RETWIS_SRC_DIR/build.sh
+
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-retwisbench:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.retwisbench \
+        $RETWIS_SRC_DIR
 }
 function build_workflow {
     echo "========== build sharedlog =========="
@@ -172,9 +185,9 @@ function test_sharedlog {
     setup_env 3 3 1 sharedlog
 
     echo "setup cluster..."
-    cd $WORK_DIR && docker compose up -d
+    cd $WORK_DIR && docker compose up -d --remove-orphans
 
-    echo "wait to startup..."
+    echo "waiting to startup..."
     sleep_count_down 15
 
     echo "list functions"
@@ -234,9 +247,9 @@ function test_queue {
     setup_env 3 3 1 queue
 
     echo "setup cluster..."
-    cd $WORK_DIR && docker compose up -d
+    cd $WORK_DIR && docker compose up -d --remove-orphans
 
-    echo "wait to startup..."
+    echo "waiting to startup..."
     sleep_count_down 15
 
     echo "list functions"
@@ -244,8 +257,8 @@ function test_queue {
         assert_should_success $LINENO
 
     NUM_SHARDS=2
-    INTERVAL1=800     # ms
-    INTERVAL2=500     # ms
+    INTERVAL1=800 # ms
+    INTERVAL2=500 # ms
     NUM_PRODUCER=2
     NUM_CONSUMER=2
 
@@ -257,6 +270,44 @@ function test_queue {
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
         --payload_size=1024 --duration=3
+}
+
+function test_retwis {
+    echo "setup env..."
+    python3 $SCRIPT_DIR/docker-compose-generator.py \
+        --metalog-reps=3 \
+        --userlog-reps=3 \
+        --index-reps=1 \
+        --test-case=retwis \
+        --workdir=$WORK_DIR \
+        --output=$WORK_DIR
+
+    setup_env 3 3 1 retwis
+
+    echo "setup cluster..."
+    cd $WORK_DIR && docker compose up -d --remove-orphans
+
+    echo "waiting to startup..."
+    sleep_count_down 15
+
+    echo "list functions"
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
+        assert_should_success $LINENO
+
+    CONCURRENCY=16 # 64, 96, 128, 192
+    # NUM_USERS=10000
+    NUM_USERS=500
+
+    set -x
+    # init
+    curl -X POST http://localhost:9000/function/RetwisInit
+    # create users
+    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=8
+    # run benchmark
+    $RETWIS_SRC_DIR/bin/benchmark \
+        --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
+        --percentages=15,30,50,5 \
+        --duration=5 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
@@ -326,7 +377,7 @@ function test_workflow {
     setup_env 3 3 1 $TEST_CASE
 
     echo "setup cluster..."
-    cd $WORK_DIR && docker compose up -d
+    cd $WORK_DIR && docker compose up -d --remove-orphans
 
     echo "waiting to startup..."
     sleep_count_down 15
@@ -342,20 +393,32 @@ function test_workflow {
         #     assert_should_success $LINENO
         # echo ""
 
-        echo "test read request"
-        timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
+        echo "test read (search) request"
+        timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}}}' \
             http://localhost:9000/function/gateway ||
             assert_should_success $LINENO
         echo ""
 
-        echo "test write request"
+        echo "test read (recommend) request"
+        timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"recommend","Input":{"Require":"price","Lat":37.988,"Lon":-122.067}}}' \
+            http://localhost:9000/function/gateway ||
+            assert_should_success $LINENO
+        echo ""
+
+        echo "test read (user) request"
+        timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"user","Input":{"Username":"Cornell_72","Password":"72727272727272727272"}}}' \
+            http://localhost:9000/function/gateway ||
+            assert_should_success $LINENO
+        echo ""
+
+        echo "test write (reserve) request"
         timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"reserve","Input":{"userId":"user1","hotelId":"75","flightId":"8"}}}' \
             http://localhost:9000/function/gateway ||
             assert_should_success $LINENO
         echo ""
     else # $APP_NAME == "media"
         echo "test basic"
-        curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
+        curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
             http://localhost:9000/function/Frontend ||
             assert_should_success $LINENO
         echo ""
@@ -379,13 +442,15 @@ debug)
 build)
     build_boki
     # build_queue
-    build_workflow
+    build_retwis
+    # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-queuebench:dev
-    docker push adjwang/boki-beldibench:dev
+    docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
@@ -398,9 +463,10 @@ run)
     # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
-    test_workflow boki-movie-asynclog
+    # test_workflow boki-movie-asynclog
 
     # test_queue
+    test_retwis
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

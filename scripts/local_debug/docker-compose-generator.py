@@ -388,6 +388,107 @@ sharedlog_funcs_f = """\
 
 """
 
+retwis_funcs_f = """\
+  retwis-init-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "1"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  retwis-register-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "2"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  retwis-login-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "3"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  retwis-profile-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "4"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  retwis-follow-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "5"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  retwis-post-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "6"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  retwis-post-list-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "7"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+"""
+
 bokiflow_hotel_funcs_f = """\
   geo-service-{node_id}:
     image: adjwang/boki-beldibench:dev
@@ -865,6 +966,7 @@ if __name__ == '__main__':
     AVAILABLE_TEST_CASES = {
         'queue': queue_funcs_f,
         'sharedlog': sharedlog_funcs_f,
+        'retwis': retwis_funcs_f,
         'beldi-hotel-baseline': bokiflow_hotel_funcs_f,
         'beldi-movie-baseline': bokiflow_movie_funcs_f,
         'boki-hotel-baseline': bokiflow_hotel_funcs_f,
@@ -885,6 +987,10 @@ if __name__ == '__main__':
         db = db_setup_f = ""
         baseline = False
         workflow_bin_dir = "/queuebench-bin"
+    elif args.test_case == 'retwis':
+        db = db_setup_f = ""
+        baseline = False
+        workflow_bin_dir = "/retwisbench-bin"
     elif args.test_case == 'beldi-hotel-baseline':
         db = dynamodb
         db_setup_f = dynamodb_setup_hotel_f

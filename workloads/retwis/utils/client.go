@@ -45,7 +45,7 @@ func JsonPostRequest(client *http.Client, url string, request JSONValue) *HttpRe
 	success := response["success"].(bool)
 	if !success {
 		message := response["message"].(string)
-		log.Printf("[WARN] Request failed: %v", message)
+		log.Printf("[WARN] Request: %v with input: %v Failed: %v", url, string(encoded), message)
 		return &HttpResult{
 			Success:    false,
 			StatusCode: 200,
