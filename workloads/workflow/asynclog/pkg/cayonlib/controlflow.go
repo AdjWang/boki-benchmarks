@@ -210,6 +210,9 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	ASSERT(iw.AsyncLogCtxPropagator != "", fmt.Sprintf("invalid AsyncLogCtxPropagator from: %+v", env.AsyncLogCtx))
 
 	payload := iw.Serialize()
+	// TRACE: report new meta data overhead
+	// log.Printf("[TRACE] InstanceId=%+v, ctx data len=%d, total data len=%d", iw.InstanceId, len(asyncLogCtxData), len(payload))
+
 	res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
 	CHECK(errors.Wrapf(err, "InvokeFunc callee: %v, res: %v, payload: %+v", callee, res, iw))
 	ow := OutputWrapper{}
@@ -297,6 +300,9 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 	ASSERT(iw.AsyncLogCtxPropagator != "", fmt.Sprintf("invalid AsyncLogCtxPropagator from: %+v", env.AsyncLogCtx))
 
 	payload := iw.Serialize()
+	// TRACE: report new meta data overhead
+	// log.Printf("[TRACE] InstanceId=%+v, ctx data len=%d, total data len=%d", iw.InstanceId, len(asyncLogCtxData), len(payload))
+
 	res, err := env.FaasEnv.InvokeFunc(env.FaasCtx, callee, payload)
 	CHECK(err)
 	ow := OutputWrapper{}
@@ -358,6 +364,9 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 		AsyncLogCtxPropagator: string(asyncLogCtxData),
 	}
 	payload := iw.Serialize()
+	// TRACE: report new meta data overhead
+	// log.Printf("[TRACE] InstanceId=%+v, ctx data len=%d, total data len=%d", iw.InstanceId, len(asyncLogCtxData), len(payload))
+
 	err = env.FaasEnv.InvokeFuncAsync(env.FaasCtx, callee, payload)
 	CHECK(err)
 	// no need to chain steps from an async call since they are synchronized in
