@@ -6,7 +6,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
-	"cs.utexas.edu/zjia/faas/slib/statestore"
+	statestore "cs.utexas.edu/zjia/faas/slib/asyncstatestore"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"go.mongodb.org/mongo-driver/mongo"

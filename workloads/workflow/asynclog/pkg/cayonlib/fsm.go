@@ -63,7 +63,7 @@ func (fsm *FsmCommon[TLogEntry]) DebugGetLogReadOrder() string {
 		fsm.receiver.GetTag(), fsm.resolvingSeq, fsm.applyingSeq, fsm.appliedSeq)
 }
 
-func resolvedOrRejected(logState LogState) bool {
+func isResolvedOrRejected(logState LogState) bool {
 	return logState.State == LogState_APPLIED ||
 		logState.State == LogState_DISCARDED
 }
@@ -76,7 +76,7 @@ func (fsm *FsmCommon[TLogEntry]) resolveWithPendings(env *Env, condLogEntry *typ
 	// 	condLogEntry, handlePendings, pendings)
 
 	currentSeqNum := condLogEntry.SeqNum
-	if logState, jumpSeqNum := fsm.doResolve(env, condLogEntry); resolvedOrRejected(logState) {
+	if logState, jumpSeqNum := fsm.doResolve(env, condLogEntry); isResolvedOrRejected(logState) {
 		// check if any available pending logs can be handled after a log is
 		// resolved or rejected
 		fsm.resolvedLogStatus[currentSeqNum] = logState
