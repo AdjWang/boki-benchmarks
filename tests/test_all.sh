@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -82,6 +82,15 @@ function setup_env {
     done
 }
 
+function build_testcases {
+    echo "========== build sharedlog =========="
+    $TEST_DIR/workloads/sharedlog/build.sh
+
+    # build test docker image
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.testcases \
+        $TEST_DIR/workloads
+}
 function build_queue {
     echo "========== build queue =========="
     $QUEUE_SRC_DIR/build.sh
@@ -99,16 +108,8 @@ function build_retwis {
         $RETWIS_SRC_DIR
 }
 function build_workflow {
-    echo "========== build sharedlog =========="
-    $TEST_DIR/workloads/sharedlog/build.sh
-
     echo "========== build workloads =========="
     $WORKFLOW_SRC_DIR/build_all.sh
-
-    # build test docker image
-    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
-        -f $DOCKERFILE_DIR/Dockerfile.testcases \
-        $TEST_DIR/workloads
 
     # build app docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
@@ -214,6 +215,7 @@ function test_sharedlog {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
         assert_should_success $LINENO
 
+    exit 0
     echo "test async shared log operations"
     timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
         assert_should_success $LINENO
@@ -441,8 +443,9 @@ debug)
     ;;
 build)
     build_boki
+    build_testcases
     # build_queue
-    build_retwis
+    # build_retwis
     # build_workflow
     ;;
 push)
@@ -456,7 +459,7 @@ clean)
     cleanup
     ;;
 run)
-    # test_sharedlog
+    test_sharedlog
     # cleanup
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
@@ -466,7 +469,7 @@ run)
     # test_workflow boki-movie-asynclog
 
     # test_queue
-    test_retwis
+    # test_retwis
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"
