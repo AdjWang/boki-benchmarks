@@ -17,8 +17,8 @@ services:
     restart: always
 
   boki-engine:
-    image: zjia/boki:sosp-ae
-    hostname: faas-engine-{{.Task.Slot}}
+    image: adjwang/boki:dev
+    hostname: boki-engine-{{.Task.Slot}}
     entrypoint:
       - /boki/engine
       - --zookeeper_host=zookeeper:2181
@@ -45,7 +45,7 @@ services:
     restart: always
 
   boki-controller:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
@@ -58,7 +58,7 @@ services:
     restart: always
 
   boki-gateway:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-gateway
     ports:
       - 8080:8080
@@ -68,6 +68,7 @@ services:
       - --listen_iface=eth0
       - --http_port=8080
       - --func_config_file=/tmp/boki/func_config.json
+      - --async_call_result_path=/tmp/store/async_results
       - --num_io_workers=2
       - --io_uring_entries=2048
       - --io_uring_fd_slots=4096
@@ -78,10 +79,11 @@ services:
       - zookeeper-setup
     volumes:
       - /tmp/nightcore_config.json:/tmp/boki/func_config.json
+      - /mnt/inmem/store:/tmp/store
     restart: always
 
   boki-storage:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-storage-{{.Task.Slot}}
     entrypoint:
       - /boki/storage
@@ -105,7 +107,7 @@ services:
     restart: always
 
   boki-sequencer:
-    image: zjia/boki:sosp-ae
+    image: adjwang/boki:dev
     hostname: faas-sequencer-{{.Task.Slot}}
     entrypoint:
       - /boki/sequencer
@@ -123,7 +125,7 @@ services:
     restart: always
 
   retwis-init:
-    image: zjia/boki-retwisbench:sosp-ae
+    image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -135,7 +137,7 @@ services:
     restart: always
 
   retwis-register:
-    image: zjia/boki-retwisbench:sosp-ae
+    image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -147,7 +149,7 @@ services:
     restart: always
 
   retwis-login:
-    image: zjia/boki-retwisbench:sosp-ae
+    image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -159,7 +161,7 @@ services:
     restart: always
 
   retwis-profile:
-    image: zjia/boki-retwisbench:sosp-ae
+    image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "4"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -171,7 +173,7 @@ services:
     restart: always
 
   retwis-follow:
-    image: zjia/boki-retwisbench:sosp-ae
+    image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "5"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -183,7 +185,7 @@ services:
     restart: always
 
   retwis-post:
-    image: zjia/boki-retwisbench:sosp-ae
+    image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "6"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -195,7 +197,7 @@ services:
     restart: always
 
   retwis-post-list:
-    image: zjia/boki-retwisbench:sosp-ae
+    image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "7"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
@@ -205,3 +207,4 @@ services:
     depends_on:
       - boki-engine
     restart: always
+

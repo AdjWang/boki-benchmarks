@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -215,7 +215,6 @@ function test_sharedlog {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
         assert_should_success $LINENO
 
-    exit 0
     echo "test async shared log operations"
     timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
         assert_should_success $LINENO
@@ -296,15 +295,15 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=16 # 64, 96, 128, 192
+    CONCURRENCY=1 # 64, 96, 128, 192
     # NUM_USERS=10000
-    NUM_USERS=500
+    NUM_USERS=10
 
     set -x
     # init
     curl -X POST http://localhost:9000/function/RetwisInit
     # create users
-    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=8
+    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=1
     # run benchmark
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
@@ -443,9 +442,9 @@ debug)
     ;;
 build)
     build_boki
-    build_testcases
+    # build_testcases
     # build_queue
-    # build_retwis
+    build_retwis
     # build_workflow
     ;;
 push)
@@ -459,7 +458,7 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
     # cleanup
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
@@ -469,7 +468,7 @@ run)
     # test_workflow boki-movie-asynclog
 
     # test_queue
-    # test_retwis
+    test_retwis
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

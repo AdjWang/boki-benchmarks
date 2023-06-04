@@ -78,7 +78,7 @@ docker_compose_faas_nightcore_f = """\
 
 """
 
-docker_compose_faas_sharedlog_f = """\
+docker_compose_faas_boki_f = """\
   boki-engine:
     image: {image_faas}
     hostname: boki-engine-{{{{.Task.Slot}}}}
@@ -312,6 +312,193 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \\
     --producer_bsize=$NUM_PBATCHSIZE \\
     --consumer_fix_shard=true \\
     --payload_size=1024 --duration=180 >$EXP_DIR/results.log
+
+$HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
+"""
+
+retwis_docker_compose_f = """\
+  retwis-init:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "1"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-register:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "2"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-login:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "3"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-profile:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "4"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-follow:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "5"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-post:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "6"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-post-list:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "7"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+"""
+
+retwis_nightcore_config = """\
+[
+    { "funcName": "RetwisInit", "funcId": 1, "minWorkers": 1, "maxWorkers": 1 },
+    { "funcName": "RetwisRegister", "funcId": 2, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "RetwisLogin", "funcId": 3, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "RetwisProfile", "funcId": 4, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "RetwisFollow", "funcId": 5, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "RetwisPost", "funcId": 6, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "RetwisPostList", "funcId": 7, "minWorkers": 24, "maxWorkers": 24 }
+]
+"""
+
+retwis_run_once_f = """\
+#!/bin/bash
+set -euxo pipefail
+
+BASE_DIR=`realpath $(dirname $0)`
+ROOT_DIR=`realpath $BASE_DIR/../../..`
+
+EXP_DIR=$BASE_DIR/results/$1
+
+CONCURRENCY=$2
+NUM_USERS=10000
+
+HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
+
+MANAGER_HOST=`$HELPER_SCRIPT get-docker-manager-host --base-dir=$BASE_DIR`
+CLIENT_HOST=`$HELPER_SCRIPT get-client-host --base-dir=$BASE_DIR`
+ENTRY_HOST=`$HELPER_SCRIPT get-service-host --base-dir=$BASE_DIR --service=boki-gateway`
+ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
+
+$HELPER_SCRIPT generate-docker-compose --base-dir=$BASE_DIR
+scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:/tmp
+scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:/tmp
+
+ssh -q $MANAGER_HOST -- docker stack rm boki-experiment
+
+sleep 40
+
+scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
+
+for host in $ALL_HOSTS; do
+    scp -q $BASE_DIR/nightcore_config.json $host:/tmp/nightcore_config.json
+done
+
+ALL_ENGINE_HOSTS=`$HELPER_SCRIPT get-machine-with-label --base-dir=$BASE_DIR --machine-label=engine_node`
+for HOST in $ALL_ENGINE_HOSTS; do
+    scp -q $BASE_DIR/run_launcher $HOST:/tmp/run_launcher
+    ssh -q $HOST -- sudo rm -rf /mnt/inmem/boki
+    ssh -q $HOST -- sudo mkdir -p /mnt/inmem/boki
+    ssh -q $HOST -- sudo mkdir -p /mnt/inmem/boki/output /mnt/inmem/boki/ipc
+    ssh -q $HOST -- sudo cp /tmp/run_launcher /mnt/inmem/boki/run_launcher
+    ssh -q $HOST -- sudo cp /tmp/nightcore_config.json /mnt/inmem/boki/func_config.json
+done
+
+ALL_STORAGE_HOSTS=`$HELPER_SCRIPT get-machine-with-label --base-dir=$BASE_DIR --machine-label=storage_node`
+for HOST in $ALL_STORAGE_HOSTS; do
+    ssh -q $HOST -- sudo rm -rf   /mnt/storage/logdata
+    ssh -q $HOST -- sudo mkdir -p /mnt/storage/logdata
+done
+
+ssh -q $MANAGER_HOST -- docker stack deploy \\
+    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
+sleep 60
+
+for HOST in $ALL_ENGINE_HOSTS; do
+    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
+    echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
+done
+
+sleep 10
+
+rm -rf $EXP_DIR
+mkdir -p $EXP_DIR
+
+ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
+ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
+
+ssh -q $CLIENT_HOST -- curl -X POST http://$ENTRY_HOST:8080/function/RetwisInit
+
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
+    {image_app} \\
+    cp /retwisbench-bin/create_users /tmp/create_users
+
+ssh -q $CLIENT_HOST -- /tmp/create_users \\
+    --faas_gateway=$ENTRY_HOST:8080 --num_users=$NUM_USERS --concurrency=16
+
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
+    {image_app} \\
+    cp /retwisbench-bin/benchmark /tmp/benchmark
+
+ssh -q $CLIENT_HOST -- /tmp/benchmark \\
+    --faas_gateway=$ENTRY_HOST:8080 --num_users=$NUM_USERS \\
+    --percentages=15,30,50,5 \\
+    --duration=180 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
@@ -789,13 +976,24 @@ $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/l
 
 
 def queue_config(image_faas, image_app):
-    docker_compose_faas_f = docker_compose_faas_sharedlog_f
+    docker_compose_faas_f = docker_compose_faas_boki_f
     docker_compose_app_f = queue_docker_compose_f
     docker_compose = (docker_compose_common +
                       docker_compose_faas_f.format(image_faas=image_faas) +
                       docker_compose_app_f.format(image_app=image_app))
     config_json = queue_nightcore_config
     run_once_sh = queue_run_once_f.format(image_app=image_app)
+    return docker_compose, config_json, run_once_sh
+
+
+def retwis_config(image_faas, image_app):
+    docker_compose_faas_f = docker_compose_faas_boki_f
+    docker_compose_app_f = retwis_docker_compose_f
+    docker_compose = (docker_compose_common +
+                      docker_compose_faas_f.format(image_faas=image_faas) +
+                      docker_compose_app_f.format(image_app=image_app))
+    config_json = retwis_nightcore_config
+    run_once_sh = retwis_run_once_f.format(image_app=image_app)
     return docker_compose, config_json, run_once_sh
 
 
@@ -827,7 +1025,7 @@ def workflow_config(image_faas, image_app, bin_path, db_init_mode, enable_shared
         baseline_prefix = ''
         wrk_env = ""
 
-    docker_compose_faas_f = docker_compose_faas_sharedlog_f if enable_sharedlog else docker_compose_faas_nightcore_f
+    docker_compose_faas_f = docker_compose_faas_boki_f if enable_sharedlog else docker_compose_faas_nightcore_f
     if bench_name == "hotel":
         docker_compose_app_f = workflow_hotel_docker_compose_f
         config_json_f = hotel_nightcore_config_f
@@ -893,20 +1091,24 @@ def boki_movie_asynclog():
 
 
 IMAGE_FAAS = "adjwang/boki:dev"
-WORKFLOW_IMAGE_APP = "adjwang/boki-beldibench:dev"
 QUEUE_IMAGE_APP = "adjwang/boki-queuebench:dev"
+RETWIS_IMAGE_APP = "adjwang/boki-retwisbench:dev"
+WORKFLOW_IMAGE_APP = "adjwang/boki-beldibench:dev"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--exp-dir', type=str, required=True,
                         help="e.g. boki-benchmarks/experiments")
     parser.add_argument('--exp-name', type=str, required=True,
-                        help="queue|workflow")
+                        help="queue|retwis|workflow")
     args = parser.parse_args()
 
     if args.exp_name == "queue":
         queue_dir = Path(args.exp_dir) / "queue"
         dump_configs(queue_dir / "boki", partial(queue_config, IMAGE_FAAS, QUEUE_IMAGE_APP))
+    elif args.exp_name == "retwis":
+        retwis_dir = Path(args.exp_dir) / "retwis"
+        dump_configs(retwis_dir / "boki", partial(retwis_config, IMAGE_FAAS, RETWIS_IMAGE_APP))
     elif args.exp_name == "workflow":
         workflow_dir = Path(args.exp_dir) / "workflow"
         dump_configs(workflow_dir / "beldi-hotel-baseline", beldi_hotel_baseline)
@@ -918,4 +1120,4 @@ if __name__ == '__main__':
         dump_configs(workflow_dir / "boki-hotel-asynclog", boki_hotel_asynclog)
         dump_configs(workflow_dir / "boki-movie-asynclog", boki_movie_asynclog)
     else:
-        raise Exception(f"unknown exp_name: {args.exp_name}, should be one of [queue, workflow]")
+        raise Exception(f"unknown exp_name: {args.exp_name}, should be one of [queue, retwis, workflow]")

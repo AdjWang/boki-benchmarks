@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euxo pipefail
+
 BASE_DIR=`realpath $(dirname $0)`
 ROOT_DIR=`realpath $BASE_DIR/../../..`
 
@@ -15,8 +17,8 @@ ENTRY_HOST=`$HELPER_SCRIPT get-service-host --base-dir=$BASE_DIR --service=boki-
 ALL_HOSTS=`$HELPER_SCRIPT get-all-server-hosts --base-dir=$BASE_DIR`
 
 $HELPER_SCRIPT generate-docker-compose --base-dir=$BASE_DIR
-scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:~
-scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:~
+scp -q $BASE_DIR/docker-compose.yml $MANAGER_HOST:/tmp
+scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:/tmp
 
 ssh -q $MANAGER_HOST -- docker stack rm boki-experiment
 
@@ -45,11 +47,11 @@ for HOST in $ALL_STORAGE_HOSTS; do
 done
 
 ssh -q $MANAGER_HOST -- docker stack deploy \
-    -c ~/docker-compose-generated.yml -c ~/docker-compose.yml boki-experiment
+    -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
 sleep 60
 
 for HOST in $ALL_ENGINE_HOSTS; do
-    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service faas-engine --machine-host $HOST`
+    ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
     echo 4096 | ssh -q $HOST -- sudo tee /sys/fs/cgroup/cpu,cpuacct/docker/$ENGINE_CONTAINER_ID/cpu.shares
 done
 
@@ -64,14 +66,14 @@ ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 ssh -q $CLIENT_HOST -- curl -X POST http://$ENTRY_HOST:8080/function/RetwisInit
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    zjia/boki-retwisbench:sosp-ae \
+    adjwang/boki-retwisbench:dev \
     cp /retwisbench-bin/create_users /tmp/create_users
 
 ssh -q $CLIENT_HOST -- /tmp/create_users \
     --faas_gateway=$ENTRY_HOST:8080 --num_users=$NUM_USERS --concurrency=16
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    zjia/boki-retwisbench:sosp-ae \
+    adjwang/boki-retwisbench:dev \
     cp /retwisbench-bin/benchmark /tmp/benchmark
 
 ssh -q $CLIENT_HOST -- /tmp/benchmark \
@@ -80,3 +82,4 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \
     --duration=180 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
