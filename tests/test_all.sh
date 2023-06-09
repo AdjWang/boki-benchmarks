@@ -295,15 +295,15 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=1 # 64, 96, 128, 192
+    CONCURRENCY=8 # 64, 96, 128, 192
     # NUM_USERS=10000
-    NUM_USERS=10
+    NUM_USERS=100
 
     set -x
     # init
     curl -X POST http://localhost:9000/function/RetwisInit
     # create users
-    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=1
+    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
     # run benchmark
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \

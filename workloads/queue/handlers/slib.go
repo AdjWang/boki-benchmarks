@@ -39,6 +39,7 @@ type QueueIface interface {
 	Push(payload string) error
 	BatchPush(payloads []string) error
 	Pop() (string /* payload */, error)
+	BatchPop(n int) ([]string /* payloads */, error)
 	PopBlocking() (string /* payload */, error)
 }
 
@@ -159,22 +160,36 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 	latencies := make([]int, 0, 128)
 	startTime := time.Now()
 	// messages := make([]string, 0, 128)
+	numMessages := make([]int, 0, 128)
 	for time.Since(startTime) < duration {
 		var err error
-		var payload string
+		// var payload string
+		var payloads []string
 		popStart := time.Now()
-		if input.FixedShard != -1 {
-			payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
-		} else {
-			if input.BlockingPop {
-				payload, err = q.PopBlocking()
-			} else {
-				payload, err = q.Pop()
-			}
-		}
+		// if input.FixedShard != -1 {
+		// 	payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
+		// } else {
+		// 	if input.BlockingPop {
+		// 		payload, err = q.PopBlocking()
+		// 	} else {
+		// 		payload, err = q.Pop()
+		// 	}
+		// }
+		payloads, err = q.BatchPop(10)
 		// elapsed := time.Since(popStart)
 		if err != nil {
 			if sync.IsQueueEmptyError(err) {
+				if payloads != nil && len(payloads) > 0 {
+					maxDelay := time.Duration(0)
+					for _, payload := range payloads {
+						delay := time.Since(utils.ParseTime(payload))
+						if maxDelay < delay {
+							maxDelay = delay
+						}
+					}
+					latencies = append(latencies, int(maxDelay.Microseconds()))
+					numMessages = append(numMessages, len(payloads))
+				}
 				time.Sleep(popStart.Add(interval).Sub(time.Now()))
 				continue
 			} else if sync.IsQueueTimeoutError(err) {
@@ -187,9 +202,19 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 				}, nil
 			}
 		}
-		delay := time.Since(utils.ParseTime(payload))
-		latencies = append(latencies, int(delay.Microseconds()))
+		// delay := time.Since(utils.ParseTime(payload))
+		// latencies = append(latencies, int(delay.Microseconds()))
+		maxDelay := time.Duration(0)
+		for _, payload := range payloads {
+			delay := time.Since(utils.ParseTime(payload))
+			if maxDelay < delay {
+				maxDelay = delay
+			}
+		}
+		latencies = append(latencies, int(maxDelay.Microseconds()))
+		numMessages = append(numMessages, len(payloads))
 		// messages = append(messages, utils.ParseSeqNum(payload))
+
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
 	return &common.FnOutput{
@@ -197,5 +222,6 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 		Duration:  time.Since(startTime).Seconds(),
 		Latencies: latencies,
 		// Message:   strings.Join(messages, ","),
+		NumMessages: numMessages,
 	}, nil
 }

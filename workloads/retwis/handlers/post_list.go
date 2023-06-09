@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
@@ -50,10 +51,14 @@ func NewMongoPostListHandler(env types.Environment) types.FuncHandler {
 const kMaxReturnPosts = 8
 
 func postListSlib(ctx context.Context, env types.Environment, input *PostListInput) (*PostListOutput, error) {
+	tracer := utils.NewTracer()
+
 	txn, err := statestore.CreateReadOnlyTxnEnv(ctx, env)
 	if err != nil {
 		return nil, err
 	}
+
+	tracer.Trace().Tip("CreateReadOnlyTxnEnv")
 
 	var postList []interface{}
 
@@ -64,6 +69,7 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 		} else {
 			postList = make([]interface{}, 0)
 		}
+		tracer.Trace().Tip("Get1 timeline")
 	} else {
 		userObj := txn.Object(fmt.Sprintf("userid:%s", input.UserId))
 		if value, _ := userObj.Get("posts"); !value.IsNull() {
@@ -74,6 +80,7 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 				Message: fmt.Sprintf("Cannot find user with ID %s", input.UserId),
 			}, nil
 		}
+		tracer.Trace().Tip("Get1 " + fmt.Sprintf("userid:%s", input.UserId))
 	}
 
 	output := &PostListOutput{
@@ -85,8 +92,9 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 		return output, nil
 	}
 	postList = postList[0 : len(postList)-input.Skip]
-
+	lastIdx := len(postList) - 1
 	for i := len(postList) - 1; i >= 0; i-- {
+		lastIdx = i
 		postId := postList[i].(string)
 		postObj := txn.Object(fmt.Sprintf("post:%s", postId))
 		post := make(map[string]string)
@@ -102,7 +110,12 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 				break
 			}
 		}
+		tracer.Trace().Tip(fmt.Sprintf("Get2 post: %d, %s", i, postId))
 	}
+
+	tracer.Trace().Tip(fmt.Sprintf("Get2 posts: %d~%d(%d)", len(postList)-1, lastIdx, len(postList)-1-lastIdx))
+	log.Println(tracer)
+
 	return output, nil
 }
 
