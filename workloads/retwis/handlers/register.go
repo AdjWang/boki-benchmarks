@@ -8,7 +8,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
-	"cs.utexas.edu/zjia/faas/slib/statestore"
+	statestore "cs.utexas.edu/zjia/faas/slib/asyncstatestore"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -62,32 +62,32 @@ func registerSlib(ctx context.Context, env types.Environment, input *RegisterInp
 		return nil, err
 	}
 
-	userNameObj := txn.Object(fmt.Sprintf("username:%s", input.UserName))
-	if value, _ := userNameObj.Get("id"); !value.IsNull() {
-		txn.TxnAbort()
-		return &RegisterOutput{
-			Success: false,
-			Message: fmt.Sprintf("User name \"%s\" already exists", input.UserName),
-		}, nil
-	}
+	txn.WithTxn(func(txn statestore.Env) error {
+		userNameObj := txn.Object(fmt.Sprintf("username:%s", input.UserName))
+		if value, _ := userNameObj.Get("id"); !value.IsNull() {
+			return fmt.Errorf("User name \"%s\" already exists", input.UserName)
+		}
 
-	userId := fmt.Sprintf("%08x", userIdValue)
-	userNameObj.SetString("id", userId)
+		userId := fmt.Sprintf("%08x", userIdValue)
+		userNameObj.SetString("id", userId)
 
-	userObj := txn.Object(fmt.Sprintf("userid:%s", userId))
-	userObj.SetString("username", input.UserName)
-	userObj.SetString("password", input.Password)
-	userObj.SetString("auth", fmt.Sprintf("%016x", rand.Uint64()))
-	userObj.MakeObject("followers")
-	userObj.MakeObject("followees")
-	userObj.MakeArray("posts", 0)
+		userObj := txn.Object(fmt.Sprintf("userid:%s", userId))
+		userObj.SetString("username", input.UserName)
+		userObj.SetString("password", input.Password)
+		userObj.SetString("auth", fmt.Sprintf("%016x", rand.Uint64()))
+		userObj.MakeObject("followers")
+		userObj.MakeObject("followees")
+		userObj.MakeArray("posts", 0)
+		return nil
+	})
 
-	if committed, err := txn.TxnCommit(); err != nil {
+	if committed, msg, err := txn.TxnCommit(); err != nil {
 		return nil, err
 	} else if committed {
 		return &RegisterOutput{
 			Success: true,
-			UserId:  userId,
+			// UserId:  userId,
+			Message: msg,
 		}, nil
 	} else {
 		return &RegisterOutput{

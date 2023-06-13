@@ -7,7 +7,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
-	"cs.utexas.edu/zjia/faas/slib/statestore"
+	statestore "cs.utexas.edu/zjia/faas/slib/asyncstatestore"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,37 +53,33 @@ func followSlib(ctx context.Context, env types.Environment, input *FollowInput) 
 		return nil, err
 	}
 
-	userObj1 := txn.Object(fmt.Sprintf("userid:%s", input.UserId))
-	if value, _ := userObj1.Get("username"); value.IsNull() {
-		txn.TxnAbort()
-		return &FollowOutput{
-			Success: false,
-			Message: fmt.Sprintf("Cannot find user with ID %s", input.UserId),
-		}, nil
-	}
+	txn.WithTxn(func(txn statestore.Env) error {
+		userObj1 := txn.Object(fmt.Sprintf("userid:%s", input.UserId))
+		if value, _ := userObj1.Get("username"); value.IsNull() {
+			return fmt.Errorf("Cannot find user with ID %s", input.UserId)
+		}
 
-	userObj2 := txn.Object(fmt.Sprintf("userid:%s", input.FolloweeId))
-	if value, _ := userObj2.Get("username"); value.IsNull() {
-		txn.TxnAbort()
-		return &FollowOutput{
-			Success: false,
-			Message: fmt.Sprintf("Cannot find user with ID %s", input.FolloweeId),
-		}, nil
-	}
+		userObj2 := txn.Object(fmt.Sprintf("userid:%s", input.FolloweeId))
+		if value, _ := userObj2.Get("username"); value.IsNull() {
+			return fmt.Errorf("Cannot find user with ID %s", input.FolloweeId)
+		}
 
-	if input.Unfollow {
-		userObj1.Delete(fmt.Sprintf("followees.%s", input.FolloweeId))
-		userObj2.Delete(fmt.Sprintf("followers.%s", input.UserId))
-	} else {
-		userObj1.SetBoolean(fmt.Sprintf("followees.%s", input.FolloweeId), true)
-		userObj2.SetBoolean(fmt.Sprintf("followers.%s", input.UserId), true)
-	}
+		if input.Unfollow {
+			userObj1.Delete(fmt.Sprintf("followees.%s", input.FolloweeId))
+			userObj2.Delete(fmt.Sprintf("followers.%s", input.UserId))
+		} else {
+			userObj1.SetBoolean(fmt.Sprintf("followees.%s", input.FolloweeId), true)
+			userObj2.SetBoolean(fmt.Sprintf("followers.%s", input.UserId), true)
+		}
+		return nil
+	})
 
-	if committed, err := txn.TxnCommit(); err != nil {
+	if committed, msg, err := txn.TxnCommit(); err != nil {
 		return nil, err
 	} else if committed {
 		return &FollowOutput{
 			Success: true,
+			Message: msg,
 		}, nil
 	} else {
 		return &FollowOutput{

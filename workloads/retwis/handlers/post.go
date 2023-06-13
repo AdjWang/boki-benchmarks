@@ -8,7 +8,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
-	"cs.utexas.edu/zjia/faas/slib/statestore"
+	statestore "cs.utexas.edu/zjia/faas/slib/asyncstatestore"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -58,49 +58,55 @@ func postSlib(ctx context.Context, env types.Environment, input *PostInput) (*Po
 		return nil, err
 	}
 
-	userObj := txn.Object(fmt.Sprintf("userid:%s", input.UserId))
-	userName := ""
-	if value, _ := userObj.Get("username"); !value.IsNull() {
-		userName = value.AsString()
-	} else {
-		txn.TxnAbort()
-		return &PostOutput{
-			Success: false,
-			Message: fmt.Sprintf("Cannot find user with ID %s", input.UserId),
-		}, nil
-	}
-
 	postId := fmt.Sprintf("%016x", env.GenerateUniqueID())
-	postObj := txn.Object(fmt.Sprintf("post:%s", postId))
-	postObj.SetString("id", postId)
-	postObj.SetString("userId", input.UserId)
-	postObj.SetString("userName", userName)
-	postObj.SetString("body", input.Body)
+	txn.WithTxn(func(txn statestore.Env) error {
+		userObj := txn.Object(fmt.Sprintf("userid:%s", input.UserId))
+		userName := ""
+		if value, _ := userObj.Get("username"); !value.IsNull() {
+			userName = value.AsString()
+		} else {
+			return fmt.Errorf("Cannot find user with ID %s", input.UserId)
+		}
 
-	if value, _ := userObj.Get("followers"); !value.IsNull() && value.Size() > 0 {
-		followers := make([]string, 0, 4)
-		for follower, _ := range value.AsObject() {
-			followers = append(followers, follower)
-		}
-		rand.Shuffle(len(followers), func(i, j int) {
-			followers[i], followers[j] = followers[j], followers[i]
-		})
-		if len(followers) > kMaxNotifyUsers {
-			followers = followers[0:kMaxNotifyUsers]
-		}
-		for _, follower := range followers {
-			followUserObj := txn.Object(fmt.Sprintf("userid:%s", follower))
-			followUserObj.ArrayPushBackWithLimit("posts", statestore.StringValue(postId), kUserPostListLimit)
-		}
-	}
+		postObj := txn.Object(fmt.Sprintf("post:%s", postId))
+		postObj.SetString("id", postId)
+		postObj.SetString("userId", input.UserId)
+		postObj.SetString("userName", userName)
+		postObj.SetString("body", input.Body)
 
-	if committed, err := txn.TxnCommit(); err != nil {
+		if value, _ := userObj.Get("followers"); !value.IsNull() && value.Size() > 0 {
+			followers := make([]string, 0, 4)
+			for follower, _ := range value.AsObject() {
+				followers = append(followers, follower)
+			}
+			rand.Shuffle(len(followers), func(i, j int) {
+				followers[i], followers[j] = followers[j], followers[i]
+			})
+			if len(followers) > kMaxNotifyUsers {
+				followers = followers[0:kMaxNotifyUsers]
+			}
+			for _, follower := range followers {
+				followUserObj := txn.Object(fmt.Sprintf("userid:%s", follower))
+				followUserObj.ArrayPushBackWithLimit("posts", statestore.StringValue(postId), kUserPostListLimit)
+			}
+		}
+		return nil
+	})
+
+	if committed, msg, err := txn.TxnCommit(); err != nil {
 		return nil, err
 	} else if !committed {
-		return &PostOutput{
-			Success: false,
-			Message: "Failed to commit transaction due to conflicts",
-		}, nil
+		if msg != "" {
+			return &PostOutput{
+				Success: false,
+				Message: msg,
+			}, nil
+		} else {
+			return &PostOutput{
+				Success: false,
+				Message: "Failed to commit transaction due to conflicts",
+			}, nil
+		}
 	}
 
 	store := statestore.CreateEnv(ctx, env)
