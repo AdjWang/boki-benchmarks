@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 BASE_DIR=`realpath $(dirname $0)`
-ROOT_DIR=`realpath $BASE_DIR/../../..`
+ROOT_DIR=`realpath $BASE_DIR/../..`
 
 EXP_DIR=$BASE_DIR/results/$1
 
