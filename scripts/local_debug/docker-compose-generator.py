@@ -270,6 +270,37 @@ boki_sequencer_f = """\
 
 """
 
+bench_funcs_f = """\
+  bokilogappend-fn-{node_id}:
+    image: adjwang/boki-microbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/log_rw", "1"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  asynclogappend-fn-{node_id}:
+    image: adjwang/boki-microbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/log_rw", "2"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+"""
+
 queue_funcs_f = """\
   consumer-fn-{node_id}:
     image: adjwang/boki-queuebench:dev
@@ -964,6 +995,7 @@ if __name__ == '__main__':
 
     # no beldi-hotel and beldi-movie here, compare to boki is enough
     AVAILABLE_TEST_CASES = {
+        'bench': bench_funcs_f,
         'queue': queue_funcs_f,
         'sharedlog': sharedlog_funcs_f,
         'retwis': retwis_funcs_f,
@@ -983,7 +1015,11 @@ if __name__ == '__main__':
         raise Exception("table prefix of workflow is not allowed to be empty")
 
     app_funcs_f = AVAILABLE_TEST_CASES[args.test_case]
-    if args.test_case == 'queue':
+    if args.test_case == 'bench':
+        db = db_setup_f = ""
+        baseline = False
+        workflow_bin_dir = "/microbench-bin"
+    elif args.test_case == 'queue':
         db = db_setup_f = ""
         baseline = False
         workflow_bin_dir = "/queuebench-bin"

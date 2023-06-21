@@ -3,6 +3,9 @@ set -uxo pipefail
 
 ROOT_DIR=`realpath $(dirname $0)/..`
 
+# Microbenchmarks
+RUN_MICROBENCH=y
+
 # Message queue workload for BokiQueue and Pulsar
 RUN_QUEUE_BOKI=y
 RUN_QUEUE_PUSLAR=
@@ -20,6 +23,27 @@ HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
 
 # This IAM role has DynamoDB read/write access
 BOKI_MACHINE_IAM=boki-ae-experiments
+
+if [[ ! -z $RUN_MICROBENCH ]] && [[ $RUN_MICROBENCH == "y" ]]; then
+echo "====== Start running Microbench experiments ======"
+
+BASE_DIR=$ROOT_DIR/experiments/microbenchmark
+
+$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+$BASE_DIR/run_once.sh i4c100b1 4 100 1
+$BASE_DIR/run_once.sh i4c100b10 4 100 10
+
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+echo "[DEBUG] early exit"
+exit 0
+
+echo "====== Finish running Microbench experiments ======"
+else
+echo "====== Skip Microbench experiments ======"
+fi
+echo ""
+
 
 if [[ ! -z $RUN_QUEUE_BOKI ]] && [[ $RUN_QUEUE_BOKI == "y" ]]; then
 echo "====== Start running BokiQueue experiments ======"

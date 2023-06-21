@@ -7,6 +7,8 @@ BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
 DOCKERFILE_DIR=$(realpath $SCRIPT_DIR/dockerfiles)
 
+BENCH_EXP_DIR=$(realpath $TEST_DIR/../experiments/microbenchmark)
+BENCH_SRC_DIR=$(realpath $TEST_DIR/../workloads/microbenchmark)
 QUEUE_EXP_DIR=$(realpath $TEST_DIR/../experiments/queue)
 QUEUE_SRC_DIR=$(realpath $TEST_DIR/../workloads/queue)
 RETWIS_EXP_DIR=$(realpath $TEST_DIR/../experiments/retwis)
@@ -31,7 +33,10 @@ function setup_env {
 
     cp $SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
     cp $SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
-    if [[ $TEST_CASE == queue ]]; then
+    if [[ $TEST_CASE == bench ]]; then
+        cp $BENCH_EXP_DIR/nightcore_config.json $WORK_DIR/config/nightcore_config.json
+        cp $BENCH_EXP_DIR/run_launcher $WORK_DIR/config
+    elif [[ $TEST_CASE == queue ]]; then
         cp $QUEUE_EXP_DIR/boki/nightcore_config.json $WORK_DIR/config/nightcore_config.json
         cp $QUEUE_EXP_DIR/boki/run_launcher $WORK_DIR/config
     elif [[ $TEST_CASE == retwis ]]; then
@@ -90,6 +95,14 @@ function build_testcases {
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
         -f $DOCKERFILE_DIR/Dockerfile.testcases \
         $TEST_DIR/workloads
+}
+function build_bench {
+    echo "========== build bench =========="
+    $BENCH_SRC_DIR/build.sh
+
+    $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-microbench:dev \
+        -f $DOCKERFILE_DIR/Dockerfile.microbench \
+        $BENCH_SRC_DIR
 }
 function build_queue {
     echo "========== build queue =========="
@@ -227,6 +240,38 @@ function test_sharedlog {
     if [ $(docker ps -a -f name=boki-test-* -f status=exited -q | wc -l) -ne 0 ]; then
         failed $LINENO
     fi
+}
+
+function test_bench {
+    echo "setup env..."
+    python3 $SCRIPT_DIR/docker-compose-generator.py \
+        --metalog-reps=3 \
+        --userlog-reps=3 \
+        --index-reps=1 \
+        --test-case=bench \
+        --workdir=$WORK_DIR \
+        --output=$WORK_DIR
+
+    setup_env 3 3 1 bench
+
+    echo "setup cluster..."
+    cd $WORK_DIR && docker compose up -d --remove-orphans
+
+    echo "waiting to startup..."
+    sleep_count_down 15
+
+    echo "list functions"
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
+        assert_should_success $LINENO
+
+    NUM_SHARDS=2
+    INTERVAL1=800 # ms
+
+    set -x
+    $BENCH_SRC_DIR/bin/benchmark \
+        --faas_gateway=localhost:9000 \
+        --append_interval=$INTERVAL1 --batch_size=10 --concurrency=100\
+        --payload_size=1024 --duration=3
 }
 
 function test_queue {
@@ -443,15 +488,17 @@ debug)
 build)
     build_boki
     # build_testcases
+    build_bench
     # build_queue
-    build_retwis
+    # build_retwis
     # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
+    docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
-    docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -467,8 +514,9 @@ run)
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
 
+    test_bench
     # test_queue
-    test_retwis
+    # test_retwis
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

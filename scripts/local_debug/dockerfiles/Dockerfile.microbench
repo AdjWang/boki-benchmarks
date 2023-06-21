@@ -1,0 +1,5 @@
+FROM adjwang/boki:dev as boki
+FROM ubuntu:focal
+
+COPY ./bin        /microbench-bin
+COPY --from=boki     /boki/launcher       /boki/launcher
