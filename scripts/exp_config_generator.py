@@ -218,8 +218,8 @@ bench_docker_compose_f = """\
 
 bench_nightcore_config = """\
 [
-    { "funcName": "bench_bokilogappend", "funcId": 1, "minWorkers": 32, "maxWorkers": 32 },
-    { "funcName": "bench_asynclogappend", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 }
+    { "funcName": "benchBokiLogAppend", "funcId": 1, "minWorkers": 32, "maxWorkers": 32 },
+    { "funcName": "benchAsyncLogAppend", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 }
 ]
 """
 
