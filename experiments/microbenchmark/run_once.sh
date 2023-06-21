@@ -6,9 +6,8 @@ ROOT_DIR=`realpath $BASE_DIR/../..`
 
 EXP_DIR=$BASE_DIR/results/$1
 
-INTERVAL=$2
-NUM_CONCURRENCY=$3
-NUM_BATCHSIZE=$4
+NUM_CONCURRENCY=$2
+NUM_BATCHSIZE=$3
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
 
@@ -71,7 +70,7 @@ ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
 
 ssh -q $CLIENT_HOST -- /tmp/benchmark \
     --faas_gateway=$ENTRY_HOST:8080 \
-    --append_interval=$INTERVAL --batch_size=$NUM_BATCHSIZE --concurrency=$NUM_CONCURRENCY \
+    --batch_size=$NUM_BATCHSIZE --concurrency=$NUM_CONCURRENCY \
     --payload_size=1024 --duration=180 >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs

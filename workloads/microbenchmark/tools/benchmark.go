@@ -19,7 +19,6 @@ var FLAGS_faas_gateway string
 var FLAGS_duration int
 var FLAGS_payload_size int
 var FLAGS_batch_size int
-var FLAGS_append_interval int
 var FLAGS_concurrency int
 var FLAGS_rand_seed int
 
@@ -28,70 +27,56 @@ func init() {
 	flag.IntVar(&FLAGS_duration, "duration", 10, "")
 	flag.IntVar(&FLAGS_payload_size, "payload_size", 64, "")
 	flag.IntVar(&FLAGS_batch_size, "batch_size", 1, "")
-	flag.IntVar(&FLAGS_append_interval, "append_interval", 4, "")
 	flag.IntVar(&FLAGS_concurrency, "concurrency", 100, "")
 	flag.IntVar(&FLAGS_rand_seed, "rand_seed", 23333, "")
 
 	rand.Seed(int64(FLAGS_rand_seed))
 }
 
-func invokeBokiLogAppend(client *http.Client, response *common.FnOutput, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func invokeBokiLogAppend(client *http.Client) common.FnOutput {
 	input := &common.BokiLogAppendInput{
-		Duration:    FLAGS_duration,
 		PayloadSize: FLAGS_payload_size,
-		IntervalMs:  FLAGS_append_interval,
 		BatchSize:   FLAGS_batch_size,
 	}
 	url := utils.BuildFunctionUrl(FLAGS_faas_gateway, "benchBokiLogAppend")
-	if err := utils.JsonPostRequest(client, url, input, response); err != nil {
+	response := common.FnOutput{}
+	if err := utils.JsonPostRequest(client, url, input, &response); err != nil {
 		log.Printf("[ERROR] BokiLogAppend request failed: %v", err)
 	} else if !response.Success {
 		log.Printf("[ERROR] BokiLogAppend request failed: %s", response.Message)
 	}
+	return response
 }
 
-func invokeAsyncLogAppend(client *http.Client, response *common.FnOutput, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func invokeAsyncLogAppend(client *http.Client) common.FnOutput {
 	input := &common.AsyncLogAppendInput{
-		Duration:    FLAGS_duration,
 		PayloadSize: FLAGS_payload_size,
-		IntervalMs:  FLAGS_append_interval,
 		BatchSize:   FLAGS_batch_size,
 	}
 	url := utils.BuildFunctionUrl(FLAGS_faas_gateway, "benchAsyncLogAppend")
-	if err := utils.JsonPostRequest(client, url, input, response); err != nil {
+	response := common.FnOutput{}
+	if err := utils.JsonPostRequest(client, url, input, &response); err != nil {
 		log.Printf("[ERROR] AsyncLogAppend request failed: %v", err)
 	} else if !response.Success {
 		log.Printf("[ERROR] AsyncLogAppend request failed: %s", response.Message)
 	}
+	return response
 }
 
-func printSummary(title string, results []common.FnOutput) {
+func printSummary(results []common.FnOutput) {
 	latencies := make([]float64, 0, 128)
-	tput := float64(0)
 	normedLatencies := make([]float64, 0, 128)
 	for _, result := range results {
 		if result.Success {
-			totalMessages := 0
-			for idx, elem := range result.Latencies {
-				latency := float64(elem) / 1000.0
-				latencies = append(latencies, latency)
-				if idx < len(result.NumMessages) {
-					num := result.NumMessages[idx]
-					normedLatencies = append(normedLatencies, latency/float64(num))
-					totalMessages += num
-				} else {
-					totalMessages++
-				}
+			latency := float64(result.Latency) / 1000.0
+			latencies = append(latencies, latency)
+			if result.BatchSize > 1 {
+				normedLatencies = append(normedLatencies, latency/float64(result.BatchSize))
 			}
-			tput += float64(totalMessages) / result.Duration
+		} else {
+			log.Printf("[ERROR] failed append: %v", result.Message)
 		}
 	}
-	fmt.Printf("[%s]\n", title)
-	fmt.Printf("Throughput: %.1f ops per sec\n", tput)
 	if len(latencies) > 0 {
 		median, _ := stats.Median(latencies)
 		p99, _ := stats.Percentile(latencies, 99.0)
@@ -104,40 +89,56 @@ func printSummary(title string, results []common.FnOutput) {
 	}
 }
 
+func runBench(client *http.Client, benchFunc func(*http.Client) common.FnOutput, benchCase string) {
+	throughput := FLAGS_concurrency * FLAGS_batch_size
+	durationNs := FLAGS_duration * 1000000000
+
+	resultsMu := sync.Mutex{}
+	appendResults := make([]common.FnOutput, 0, 100000)
+
+	start := time.Now()
+	for time.Since(start) < time.Duration(durationNs) {
+		for i := 0; i < FLAGS_concurrency; i++ {
+			go func() {
+				res := benchFunc(client)
+				resultsMu.Lock()
+				appendResults = append(appendResults, res)
+				resultsMu.Unlock()
+			}()
+		}
+		time.Sleep(time.Second)
+	}
+	actualDuration := time.Since(start).Seconds()
+
+	resultsMu.Lock()
+	fmt.Printf("[%s]\n", benchCase)
+	fmt.Printf("Target Throughput: %d, Actual Throughput: %.1f ops per sec\n",
+		throughput, float64(len(appendResults))*float64(FLAGS_batch_size)/actualDuration)
+	printSummary(appendResults)
+	resultsMu.Unlock()
+}
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	flag.Parse()
 
-	concurrency := FLAGS_concurrency
-
 	client := &http.Client{
 		Transport: &http.Transport{
-			MaxConnsPerHost: concurrency,
-			MaxIdleConns:    concurrency,
+			MaxConnsPerHost: FLAGS_concurrency,
+			MaxIdleConns:    FLAGS_concurrency,
 			IdleConnTimeout: 30 * time.Second,
 		},
 		Timeout: time.Duration(FLAGS_duration*10) * time.Second,
 	}
 
 	{
-		var wg sync.WaitGroup
-		appendResults := make([]common.FnOutput, concurrency)
-		for i := 0; i < concurrency; i++ {
-			wg.Add(1)
-			go invokeBokiLogAppend(client, &appendResults[i], &wg)
-		}
-		wg.Wait()
-		printSummary("BokiLogAppend", appendResults)
+		benchFunc := invokeBokiLogAppend
+		benchCase := "BokiLogAppend"
+		runBench(client, benchFunc, benchCase)
 	}
-
 	{
-		var wg sync.WaitGroup
-		appendResults := make([]common.FnOutput, concurrency)
-		for i := 0; i < concurrency; i++ {
-			wg.Add(1)
-			go invokeAsyncLogAppend(client, &appendResults[i], &wg)
-		}
-		wg.Wait()
-		printSummary("AsyncLogAppend", appendResults)
+		benchFunc := invokeAsyncLogAppend
+		benchCase := "AsyncLogAppend"
+		runBench(client, benchFunc, benchCase)
 	}
 }

@@ -264,13 +264,10 @@ function test_bench {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=2
-    INTERVAL1=800 # ms
-
     set -x
     $BENCH_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 \
-        --append_interval=$INTERVAL1 --batch_size=10 --concurrency=100\
+        --batch_size=100 --concurrency=10 \
         --payload_size=1024 --duration=3
 }
 

@@ -56,46 +56,29 @@ func (h *bokiLogAppendHandler) Call(ctx context.Context, input []byte) ([]byte, 
 }
 
 func bokiLogAppend(ctx context.Context, env types.Environment, input *common.BokiLogAppendInput) (*common.FnOutput, error) {
-	duration := time.Duration(input.Duration) * time.Second
-	interval := time.Duration(input.IntervalMs) * time.Millisecond
-
-	latencies := make([]int, 0, 128) // record push duration
-	startTime := time.Now()
-	numMessages := make([]int, 0, 128)
-	for time.Since(startTime) < duration {
-		// prepare payload
-		payloads := make([]string, 0, input.BatchSize)
-		for i := 0; i < input.BatchSize; i++ {
-			payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
-			payloads = append(payloads, payload)
-		}
-		pushStart := time.Now()
-		// bench test case
-		tags := []uint64{1}
-		for _, payload := range payloads {
-			_, err := env.SharedLogAppend(ctx, tags, []byte(payload))
-			if err != nil {
-				return &common.FnOutput{
-					Success:  false,
-					Message:  fmt.Sprintf("Log append failed: %v", err),
-					Duration: time.Since(startTime).Seconds(),
-				}, nil
-			}
-		}
-		// record
-		elapsed := time.Since(pushStart)
-		// record push duration
-		latencies = append(latencies, int(elapsed.Microseconds()))
-		// record push num
-		numMessages = append(numMessages, len(payloads))
-		// sleep for `interval`
-		time.Sleep(time.Until(pushStart.Add(interval)))
+	// prepare payload
+	payloads := make([]string, 0, input.BatchSize)
+	for i := 0; i < input.BatchSize; i++ {
+		payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
+		payloads = append(payloads, payload)
 	}
+	pushStart := time.Now()
+	// bench test case
+	tags := []uint64{1}
+	for _, payload := range payloads {
+		_, err := env.SharedLogAppend(ctx, tags, []byte(payload))
+		if err != nil {
+			return &common.FnOutput{
+				Success: false,
+				Message: fmt.Sprintf("Log append failed: %v", err),
+			}, nil
+		}
+	}
+	elapsed := time.Since(pushStart)
 	return &common.FnOutput{
-		Success:     true,
-		Duration:    time.Since(startTime).Seconds(),
-		Latencies:   latencies,
-		NumMessages: numMessages,
+		Success:   true,
+		Latency:   int(elapsed.Microseconds()),
+		BatchSize: input.BatchSize,
 	}, nil
 }
 
@@ -117,60 +100,43 @@ func (h *asyncLogAppendOpHandler) Call(ctx context.Context, input []byte) ([]byt
 }
 
 func asyncLogAppend(ctx context.Context, env types.Environment, input *common.AsyncLogAppendInput) (*common.FnOutput, error) {
-	duration := time.Duration(input.Duration) * time.Second
-	interval := time.Duration(input.IntervalMs) * time.Millisecond
-
-	latencies := make([]int, 0, 128) // record push duration
-	startTime := time.Now()
-	numMessages := make([]int, 0, 128)
-	for time.Since(startTime) < duration {
-		// prepare payload
-		payloads := make([]string, 0, input.BatchSize)
-		for i := 0; i < input.BatchSize; i++ {
-			payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
-			payloads = append(payloads, payload)
-		}
-		pushStart := time.Now()
-		// bench test case
-		tags := []uint64{1}
-		tagsMeta := []types.TagMeta{{FsmType: 1, TagKeys: []string{""}}}
-		futures := make([]types.Future[uint64], 0, len(payloads))
-		deps := []uint64{}
-		for _, payload := range payloads {
-			future, err := env.AsyncSharedLogCondAppend(ctx, tags, tagsMeta, []byte(payload), deps)
-			if err != nil {
-				return &common.FnOutput{
-					Success:  false,
-					Message:  fmt.Sprintf("AsyncLogAppend failed: %v", err),
-					Duration: time.Since(startTime).Seconds(),
-				}, nil
-			}
-			futures = append(futures, future)
-			deps = []uint64{future.GetLocalId()}
-		}
-		for _, future := range futures {
-			if err := future.Await(60 * time.Second); err != nil {
-				return &common.FnOutput{
-					Success:  false,
-					Message:  fmt.Sprintf("AsyncLogAppend await failed: %v", err),
-					Duration: time.Since(startTime).Seconds(),
-				}, nil
-			}
-		}
-		// record
-		elapsed := time.Since(pushStart)
-		// record push duration
-		latencies = append(latencies, int(elapsed.Microseconds()))
-		// record push num
-		numMessages = append(numMessages, len(payloads))
-		// sleep for `interval`
-		time.Sleep(time.Until(pushStart.Add(interval)))
+	// prepare payload
+	payloads := make([]string, 0, input.BatchSize)
+	for i := 0; i < input.BatchSize; i++ {
+		payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
+		payloads = append(payloads, payload)
 	}
+	pushStart := time.Now()
+	// bench test case
+	tags := []uint64{1}
+	tagsMeta := []types.TagMeta{{FsmType: 1, TagKeys: []string{""}}}
+	futures := make([]types.Future[uint64], 0, len(payloads))
+	deps := []uint64{}
+	for _, payload := range payloads {
+		future, err := env.AsyncSharedLogCondAppend(ctx, tags, tagsMeta, []byte(payload), deps)
+		if err != nil {
+			return &common.FnOutput{
+				Success: false,
+				Message: fmt.Sprintf("AsyncLogAppend failed: %v", err),
+			}, nil
+		}
+		futures = append(futures, future)
+		deps = []uint64{future.GetLocalId()}
+	}
+	for _, future := range futures {
+		if err := future.Await(60 * time.Second); err != nil {
+			return &common.FnOutput{
+				Success: false,
+				Message: fmt.Sprintf("AsyncLogAppend await failed: %v", err),
+			}, nil
+		}
+	}
+	// record
+	elapsed := time.Since(pushStart)
 	return &common.FnOutput{
-		Success:     true,
-		Duration:    time.Since(startTime).Seconds(),
-		Latencies:   latencies,
-		NumMessages: numMessages,
+		Success:   true,
+		Latency:   int(elapsed.Microseconds()),
+		BatchSize: input.BatchSize,
 	}, nil
 }
 
