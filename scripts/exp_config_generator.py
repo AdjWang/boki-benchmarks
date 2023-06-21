@@ -950,6 +950,35 @@ workflow_movie_docker_compose_f = """\
 
 """
 
+workflow_singleop_docker_compose_f = """\
+  singleop-service:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "{bin_path}/singleop", "1"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX=${{TABLE_PREFIX:?}}
+    depends_on:
+      - boki-engine
+    restart: always
+
+  nop-service:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "{bin_path}/nop", "2"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX=${{TABLE_PREFIX:?}}
+    depends_on:
+      - boki-engine
+    restart: always
+
+"""
+
 hotel_nightcore_config_f = """\
 [
     {{ "funcName": "{baseline_prefix}geo", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 }},
@@ -982,6 +1011,13 @@ movie_nightcore_config_f = """\
     {{ "funcName": "{baseline_prefix}Plot", "funcId": 12, "minWorkers": 8, "maxWorkers": 8 }},
     {{ "funcName": "{baseline_prefix}MovieInfo", "funcId": 13, "minWorkers": 8, "maxWorkers": 8 }},
     {{ "funcName": "{baseline_prefix}Page", "funcId": 14, "minWorkers": 8, "maxWorkers": 8 }}
+]
+"""
+
+singleop_nightcore_config_f = """\
+[
+    {{ "funcName": "{baseline_prefix}singleop", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 }},
+    {{ "funcName": "{baseline_prefix}nop", "funcId": 2, "minWorkers": 8, "maxWorkers": 8 }}
 ]
 """
 
@@ -1155,9 +1191,14 @@ def workflow_config(image_faas, image_app, bin_path, db_init_mode, enable_shared
     if bench_name == "hotel":
         docker_compose_app_f = workflow_hotel_docker_compose_f
         config_json_f = hotel_nightcore_config_f
-    else:
+    elif bench_name == 'media':
         docker_compose_app_f = workflow_movie_docker_compose_f
         config_json_f = movie_nightcore_config_f
+    elif bench_name == 'singleop':
+        docker_compose_app_f = workflow_singleop_docker_compose_f
+        config_json_f = singleop_nightcore_config_f
+    else:
+        raise Exception(f'unreachable bench name: {bench_name}')
 
     docker_compose = (docker_compose_common +
                       docker_compose_faas_f.format(image_faas=image_faas) +
@@ -1216,6 +1257,14 @@ def boki_movie_asynclog():
     return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/asynclog-bin/media", db_init_mode="cayon", enable_sharedlog=True)
 
 
+def boki_singleop_baseline():
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/bokiflow-bin/singleop", db_init_mode="cayon", enable_sharedlog=True)
+
+
+def boki_singleop_asynclog():
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/asynclog-bin/singleop", db_init_mode="cayon", enable_sharedlog=True)
+
+
 IMAGE_FAAS = "adjwang/boki:dev"
 BENCH_IMAGE_APP = "adjwang/boki-microbench:dev"
 QUEUE_IMAGE_APP = "adjwang/boki-queuebench:dev"
@@ -1252,8 +1301,12 @@ if __name__ == '__main__':
         dump_configs(workflow_dir / "beldi-movie", beldi_movie)
         dump_configs(workflow_dir / "boki-hotel-baseline", boki_hotel_baseline)
         dump_configs(workflow_dir / "boki-movie-baseline", boki_movie_baseline)
+        dump_configs(workflow_dir / "boki-singleop-baseline",
+                     boki_singleop_baseline)
         dump_configs(workflow_dir / "boki-hotel-asynclog", boki_hotel_asynclog)
         dump_configs(workflow_dir / "boki-movie-asynclog", boki_movie_asynclog)
+        dump_configs(workflow_dir / "boki-singleop-asynclog",
+                     boki_singleop_asynclog)
     else:
         raise Exception(
             f"unknown exp_name: {args.exp_name}, should be one of [queue, retwis, workflow]")

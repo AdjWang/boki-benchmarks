@@ -126,7 +126,7 @@ services:
 
   singleop-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/singleop", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/singleop/singleop", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
@@ -139,7 +139,7 @@ services:
 
   nop-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/bokiflow-bin/singleop/nop", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/singleop/nop", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
