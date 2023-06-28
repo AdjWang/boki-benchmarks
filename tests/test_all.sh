@@ -388,13 +388,23 @@ function test_workflow {
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
         BELDI_BASELINE="0"
         ;;
+    boki-singleop-baseline)
+        APP_NAME="singleop"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"boki"
+        BELDI_BASELINE="0"
+        ;;
+    boki-singleop-asynclog)
+        APP_NAME="singleop"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
+        BELDI_BASELINE="0"
+        ;;
     *)
         echo "[ERROR] TEST_CASE should be either beldi-hotel|movie-baseline or boki-hotel|movie-baseline|asynclog, given $TEST_CASE"
         exit 1
         ;;
     esac
 
-    if [[ $APP_NAME == "hotel" ]]; then
+    if [[ $APP_NAME == "hotel" || $APP_NAME == "singleop" ]]; then
         DB_DATA=""
     else
         DB_DATA=$APP_SRC_DIR/internal/media/data/compressed.json
@@ -429,13 +439,13 @@ function test_workflow {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    if [[ $APP_NAME == "hotel" ]]; then
-        # TODO
-        # echo "test singleop"
-        # timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
-        #     assert_should_success $LINENO
-        # echo ""
+    echo "test singleop"
+    timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
+        assert_should_success $LINENO
+    echo ""
+    exit 0
 
+    if [[ $APP_NAME == "hotel" ]]; then
         echo "test read (search) request"
         timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}}}' \
             http://localhost:9000/function/gateway ||
@@ -485,35 +495,37 @@ debug)
 build)
     build_boki
     # build_testcases
-    build_bench
+    # build_bench
     # build_queue
     # build_retwis
-    # build_workflow
+    build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
-    docker push adjwang/boki-microbench:dev
+    # docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
     # docker push adjwang/boki-retwisbench:dev
-    # docker push adjwang/boki-beldibench:dev
+    docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
     ;;
 run)
     # test_sharedlog
-    # cleanup
+
+    # test_bench
+    # test_queue
+    # test_retwis
+
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
-
-    test_bench
-    # test_queue
-    # test_retwis
+    # test_workflow boki-singleop-baseline
+    test_workflow boki-singleop-asynclog
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

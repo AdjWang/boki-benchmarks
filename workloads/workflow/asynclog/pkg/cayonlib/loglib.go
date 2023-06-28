@@ -173,7 +173,7 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 	env.AsyncLogCtx.ChainStep(future.GetLocalId())
 	// sync until receives index
 	// If the async log is not propagated to a different engine, waiting for
-	// the seqnum is enough to gaurantee read-your-write consistency.
+	// the seqnum is enough to guarantee read-your-write consistency.
 	err := future.Await(gSyncTimeout)
 	CHECK(err)
 

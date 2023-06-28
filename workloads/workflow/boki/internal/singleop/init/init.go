@@ -19,18 +19,29 @@ func ClearAll() {
 	// beldilib.DeleteLambdaTables("tnop")
 }
 
+func health_check() {
+	tablename := "singleop"
+	key := "K"
+	item := cayonlib.LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
+	log.Printf("[INFO] Read data from DB: %v", item)
+	if len(item) == 0 {
+		panic("read data from DB failed")
+	}
+}
+
 func main() {
 	log.SetFlags(log.Lshortfile)
-	log.SetOutput(os.Stderr)
 
-	if len(os.Args) >= 2 {
-		option := os.Args[1]
-		if option == "clean" {
-			log.Println("clear all")
-			ClearAll()
-			return
-		}
+	option := os.Args[1]
+	if option == "health_check" {
+		health_check()
+		return
+	} else if option == "clean" {
+		log.Println("clear all")
+		ClearAll()
+		return
 	}
+
 	log.Println("clear all")
 	ClearAll()
 

@@ -76,6 +76,30 @@ dynamodb_setup_media_f = """\
 
 """
 
+dynamodb_setup_singleop_f = """\
+  db-setup:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    command: bash -c "
+        {workflow_bin_dir}/{baseline_prefix}singleop/init clean {benchmark_mode} &&
+        {workflow_bin_dir}/{baseline_prefix}singleop/init create {benchmark_mode} &&
+        sleep infinity
+      "
+    environment:
+      {func_env}
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+       - db
+    healthcheck:
+      test: ["CMD-SHELL", "{workflow_bin_dir}/{baseline_prefix}singleop/init health_check {benchmark_mode}"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 60s
+
+"""
+
 # zookeeper
 zookeeper = """\
   zookeeper:
@@ -926,16 +950,16 @@ bokiflow_movie_funcs_f = """\
 
 """
 
-# TODO: add singleop test case
-singleop_funcs_f = """\
+bokiflow_singleop_funcs_f = """\
   singleop-service-{node_id}:
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/singleop/singleop", "12"]
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/singleop/singleop", "1"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
+      {func_env}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
       - TABLE_PREFIX={table_prefix}
@@ -947,10 +971,11 @@ singleop_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/singleop/nop", "13"]
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/singleop/nop", "2"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
+      {func_env}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
       - TABLE_PREFIX={table_prefix}
@@ -995,9 +1020,9 @@ if __name__ == '__main__':
 
     # no beldi-hotel and beldi-movie here, compare to boki is enough
     AVAILABLE_TEST_CASES = {
+        'sharedlog': sharedlog_funcs_f,
         'bench': bench_funcs_f,
         'queue': queue_funcs_f,
-        'sharedlog': sharedlog_funcs_f,
         'retwis': retwis_funcs_f,
         'beldi-hotel-baseline': bokiflow_hotel_funcs_f,
         'beldi-movie-baseline': bokiflow_movie_funcs_f,
@@ -1005,6 +1030,8 @@ if __name__ == '__main__':
         'boki-movie-baseline': bokiflow_movie_funcs_f,
         'boki-hotel-asynclog': bokiflow_hotel_funcs_f,
         'boki-movie-asynclog': bokiflow_movie_funcs_f,
+        'boki-singleop-baseline': bokiflow_singleop_funcs_f,
+        'boki-singleop-asynclog': bokiflow_singleop_funcs_f,
     }
 
     # argument assertations
@@ -1053,12 +1080,20 @@ if __name__ == '__main__':
             workflow_bin_dir = "/bokiflow-bin"
         else:
             workflow_bin_dir = "/asynclog-bin"
+    elif args.test_case.startswith('boki-singleop'):
+        db = dynamodb
+        db_setup_f = dynamodb_setup_singleop_f
+        baseline = False
+        if args.test_case.endswith('-baseline'):
+            workflow_bin_dir = "/bokiflow-bin"
+        else:
+            workflow_bin_dir = "/asynclog-bin"
     elif args.test_case == 'sharedlog':
         db = db_setup_f = ""
         baseline = False
         workflow_bin_dir = "/test-bin"
     else:
-        raise f"unreachable: unknown test case: {args.test_case}"
+        raise Exception(f"unreachable: unknown test case: {args.test_case}")
     baseline_prefix = 'b' if baseline else ''
 
     dc_content = ''.join([
