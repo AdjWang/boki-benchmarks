@@ -124,8 +124,8 @@ func main() {
 
 	client := &http.Client{
 		Transport: &http.Transport{
-			MaxConnsPerHost: FLAGS_concurrency,
-			MaxIdleConns:    FLAGS_concurrency,
+			// MaxConnsPerHost: FLAGS_concurrency,
+			// MaxIdleConns:    FLAGS_concurrency,
 			IdleConnTimeout: 30 * time.Second,
 		},
 		Timeout: time.Duration(FLAGS_duration*10) * time.Second,

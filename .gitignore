@@ -1,6 +1,7 @@
 .vscode/
 /tmp
 
+/workloads/microbenchmark/bin
 /workloads/queue/bin
 /workloads/retwis/bin
 
