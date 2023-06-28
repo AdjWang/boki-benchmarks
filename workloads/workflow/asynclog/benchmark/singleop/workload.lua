@@ -10,7 +10,7 @@
 -- end
 
 request = function()
-    local path = os.getenv("ENDPOINT")
+    local path = '/asyncFunction/singleop'
     local method = "POST"
     local headers = {}
     -- local param = {
