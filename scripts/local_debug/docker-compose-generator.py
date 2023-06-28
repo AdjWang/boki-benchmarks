@@ -84,6 +84,7 @@ dynamodb_setup_singleop_f = """\
     command: bash -c "
         {workflow_bin_dir}/{baseline_prefix}singleop/init clean {benchmark_mode} &&
         {workflow_bin_dir}/{baseline_prefix}singleop/init create {benchmark_mode} &&
+        {workflow_bin_dir}/{baseline_prefix}singleop/init populate {benchmark_mode} &&
         sleep infinity
       "
     environment:

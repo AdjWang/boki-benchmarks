@@ -112,9 +112,9 @@ docker_compose_faas_boki_f = """\
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
-      - --metalog_replicas=3
-      - --userlog_replicas=3
-      - --index_replicas=8
+      - --metalog_replicas={n_metalog_replicas}
+      - --userlog_replicas={n_userlog_replicas}
+      - --index_replicas={n_index_replicas}
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -1130,7 +1130,10 @@ def bench_config(image_faas, image_app):
     docker_compose_faas_f = docker_compose_faas_boki_f
     docker_compose_app_f = bench_docker_compose_f
     docker_compose = (docker_compose_common +
-                      docker_compose_faas_f.format(image_faas=image_faas) +
+                      docker_compose_faas_f.format(image_faas=image_faas,
+                                                   n_metalog_replicas=3,
+                                                   n_userlog_replicas=3,
+                                                   n_index_replicas=8) +
                       docker_compose_app_f.format(image_app=image_app))
     config_json = bench_nightcore_config
     run_once_sh = bench_run_once_f.format(image_app=image_app)
@@ -1141,7 +1144,10 @@ def queue_config(image_faas, image_app):
     docker_compose_faas_f = docker_compose_faas_boki_f
     docker_compose_app_f = queue_docker_compose_f
     docker_compose = (docker_compose_common +
-                      docker_compose_faas_f.format(image_faas=image_faas) +
+                      docker_compose_faas_f.format(image_faas=image_faas,
+                                                   n_metalog_replicas=3,
+                                                   n_userlog_replicas=3,
+                                                   n_index_replicas=8) +
                       docker_compose_app_f.format(image_app=image_app))
     config_json = queue_nightcore_config
     run_once_sh = queue_run_once_f.format(image_app=image_app)
@@ -1152,7 +1158,10 @@ def retwis_config(image_faas, image_app):
     docker_compose_faas_f = docker_compose_faas_boki_f
     docker_compose_app_f = retwis_docker_compose_f
     docker_compose = (docker_compose_common +
-                      docker_compose_faas_f.format(image_faas=image_faas) +
+                      docker_compose_faas_f.format(image_faas=image_faas,
+                                                   n_metalog_replicas=3,
+                                                   n_userlog_replicas=3,
+                                                   n_index_replicas=8) +
                       docker_compose_app_f.format(image_app=image_app))
     config_json = retwis_nightcore_config
     run_once_sh = retwis_run_once_f.format(image_app=image_app)
@@ -1191,17 +1200,23 @@ def workflow_config(image_faas, image_app, bin_path, db_init_mode, enable_shared
     if bench_name == "hotel":
         docker_compose_app_f = workflow_hotel_docker_compose_f
         config_json_f = hotel_nightcore_config_f
+        n_index_replicas = 8
     elif bench_name == 'media':
         docker_compose_app_f = workflow_movie_docker_compose_f
         config_json_f = movie_nightcore_config_f
+        n_index_replicas = 8
     elif bench_name == 'singleop':
         docker_compose_app_f = workflow_singleop_docker_compose_f
         config_json_f = singleop_nightcore_config_f
+        n_index_replicas = 1
     else:
         raise Exception(f'unreachable bench name: {bench_name}')
 
     docker_compose = (docker_compose_common +
-                      docker_compose_faas_f.format(image_faas=image_faas) +
+                      docker_compose_faas_f.format(image_faas=image_faas,
+                                                   n_metalog_replicas=3,
+                                                   n_userlog_replicas=3,
+                                                   n_index_replicas=n_index_replicas) +
                       docker_compose_app_f.format(image_app=image_app, bin_path=bin_path))
     config_json = config_json_f.format(baseline_prefix=baseline_prefix)
     run_once_sh = workflow_run_once_sh_f.format(image_app=image_app,
