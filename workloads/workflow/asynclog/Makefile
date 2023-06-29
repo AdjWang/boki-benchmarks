@@ -16,7 +16,6 @@ all: singleop hotel media
 
 singleop:
 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BELDI)" -o bin/singleop/init internal/singleop/init/init.go
-
 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BELDI) -X github.com/eniac/Beldi/pkg/beldilib.DLOGSIZE=1000" -o bin/singleop/singleop internal/singleop/main/main.go
 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BELDI) -X github.com/eniac/Beldi/pkg/beldilib.DLOGSIZE=1000" -o bin/singleop/nop internal/singleop/nop/nop.go
 
@@ -24,8 +23,8 @@ singleop:
 	# env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BELDI) -X main.TXN=ENABLE -X github.com/eniac/Beldi/pkg/beldilib.DLOGSIZE=1000" -o bin/tsingleop/tnop internal/singleop/nop/nop.go
 
 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BASELINE)" -o bin/bsingleop/init internal/singleop/init/init.go
-	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BASELINE)" -o bin/bsingleop/bsingleop internal/singleop/main/main.go
-	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BASELINE)" -o bin/bsingleop/bnop internal/singleop/nop/nop.go
+	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BASELINE)" -o bin/bsingleop/singleop internal/singleop/main/main.go
+	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BASELINE)" -o bin/bsingleop/nop internal/singleop/nop/nop.go
 
 hotel-baseline:
 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BASELINE)" -o bin/bhotel/init internal/hotel-baseline/init/init.go

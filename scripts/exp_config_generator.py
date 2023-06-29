@@ -1299,6 +1299,10 @@ def boki_movie_asynclog():
     return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/asynclog-bin/media", db_init_mode="cayon", enable_sharedlog=True)
 
 
+def beldi_singleop_baseline():
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/beldi-bin/bsingleop", db_init_mode="baseline", enable_sharedlog=False)
+
+
 def boki_singleop_baseline():
     return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/bokiflow-bin/singleop", db_init_mode="cayon", enable_sharedlog=True)
 
@@ -1339,6 +1343,8 @@ if __name__ == '__main__':
                      beldi_hotel_baseline)
         dump_configs(workflow_dir / "beldi-movie-baseline",
                      beldi_movie_baseline)
+        dump_configs(workflow_dir / "beldi-singleop-baseline",
+                     beldi_singleop_baseline)
         dump_configs(workflow_dir / "beldi-hotel", beldi_hotel)
         dump_configs(workflow_dir / "beldi-movie", beldi_movie)
         dump_configs(workflow_dir / "boki-hotel-baseline", boki_hotel_baseline)

@@ -401,6 +401,11 @@ function test_workflow {
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
         BELDI_BASELINE="0"
         ;;
+    beldi-singleop-baseline)
+        APP_NAME="singleop"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"beldi"
+        BELDI_BASELINE="1"
+        ;;
     boki-singleop-baseline)
         APP_NAME="singleop"
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"boki"
@@ -453,9 +458,16 @@ function test_workflow {
         assert_should_success $LINENO
 
     echo "test singleop"
-    timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
-        assert_should_success $LINENO
+    if [[ $BELDI_BASELINE == "0" ]]; then
+        timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
+            assert_should_success $LINENO
+    else
+        timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/bsingleop ||
+            assert_should_success $LINENO
+    fi
     echo ""
+    # DEBUG
+    exit 0
 
     if [[ $APP_NAME == "hotel" ]]; then
         echo "test read (search) request"
@@ -507,18 +519,18 @@ debug)
 build)
     build_boki
     # build_testcases
-    build_microbench
+    # build_microbench
     # build_queue
     # build_retwis
-    # build_workflow
+    build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
-    docker push adjwang/boki-microbench:dev
+    # docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
     # docker push adjwang/boki-retwisbench:dev
-    # docker push adjwang/boki-beldibench:dev
+    docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
@@ -526,7 +538,7 @@ clean)
 run)
     # test_sharedlog
 
-    test_microbench
+    # test_microbench
     # test_queue
     # test_retwis
 
@@ -536,6 +548,7 @@ run)
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
+    test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
     # test_workflow boki-singleop-asynclog
     ;;

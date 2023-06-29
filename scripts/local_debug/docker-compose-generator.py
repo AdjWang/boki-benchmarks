@@ -984,7 +984,7 @@ bokiflow_singleop_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/singleop/singleop", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/{baseline_prefix}singleop/singleop", "1"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -1000,7 +1000,7 @@ bokiflow_singleop_funcs_f = """\
     image: adjwang/boki-beldibench:dev
     networks:
       - boki-net
-    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/singleop/nop", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/{baseline_prefix}singleop/nop", "2"]
     volumes:
       - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
     environment:
@@ -1059,6 +1059,7 @@ if __name__ == '__main__':
         'boki-movie-baseline': bokiflow_movie_funcs_f,
         'boki-hotel-asynclog': bokiflow_hotel_funcs_f,
         'boki-movie-asynclog': bokiflow_movie_funcs_f,
+        'beldi-singleop-baseline': bokiflow_singleop_funcs_f,
         'boki-singleop-baseline': bokiflow_singleop_funcs_f,
         'boki-singleop-asynclog': bokiflow_singleop_funcs_f,
     }
@@ -1109,6 +1110,11 @@ if __name__ == '__main__':
             workflow_bin_dir = "/bokiflow-bin"
         else:
             workflow_bin_dir = "/asynclog-bin"
+    elif args.test_case == 'beldi-singleop-baseline':
+        db = dynamodb
+        db_setup_f = dynamodb_setup_singleop_f
+        baseline = True
+        workflow_bin_dir = "/beldi-bin"
     elif args.test_case.startswith('boki-singleop'):
         db = dynamodb
         db_setup_f = dynamodb_setup_singleop_f

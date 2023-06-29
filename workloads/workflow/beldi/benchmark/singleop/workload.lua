@@ -10,7 +10,13 @@
 -- end
 
 request = function()
-    local path = os.getenv("ENDPOINT")
+    local path
+    local baseline = os.getenv("BASELINE")
+    if baseline == '1' then
+      path = '/asyncFunction/bsingleop'
+    else
+      path = '/asyncFunction/singleop'
+    end
     local method = "POST"
     local headers = {}
     -- local param = {

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/eniac/Beldi/pkg/beldilib"
+	"log"
 	"os"
-	// "time"
 )
 
 func ClearAll() {
@@ -15,17 +16,7 @@ func ClearAll() {
 	beldilib.DeleteTable("bnop")
 	// beldilib.DeleteLambdaTables("tsingleop")
 	// beldilib.DeleteLambdaTables("tnop")
-}
 
-func main() {
-	if len(os.Args) >= 2 {
-		option := os.Args[1]
-		if option == "clean" {
-			ClearAll()
-			return
-		}
-	}
-	ClearAll()
 	beldilib.WaitUntilAllDeleted([]string{
 		"singleop", "singleop-log", "singleop-collector",
 		"nop", "nop-log", "nop-collector",
@@ -33,29 +24,57 @@ func main() {
 		// "tnop", "tnop-log", "tnop-collector",
 		"bsingleop", "bnop",
 	})
-	beldilib.CreateLambdaTables("singleop")
-	beldilib.CreateLambdaTables("nop")
+}
 
-	beldilib.CreateBaselineTable("bsingleop")
-	beldilib.CreateBaselineTable("bnop")
+func health_check() {
+	tablename := "bsingleop"
+	key := "K"
+	item := beldilib.LibRead(tablename, aws.JSONValue{"K": key}, []string{"V"})
+	log.Printf("[INFO] Read data from DB: %v", item)
+	if len(item) == 0 {
+		panic("read data from DB failed")
+	}
+}
 
-	beldilib.WaitUntilAllActive([]string{
-		"singleop", "singleop-log", "singleop-collector",
-		"nop", "nop-log", "nop-collector",
-		"bsingleop", "bnop",
-	})
+func main() {
+	log.SetFlags(log.Lshortfile)
 
-	// beldilib.CreateTxnTables("tsingleop")
-	// beldilib.CreateTxnTables("tnop")
+	option := os.Args[1]
+	if option == "health_check" {
+		health_check()
+		return
+	} else if option == "clean" {
+		log.Println("clear all")
+		ClearAll()
+		return
+	} else if option == "create" {
+		beldilib.CreateLambdaTables("singleop")
+		beldilib.CreateLambdaTables("nop")
 
-	// time.Sleep(60 * time.Second)
-	beldilib.WriteNRows("singleop", "K", 20)
+		beldilib.CreateBaselineTable("bsingleop")
+		beldilib.CreateBaselineTable("bnop")
 
-	beldilib.LibWrite("bsingleop", aws.JSONValue{"K": "K"}, map[expression.NameBuilder]expression.OperandBuilder{
-		expression.Name("V"): expression.Value(1),
-	})
+		beldilib.WaitUntilAllActive([]string{
+			"singleop", "singleop-log", "singleop-collector",
+			"nop", "nop-log", "nop-collector",
+			"bsingleop", "bnop",
+		})
 
-	// beldilib.LibWrite("tsingleop", aws.JSONValue{"K": "K"}, map[expression.NameBuilder]expression.OperandBuilder{
-	// 	expression.Name("V"): expression.Value(1),
-	// })
+		// beldilib.CreateTxnTables("tsingleop")
+		// beldilib.CreateTxnTables("tnop")
+		return
+	} else if option == "populate" {
+		beldilib.WriteNRows("singleop", "K", 20)
+
+		beldilib.LibWrite("bsingleop", aws.JSONValue{"K": "K"}, map[expression.NameBuilder]expression.OperandBuilder{
+			expression.Name("V"): expression.Value(1),
+		})
+
+		// beldilib.LibWrite("tsingleop", aws.JSONValue{"K": "K"}, map[expression.NameBuilder]expression.OperandBuilder{
+		// 	expression.Name("V"): expression.Value(1),
+		// })
+		return
+	} else {
+		panic(fmt.Sprintf("unknown option: %s", option))
+	}
 }

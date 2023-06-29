@@ -1,0 +1,4 @@
+[
+    { "funcName": "bsingleop", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 },
+    { "funcName": "bnop", "funcId": 2, "minWorkers": 8, "maxWorkers": 8 }
+]

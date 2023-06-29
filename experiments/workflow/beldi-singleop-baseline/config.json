@@ -1,0 +1,17 @@
+{
+    "machines": {
+        "bokiexp-gateway": { "type": "c5d.2xlarge", "role": "manager" },
+        "bokiexp-engine-1": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
+        "bokiexp-client": { "type": "c5d.xlarge", "role": "client" }
+    },
+    "services": {
+        "zookeeper": { "placement": "bokiexp-gateway" },
+        "zookeeper-setup": { "placement": "bokiexp-gateway" },
+        "boki-controller": { "placement": "bokiexp-gateway" },
+        "boki-gateway": { "placement": "bokiexp-gateway" },
+        "boki-engine": { "placement_label": "engine_node", "replicas": 1 },
+        "singleop-service": { "placement_label": "engine_node", "replicas": 1, "need_aws_env": true, "mount_certs": true },
+        "nop-service": { "placement_label": "engine_node", "replicas": 1, "need_aws_env": true, "mount_certs": true }
+    },
+    "aws_region": "us-east-2"
+}
