@@ -33,6 +33,7 @@ type FnOutput struct {
 }
 
 type FnInput struct {
-	PayloadSize int `json:"payloadSize"`
-	BatchSize   int `json:"batchSize"`
+	PayloadSize int  `json:"payloadSize"`
+	BatchSize   int  `json:"batchSize"`
+	ReadCached  bool `json:"readCached"`
 }

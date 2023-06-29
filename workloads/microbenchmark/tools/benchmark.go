@@ -30,19 +30,15 @@ func init() {
 	flag.IntVar(&FLAGS_batch_size, "batch_size", 1, "")
 	flag.IntVar(&FLAGS_concurrency, "concurrency", 100, "")
 	flag.IntVar(&FLAGS_rand_seed, "rand_seed", 23333, "")
-	flag.StringVar(&FLAGS_bench_case, "bench_case", "write", "write|read")
-	if FLAGS_bench_case != "write" && FLAGS_bench_case != "read" {
+	flag.StringVar(&FLAGS_bench_case, "bench_case", "write", "write|read|read_cached")
+	if FLAGS_bench_case != "write" && FLAGS_bench_case != "read" && FLAGS_bench_case != "read_cached" {
 		panic(fmt.Sprintf("unknown benchmark case: %s", FLAGS_bench_case))
 	}
 
 	rand.Seed(int64(FLAGS_rand_seed))
 }
 
-func invokeFn(client *http.Client, fnName string) common.FnOutput {
-	input := &common.FnInput{
-		PayloadSize: FLAGS_payload_size,
-		BatchSize:   FLAGS_batch_size,
-	}
+func invokeFn(client *http.Client, fnName string, input *common.FnInput) common.FnOutput {
 	url := utils.BuildFunctionUrl(FLAGS_faas_gateway, fnName)
 	response := common.FnOutput{}
 	if err := utils.JsonPostRequest(client, url, input, &response); err != nil {
@@ -103,7 +99,7 @@ func printSummary(results []common.FnOutput) {
 	}
 }
 
-func runBench(client *http.Client, benchFnName string, benchCase string) {
+func runBench(client *http.Client, benchCase string, benchFnName string, fnInput *common.FnInput) {
 	throughput := FLAGS_concurrency * FLAGS_batch_size
 	durationNs := FLAGS_duration * 1000000000 // s -> ns
 
@@ -114,7 +110,7 @@ func runBench(client *http.Client, benchFnName string, benchCase string) {
 	for time.Since(start) < time.Duration(durationNs) {
 		for i := 0; i < FLAGS_concurrency; i++ {
 			go func() {
-				res := invokeFn(client, benchFnName)
+				res := invokeFn(client, benchFnName, fnInput)
 				resultsMu.Lock()
 				appendResults = append(appendResults, res)
 				resultsMu.Unlock()
@@ -146,26 +142,51 @@ func main() {
 	}
 
 	if FLAGS_bench_case == "write" {
+		input := &common.FnInput{
+			PayloadSize: FLAGS_payload_size,
+			BatchSize:   FLAGS_batch_size,
+		}
 		{
 			benchFnName := "benchBokiLogAppend"
 			benchCase := "BokiLogAppend"
-			runBench(client, benchFnName, benchCase)
+			runBench(client, benchCase, benchFnName, input)
 		}
 		{
 			benchFnName := "benchAsyncLogAppend"
 			benchCase := "AsyncLogAppend"
-			runBench(client, benchFnName, benchCase)
+			runBench(client, benchCase, benchFnName, input)
 		}
 	} else if FLAGS_bench_case == "read" {
+		input := &common.FnInput{
+			PayloadSize: FLAGS_payload_size,
+			BatchSize:   FLAGS_batch_size,
+			ReadCached:  false,
+		}
 		{
 			benchFnName := "benchBokiLogRead"
 			benchCase := "BokiLogRead"
-			runBench(client, benchFnName, benchCase)
+			runBench(client, benchCase, benchFnName, input)
 		}
 		{
 			benchFnName := "benchAsyncLogRead"
 			benchCase := "AsyncLogRead"
-			runBench(client, benchFnName, benchCase)
+			runBench(client, benchCase, benchFnName, input)
+		}
+	} else if FLAGS_bench_case == "read_cached" {
+		input := &common.FnInput{
+			PayloadSize: FLAGS_payload_size,
+			BatchSize:   FLAGS_batch_size,
+			ReadCached:  true,
+		}
+		{
+			benchFnName := "benchBokiLogRead"
+			benchCase := "BokiLogReadCached"
+			runBench(client, benchCase, benchFnName, input)
+		}
+		{
+			benchFnName := "benchAsyncLogRead"
+			benchCase := "AsyncLogReadCached"
+			runBench(client, benchCase, benchFnName, input)
 		}
 	} else {
 		panic("unreachable")

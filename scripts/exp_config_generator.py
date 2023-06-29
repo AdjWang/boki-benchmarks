@@ -189,7 +189,7 @@ docker_compose_faas_boki_f = """\
 
 """
 
-bench_docker_compose_f = """\
+microbench_docker_compose_f = """\
   bokilogappend-fn:
     image: {image_app}
     entrypoint: ["/tmp/boki/run_launcher", "/microbench-bin/log_rw", "1"]
@@ -240,7 +240,7 @@ bench_docker_compose_f = """\
 
 """
 
-bench_nightcore_config = """\
+microbench_nightcore_config = """\
 [
     { "funcName": "benchBokiLogAppend", "funcId": 1, "minWorkers": 32, "maxWorkers": 32 },
     { "funcName": "benchAsyncLogAppend", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 },
@@ -249,7 +249,7 @@ bench_nightcore_config = """\
 ]
 """
 
-bench_run_once_f = """\
+microbench_run_once_f = """\
 #!/bin/bash
 set -euxo pipefail
 
@@ -1153,17 +1153,17 @@ $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/l
 """
 
 
-def bench_config(image_faas, image_app):
+def microbench_config(image_faas, image_app):
     docker_compose_faas_f = docker_compose_faas_boki_f
-    docker_compose_app_f = bench_docker_compose_f
+    docker_compose_app_f = microbench_docker_compose_f
     docker_compose = (docker_compose_common +
                       docker_compose_faas_f.format(image_faas=image_faas,
                                                    n_metalog_replicas=3,
                                                    n_userlog_replicas=3,
                                                    n_index_replicas=8) +
                       docker_compose_app_f.format(image_app=image_app))
-    config_json = bench_nightcore_config
-    run_once_sh = bench_run_once_f.format(image_app=image_app)
+    config_json = microbench_nightcore_config
+    run_once_sh = microbench_run_once_f.format(image_app=image_app)
     return docker_compose, config_json, run_once_sh
 
 
@@ -1322,9 +1322,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.exp_name == "microbench":
-        bench_dir = Path(args.exp_dir) / "microbenchmark"
-        dump_configs(bench_dir,
-                     partial(bench_config, IMAGE_FAAS, BENCH_IMAGE_APP))
+        microbench_dir = Path(args.exp_dir) / "microbenchmark"
+        dump_configs(microbench_dir,
+                     partial(microbench_config, IMAGE_FAAS, BENCH_IMAGE_APP))
     elif args.exp_name == "queue":
         queue_dir = Path(args.exp_dir) / "queue"
         dump_configs(queue_dir / "boki",

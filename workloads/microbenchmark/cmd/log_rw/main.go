@@ -188,7 +188,7 @@ func syncToForward(ctx context.Context, env types.Environment, headSeqNum uint64
 	if tailSeqNum < seqNum {
 		log.Fatalf("[FATAL] Current seqNum=%#016x, cannot sync to %#016x", seqNum, tailSeqNum)
 	}
-	for seqNum < tailSeqNum {
+	for seqNum <= tailSeqNum {
 		logEntry, err := env.SharedLogReadNext(ctx, tag, seqNum)
 		if err != nil {
 			return -1, err
@@ -220,6 +220,16 @@ func bokiLogRead(ctx context.Context, env types.Environment, input *common.FnInp
 		}, nil
 	}
 	seqNums := output.SeqNums
+	if input.ReadCached {
+		// fill cache
+		_, err := syncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+		if err != nil {
+			return &common.FnOutput{
+				Success: false,
+				Message: fmt.Sprintf("syncToForward failed: %v", err),
+			}, nil
+		}
+	}
 	elapsed, err := syncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
 	if err != nil {
 		return &common.FnOutput{
@@ -263,7 +273,7 @@ func asyncToForward(ctx context.Context, env types.Environment,
 	if tailSeqNum < seqNum {
 		log.Fatalf("[FATAL] Current seqNum=%#016x, cannot sync to %#016x", seqNum, tailSeqNum)
 	}
-	for seqNum < tailSeqNum {
+	for seqNum <= tailSeqNum {
 		logEntryFuture, err := env.AsyncSharedLogReadNext2(ctx, tag, seqNum)
 		if err != nil {
 			return -1, -1, err
@@ -304,6 +314,16 @@ func asyncLogRead(ctx context.Context, env types.Environment, input *common.FnIn
 		}, nil
 	}
 	seqNums := output.SeqNums
+	if input.ReadCached {
+		// fill cache
+		_, _, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+		if err != nil {
+			return &common.FnOutput{
+				Success: false,
+				Message: fmt.Sprintf("syncToForward failed: %v", err),
+			}, nil
+		}
+	}
 	asyncElapsed, elapsed, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
 	if err != nil {
 		return &common.FnOutput{

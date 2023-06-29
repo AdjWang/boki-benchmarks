@@ -264,15 +264,23 @@ function test_microbench {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
+    # example:
+    # curl -s -X POST -d '{"PayloadSize":1024,"BatchSize":1}' http://localhost:9000/function/benchAsyncLogRead | gunzip
+
     set -x
     $BENCH_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --bench_case="write" \
-        --batch_size=100 --concurrency=10 \
+        --batch_size=10 --concurrency=10 \
         --payload_size=1024 --duration=3
 
     $BENCH_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --bench_case="read" \
-        --batch_size=100 --concurrency=10 \
+        --batch_size=10 --concurrency=10 \
+        --payload_size=1024 --duration=3
+
+    $BENCH_SRC_DIR/bin/benchmark \
+        --faas_gateway=localhost:9000 --bench_case="read_cached" \
+        --batch_size=10 --concurrency=10 \
         --payload_size=1024 --duration=3
 }
 
