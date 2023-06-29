@@ -148,3 +148,27 @@ services:
       - boki-engine
     restart: always
 
+  bokilogread-fn:
+    image: adjwang/boki-microbench:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/microbench-bin/log_rw", "3"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  asynclogread-fn:
+    image: adjwang/boki-microbench:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/microbench-bin/log_rw", "4"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+

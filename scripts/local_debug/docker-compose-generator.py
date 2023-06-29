@@ -324,6 +324,34 @@ bench_funcs_f = """\
       - boki-engine-{node_id}
     # restart: always
 
+  bokilogread-fn-{node_id}:
+    image: adjwang/boki-microbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/log_rw", "3"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  asynclogread-fn-{node_id}:
+    image: adjwang/boki-microbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/log_rw", "4"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
 """
 
 queue_funcs_f = """\
@@ -1022,7 +1050,7 @@ if __name__ == '__main__':
     # no beldi-hotel and beldi-movie here, compare to boki is enough
     AVAILABLE_TEST_CASES = {
         'sharedlog': sharedlog_funcs_f,
-        'bench': bench_funcs_f,
+        'microbench': bench_funcs_f,
         'queue': queue_funcs_f,
         'retwis': retwis_funcs_f,
         'beldi-hotel-baseline': bokiflow_hotel_funcs_f,
@@ -1043,7 +1071,7 @@ if __name__ == '__main__':
         raise Exception("table prefix of workflow is not allowed to be empty")
 
     app_funcs_f = AVAILABLE_TEST_CASES[args.test_case]
-    if args.test_case == 'bench':
+    if args.test_case == 'microbench':
         db = db_setup_f = ""
         baseline = False
         workflow_bin_dir = "/microbench-bin"

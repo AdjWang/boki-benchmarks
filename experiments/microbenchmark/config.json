@@ -26,6 +26,8 @@
         "boki-sequencer": { "placement_label": "sequencer_node", "replicas": 3 },
         "boki-engine": { "placement_label": "engine_node", "replicas": 8 },
         "bokilogappend-fn": { "placement_label": "engine_node", "replicas": 8 },
-        "asynclogappend-fn": { "placement_label": "engine_node", "replicas": 8 }
+        "asynclogappend-fn": { "placement_label": "engine_node", "replicas": 8 },
+        "bokilogread-fn": { "placement_label": "engine_node", "replicas": 8 },
+        "asynclogread-fn": { "placement_label": "engine_node", "replicas": 8 }
     }
 }

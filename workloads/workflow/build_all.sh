@@ -13,6 +13,7 @@ function build_beldi {
     make media-baseline
     make hotel
     make media
+    make singleop
 }
 
 function build_boki {

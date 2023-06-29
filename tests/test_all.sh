@@ -33,7 +33,7 @@ function setup_env {
 
     cp $SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
     cp $SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
-    if [[ $TEST_CASE == bench ]]; then
+    if [[ $TEST_CASE == microbench ]]; then
         cp $BENCH_EXP_DIR/nightcore_config.json $WORK_DIR/config/nightcore_config.json
         cp $BENCH_EXP_DIR/run_launcher $WORK_DIR/config
     elif [[ $TEST_CASE == queue ]]; then
@@ -96,7 +96,7 @@ function build_testcases {
         -f $DOCKERFILE_DIR/Dockerfile.testcases \
         $TEST_DIR/workloads
 }
-function build_bench {
+function build_microbench {
     echo "========== build bench =========="
     $BENCH_SRC_DIR/build.sh
 
@@ -242,17 +242,17 @@ function test_sharedlog {
     fi
 }
 
-function test_bench {
+function test_microbench {
     echo "setup env..."
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
         --index-reps=1 \
-        --test-case=bench \
+        --test-case=microbench \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 bench
+    setup_env 3 3 1 microbench
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -266,7 +266,12 @@ function test_bench {
 
     set -x
     $BENCH_SRC_DIR/bin/benchmark \
-        --faas_gateway=localhost:9000 \
+        --faas_gateway=localhost:9000 --bench_case="write" \
+        --batch_size=100 --concurrency=10 \
+        --payload_size=1024 --duration=3
+
+    $BENCH_SRC_DIR/bin/benchmark \
+        --faas_gateway=localhost:9000 --bench_case="read" \
         --batch_size=100 --concurrency=10 \
         --payload_size=1024 --duration=3
 }
@@ -443,7 +448,6 @@ function test_workflow {
     timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
         assert_should_success $LINENO
     echo ""
-    exit 0
 
     if [[ $APP_NAME == "hotel" ]]; then
         echo "test read (search) request"
@@ -495,18 +499,18 @@ debug)
 build)
     build_boki
     # build_testcases
-    # build_bench
+    build_microbench
     # build_queue
     # build_retwis
-    build_workflow
+    # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
-    # docker push adjwang/boki-microbench:dev
+    docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
     # docker push adjwang/boki-retwisbench:dev
-    docker push adjwang/boki-beldibench:dev
+    # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
@@ -514,7 +518,7 @@ clean)
 run)
     # test_sharedlog
 
-    # test_bench
+    test_microbench
     # test_queue
     # test_retwis
 
@@ -525,7 +529,7 @@ run)
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     # test_workflow boki-singleop-baseline
-    test_workflow boki-singleop-asynclog
+    # test_workflow boki-singleop-asynclog
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

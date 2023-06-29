@@ -24,18 +24,15 @@ package common
 // }
 
 type FnOutput struct {
-	Success   bool   `json:"success"`
-	Message   string `json:"message"`
-	Latency   int    `json:"latency"`
-	BatchSize int    `json:"batchSize"`
+	Success      bool     `json:"success"`
+	Message      string   `json:"message"`
+	AsyncLatency int      `json:"alatency"`
+	Latency      int      `json:"latency"`
+	BatchSize    int      `json:"batchSize"`
+	SeqNums      []uint64 `json:"seqNums"`
 }
 
-type BokiLogAppendInput struct {
-	PayloadSize int `json:"payloadSize"`
-	BatchSize   int `json:"batchSize"`
-}
-
-type AsyncLogAppendInput struct {
+type FnInput struct {
 	PayloadSize int `json:"payloadSize"`
 	BatchSize   int `json:"batchSize"`
 }

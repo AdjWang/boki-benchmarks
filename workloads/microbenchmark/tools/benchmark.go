@@ -21,6 +21,7 @@ var FLAGS_payload_size int
 var FLAGS_batch_size int
 var FLAGS_concurrency int
 var FLAGS_rand_seed int
+var FLAGS_bench_case string
 
 func init() {
 	flag.StringVar(&FLAGS_faas_gateway, "faas_gateway", "127.0.0.1:8081", "")
@@ -29,45 +30,46 @@ func init() {
 	flag.IntVar(&FLAGS_batch_size, "batch_size", 1, "")
 	flag.IntVar(&FLAGS_concurrency, "concurrency", 100, "")
 	flag.IntVar(&FLAGS_rand_seed, "rand_seed", 23333, "")
+	flag.StringVar(&FLAGS_bench_case, "bench_case", "write", "write|read")
+	if FLAGS_bench_case != "write" && FLAGS_bench_case != "read" {
+		panic(fmt.Sprintf("unknown benchmark case: %s", FLAGS_bench_case))
+	}
 
 	rand.Seed(int64(FLAGS_rand_seed))
 }
 
-func invokeBokiLogAppend(client *http.Client) common.FnOutput {
-	input := &common.BokiLogAppendInput{
+func invokeFn(client *http.Client, fnName string) common.FnOutput {
+	input := &common.FnInput{
 		PayloadSize: FLAGS_payload_size,
 		BatchSize:   FLAGS_batch_size,
 	}
-	url := utils.BuildFunctionUrl(FLAGS_faas_gateway, "benchBokiLogAppend")
+	url := utils.BuildFunctionUrl(FLAGS_faas_gateway, fnName)
 	response := common.FnOutput{}
 	if err := utils.JsonPostRequest(client, url, input, &response); err != nil {
-		log.Printf("[ERROR] BokiLogAppend request failed: %v", err)
+		log.Printf("[ERROR] fn: %s request failed: %v", fnName, err)
 	} else if !response.Success {
-		log.Printf("[ERROR] BokiLogAppend request failed: %s", response.Message)
-	}
-	return response
-}
-
-func invokeAsyncLogAppend(client *http.Client) common.FnOutput {
-	input := &common.AsyncLogAppendInput{
-		PayloadSize: FLAGS_payload_size,
-		BatchSize:   FLAGS_batch_size,
-	}
-	url := utils.BuildFunctionUrl(FLAGS_faas_gateway, "benchAsyncLogAppend")
-	response := common.FnOutput{}
-	if err := utils.JsonPostRequest(client, url, input, &response); err != nil {
-		log.Printf("[ERROR] AsyncLogAppend request failed: %v", err)
-	} else if !response.Success {
-		log.Printf("[ERROR] AsyncLogAppend request failed: %s", response.Message)
+		log.Printf("[ERROR] fn: %s request failed: %v", fnName, response.Message)
 	}
 	return response
 }
 
 func printSummary(results []common.FnOutput) {
+	asyncLatencies := make([]float64, 0, 128)
+	normedAsyncLatencies := make([]float64, 0, 128)
+
 	latencies := make([]float64, 0, 128)
 	normedLatencies := make([]float64, 0, 128)
+
 	for _, result := range results {
 		if result.Success {
+			if result.AsyncLatency != -1 {
+				asyncLatency := float64(result.AsyncLatency) / 1000.0
+				asyncLatencies = append(asyncLatencies, asyncLatency)
+				if result.BatchSize > 1 {
+					normedAsyncLatencies = append(normedAsyncLatencies, asyncLatency/float64(result.BatchSize))
+				}
+			}
+
 			latency := float64(result.Latency) / 1000.0
 			latencies = append(latencies, latency)
 			if result.BatchSize > 1 {
@@ -77,6 +79,18 @@ func printSummary(results []common.FnOutput) {
 			log.Printf("[ERROR] failed append: %v", result.Message)
 		}
 	}
+
+	if len(asyncLatencies) > 0 {
+		median, _ := stats.Median(asyncLatencies)
+		p99, _ := stats.Percentile(asyncLatencies, 99.0)
+		fmt.Printf("AsyncLatency: median = %.3fms, tail (p99) = %.3fms\n", median, p99)
+	}
+	if len(normedAsyncLatencies) > 0 {
+		median, _ := stats.Median(normedAsyncLatencies)
+		p99, _ := stats.Percentile(normedAsyncLatencies, 99.0)
+		fmt.Printf("Normed AsyncLatency: median = %.3fms, tail (p99) = %.3fms\n", median, p99)
+	}
+
 	if len(latencies) > 0 {
 		median, _ := stats.Median(latencies)
 		p99, _ := stats.Percentile(latencies, 99.0)
@@ -89,9 +103,9 @@ func printSummary(results []common.FnOutput) {
 	}
 }
 
-func runBench(client *http.Client, benchFunc func(*http.Client) common.FnOutput, benchCase string) {
+func runBench(client *http.Client, benchFnName string, benchCase string) {
 	throughput := FLAGS_concurrency * FLAGS_batch_size
-	durationNs := FLAGS_duration * 1000000000
+	durationNs := FLAGS_duration * 1000000000 // s -> ns
 
 	resultsMu := sync.Mutex{}
 	appendResults := make([]common.FnOutput, 0, 100000)
@@ -100,7 +114,7 @@ func runBench(client *http.Client, benchFunc func(*http.Client) common.FnOutput,
 	for time.Since(start) < time.Duration(durationNs) {
 		for i := 0; i < FLAGS_concurrency; i++ {
 			go func() {
-				res := benchFunc(client)
+				res := invokeFn(client, benchFnName)
 				resultsMu.Lock()
 				appendResults = append(appendResults, res)
 				resultsMu.Unlock()
@@ -131,14 +145,29 @@ func main() {
 		Timeout: time.Duration(FLAGS_duration*10) * time.Second,
 	}
 
-	{
-		benchFunc := invokeBokiLogAppend
-		benchCase := "BokiLogAppend"
-		runBench(client, benchFunc, benchCase)
-	}
-	{
-		benchFunc := invokeAsyncLogAppend
-		benchCase := "AsyncLogAppend"
-		runBench(client, benchFunc, benchCase)
+	if FLAGS_bench_case == "write" {
+		{
+			benchFnName := "benchBokiLogAppend"
+			benchCase := "BokiLogAppend"
+			runBench(client, benchFnName, benchCase)
+		}
+		{
+			benchFnName := "benchAsyncLogAppend"
+			benchCase := "AsyncLogAppend"
+			runBench(client, benchFnName, benchCase)
+		}
+	} else if FLAGS_bench_case == "read" {
+		{
+			benchFnName := "benchBokiLogRead"
+			benchCase := "BokiLogRead"
+			runBench(client, benchFnName, benchCase)
+		}
+		{
+			benchFnName := "benchAsyncLogRead"
+			benchCase := "AsyncLogRead"
+			runBench(client, benchFnName, benchCase)
+		}
+	} else {
+		panic("unreachable")
 	}
 }

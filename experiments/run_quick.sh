@@ -31,8 +31,10 @@ BASE_DIR=$ROOT_DIR/experiments/microbenchmark
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh c100b1 100 1
-$BASE_DIR/run_once.sh c100b10 100 10
+$BASE_DIR/run_once.sh wc100b1 "write" 100 1
+$BASE_DIR/run_once.sh wc100b10 "write" 100 10
+$BASE_DIR/run_once.sh rc100b1 "read" 100 1
+$BASE_DIR/run_once.sh rc100b10 "read" 100 10
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"

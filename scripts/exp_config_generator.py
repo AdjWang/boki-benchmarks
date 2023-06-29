@@ -214,12 +214,38 @@ bench_docker_compose_f = """\
       - boki-engine
     restart: always
 
+  bokilogread-fn:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/microbench-bin/log_rw", "3"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  asynclogread-fn:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/microbench-bin/log_rw", "4"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
 """
 
 bench_nightcore_config = """\
 [
     { "funcName": "benchBokiLogAppend", "funcId": 1, "minWorkers": 32, "maxWorkers": 32 },
-    { "funcName": "benchAsyncLogAppend", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 }
+    { "funcName": "benchAsyncLogAppend", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 },
+    { "funcName": "benchBokiLogRead", "funcId": 3, "minWorkers": 32, "maxWorkers": 32 },
+    { "funcName": "benchAsyncLogRead", "funcId": 4, "minWorkers": 32, "maxWorkers": 32 }
 ]
 """
 
@@ -232,8 +258,9 @@ ROOT_DIR=`realpath $BASE_DIR/../..`
 
 EXP_DIR=$BASE_DIR/results/$1
 
-NUM_CONCURRENCY=$2
-NUM_BATCHSIZE=$3
+BENCH_CASE=$2
+NUM_CONCURRENCY=$3
+NUM_BATCHSIZE=$4
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
 
@@ -295,7 +322,7 @@ ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \\
     cp /microbench-bin/benchmark /tmp/benchmark
 
 ssh -q $CLIENT_HOST -- /tmp/benchmark \\
-    --faas_gateway=$ENTRY_HOST:8080 \\
+    --faas_gateway=$ENTRY_HOST:8080 --bench_case=$BENCH_CASE \\
     --batch_size=$NUM_BATCHSIZE --concurrency=$NUM_CONCURRENCY \\
     --payload_size=1024 --duration=180 >$EXP_DIR/results.log
 
@@ -1291,10 +1318,10 @@ if __name__ == '__main__':
     parser.add_argument('--exp-dir', type=str, required=True,
                         help="e.g. boki-benchmarks/experiments")
     parser.add_argument('--exp-name', type=str, required=True,
-                        help="bench|queue|retwis|workflow")
+                        help="microbench|queue|retwis|workflow")
     args = parser.parse_args()
 
-    if args.exp_name == "bench":
+    if args.exp_name == "microbench":
         bench_dir = Path(args.exp_dir) / "microbenchmark"
         dump_configs(bench_dir,
                      partial(bench_config, IMAGE_FAAS, BENCH_IMAGE_APP))
@@ -1324,4 +1351,4 @@ if __name__ == '__main__':
                      boki_singleop_asynclog)
     else:
         raise Exception(
-            f"unknown exp_name: {args.exp_name}, should be one of [queue, retwis, workflow]")
+            f"unknown exp_name: {args.exp_name}, should be one of microbench|queue|retwis|workflow")

@@ -21,6 +21,14 @@ type asyncLogAppendOpHandler struct {
 	env types.Environment
 }
 
+type bokiLogReadHandler struct {
+	env types.Environment
+}
+
+type asyncLogReadHandler struct {
+	env types.Environment
+}
+
 type funcHandlerFactory struct {
 }
 
@@ -29,6 +37,10 @@ func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.
 		return &bokiLogAppendHandler{env: env}, nil
 	} else if funcName == "benchAsyncLogAppend" {
 		return &asyncLogAppendOpHandler{env: env}, nil
+	} else if funcName == "benchBokiLogRead" {
+		return &bokiLogReadHandler{env: env}, nil
+	} else if funcName == "benchAsyncLogRead" {
+		return &asyncLogReadHandler{env: env}, nil
 	} else {
 		return nil, nil
 	}
@@ -38,8 +50,10 @@ func (f *funcHandlerFactory) GrpcNew(env types.Environment, service string) (typ
 	return nil, fmt.Errorf("not implemented")
 }
 
+// faas functions
+
 func (h *bokiLogAppendHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
-	parsedInput := &common.BokiLogAppendInput{}
+	parsedInput := &common.FnInput{}
 	err := json.Unmarshal(input, parsedInput)
 	if err != nil {
 		return nil, err
@@ -55,35 +69,39 @@ func (h *bokiLogAppendHandler) Call(ctx context.Context, input []byte) ([]byte, 
 	return common.CompressData(encodedOutput), nil
 }
 
-func bokiLogAppend(ctx context.Context, env types.Environment, input *common.BokiLogAppendInput) (*common.FnOutput, error) {
+func bokiLogAppend(ctx context.Context, env types.Environment, input *common.FnInput) (*common.FnOutput, error) {
 	// prepare payload
 	payloads := make([]string, 0, input.BatchSize)
 	for i := 0; i < input.BatchSize; i++ {
 		payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
 		payloads = append(payloads, payload)
 	}
+	seqNums := make([]uint64, 0, input.BatchSize)
 	pushStart := time.Now()
 	// bench test case
 	tags := []uint64{1}
 	for _, payload := range payloads {
-		_, err := env.SharedLogAppend(ctx, tags, []byte(payload))
+		seqNum, err := env.SharedLogAppend(ctx, tags, []byte(payload))
 		if err != nil {
 			return &common.FnOutput{
 				Success: false,
 				Message: fmt.Sprintf("Log append failed: %v", err),
 			}, nil
 		}
+		seqNums = append(seqNums, seqNum)
 	}
 	elapsed := time.Since(pushStart)
 	return &common.FnOutput{
-		Success:   true,
-		Latency:   int(elapsed.Microseconds()),
-		BatchSize: input.BatchSize,
+		Success:      true,
+		AsyncLatency: -1,
+		Latency:      int(elapsed.Microseconds()),
+		BatchSize:    input.BatchSize,
+		SeqNums:      seqNums,
 	}, nil
 }
 
 func (h *asyncLogAppendOpHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
-	parsedInput := &common.AsyncLogAppendInput{}
+	parsedInput := &common.FnInput{}
 	err := json.Unmarshal(input, parsedInput)
 	if err != nil {
 		return nil, err
@@ -99,13 +117,14 @@ func (h *asyncLogAppendOpHandler) Call(ctx context.Context, input []byte) ([]byt
 	return common.CompressData(encodedOutput), nil
 }
 
-func asyncLogAppend(ctx context.Context, env types.Environment, input *common.AsyncLogAppendInput) (*common.FnOutput, error) {
+func asyncLogAppend(ctx context.Context, env types.Environment, input *common.FnInput) (*common.FnOutput, error) {
 	// prepare payload
 	payloads := make([]string, 0, input.BatchSize)
 	for i := 0; i < input.BatchSize; i++ {
 		payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
 		payloads = append(payloads, payload)
 	}
+	seqNums := make([]uint64, 0, input.BatchSize)
 	pushStart := time.Now()
 	// bench test case
 	tags := []uint64{1}
@@ -123,103 +142,183 @@ func asyncLogAppend(ctx context.Context, env types.Environment, input *common.As
 		futures = append(futures, future)
 		deps = []uint64{future.GetLocalId()}
 	}
+	asyncElapsed := time.Since(pushStart)
 	for _, future := range futures {
-		if err := future.Await(60 * time.Second); err != nil {
+		if seqNum, err := future.GetResult(); err != nil {
 			return &common.FnOutput{
 				Success: false,
 				Message: fmt.Sprintf("AsyncLogAppend await failed: %v", err),
 			}, nil
+		} else {
+			seqNums = append(seqNums, seqNum)
 		}
 	}
 	// record
 	elapsed := time.Since(pushStart)
 	return &common.FnOutput{
-		Success:   true,
-		Latency:   int(elapsed.Microseconds()),
-		BatchSize: input.BatchSize,
+		Success:      true,
+		AsyncLatency: int(asyncElapsed.Microseconds()),
+		Latency:      int(elapsed.Microseconds()),
+		BatchSize:    input.BatchSize,
+		SeqNums:      seqNums,
 	}, nil
 }
 
-// func asyncLogTestSync(ctx context.Context, h *asyncLogOpHandler, output string) string {
-// 	output += "test async log sync\n"
-// 	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
-// 	tags := []uint64{1}
-// 	tagsMeta := []types.TagMeta{
-// 		{
-// 			FsmType: 1,
-// 			TagKeys: []string{""},
-// 		},
-// 	}
-// 	for i := 0; i < 10; i++ {
-// 		data := []byte{byte(i)}
-// 		future, err := h.env.AsyncSharedLogAppend(ctx, tags, tagsMeta, data)
-// 		if err != nil {
-// 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
-// 			return output
-// 		}
-// 		asyncLogCtx.ChainFuture(future.GetLocalId())
-// 	}
-// 	err := asyncLogCtx.Sync(time.Second)
-// 	if err != nil {
-// 		output += fmt.Sprintf("[FAIL] async shared log sync error: %v\n", err)
-// 		return output
-// 	} else {
-// 		output += fmt.Sprintln("[PASS] async shared log sync succeed")
-// 	}
-// 	return output
-// }
+func (h *bokiLogReadHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	parsedInput := &common.FnInput{}
+	err := json.Unmarshal(input, parsedInput)
+	if err != nil {
+		return nil, err
+	}
+	output, err := bokiLogRead(ctx, h.env, parsedInput)
+	if err != nil {
+		return nil, err
+	}
+	encodedOutput, err := json.Marshal(output)
+	if err != nil {
+		panic(err)
+	}
+	return common.CompressData(encodedOutput), nil
+}
 
-// func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
-// 	output := "test async log ctx propagate\n"
-// 	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
-// 	tags := []uint64{1}
-// 	tagsMeta := []types.TagMeta{
-// 		{
-// 			FsmType: 1,
-// 			TagKeys: []string{""},
-// 		},
-// 	}
-// 	data := []byte{2}
-// 	future, err := h.env.AsyncSharedLogAppend(ctx, tags, tagsMeta, data)
-// 	if err != nil {
-// 		output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
-// 		return []byte(output), nil
-// 	}
-// 	asyncLogCtx.ChainStep(future.GetLocalId())
+func syncToForward(ctx context.Context, env types.Environment, headSeqNum uint64, tailSeqNum uint64) (time.Duration, error) {
+	popStart := time.Now()
+	tag := uint64(1)
+	seqNum := headSeqNum
+	if tailSeqNum < seqNum {
+		log.Fatalf("[FATAL] Current seqNum=%#016x, cannot sync to %#016x", seqNum, tailSeqNum)
+	}
+	for seqNum < tailSeqNum {
+		logEntry, err := env.SharedLogReadNext(ctx, tag, seqNum)
+		if err != nil {
+			return -1, err
+		}
+		if logEntry == nil || logEntry.SeqNum >= tailSeqNum {
+			break
+		}
+		seqNum = logEntry.SeqNum + 1
 
-// 	asyncLogCtxData, err := asyncLogCtx.Serialize()
-// 	if err != nil {
-// 		output += fmt.Sprintf("[FAIL] async shared log propagate serialize error: %v\n", err)
-// 		return []byte(output), nil
-// 	}
-// 	res, err := h.env.InvokeFunc(ctx, "AsyncLogOpChild", asyncLogCtxData)
-// 	return bytes.Join([][]byte{[]byte(output), res}, nil), err
-// }
+		// bussiness logics:
+		// logContent := decodeLogEntry(logEntry)
+		// ...
+	}
+	elapsed := time.Since(popStart)
+	return elapsed, nil
+}
+func bokiLogRead(ctx context.Context, env types.Environment, input *common.FnInput) (*common.FnOutput, error) {
+	output, err := bokiLogAppend(ctx, env, input)
+	if err != nil {
+		return nil, err
+	} else if !output.Success {
+		return output, nil
+	} else if err := common.AssertSeqNumOrder(output); err != nil {
+		// log appends issued from a single function should be ordered
+		// whether it is async or not
+		return &common.FnOutput{
+			Success: false,
+			Message: fmt.Sprintf("log order assertion failed: %v", err),
+		}, nil
+	}
+	seqNums := output.SeqNums
+	elapsed, err := syncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+	if err != nil {
+		return &common.FnOutput{
+			Success: false,
+			Message: fmt.Sprintf("syncToForward failed: %v", err),
+		}, nil
+	}
+	return &common.FnOutput{
+		Success:      true,
+		AsyncLatency: -1,
+		Latency:      int(elapsed.Microseconds()),
+		BatchSize:    input.BatchSize,
+		SeqNums:      seqNums,
+	}, nil
+}
 
-// func (h *asyncLogOpChildHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
-// 	output := "worker.asyncLogOpChildHandler.Call\n"
-// 	// list env
-// 	output += fmt.Sprintf("env.FAAS_ENGINE_ID=%v\n", os.Getenv("FAAS_ENGINE_ID"))
-// 	output += fmt.Sprintf("env.FAAS_CLIENT_ID=%v\n", os.Getenv("FAAS_CLIENT_ID"))
+func (h *asyncLogReadHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	parsedInput := &common.FnInput{}
+	err := json.Unmarshal(input, parsedInput)
+	if err != nil {
+		return nil, err
+	}
+	output, err := asyncLogRead(ctx, h.env, parsedInput)
+	if err != nil {
+		return nil, err
+	}
+	encodedOutput, err := json.Marshal(output)
+	if err != nil {
+		panic(err)
+	}
+	return common.CompressData(encodedOutput), nil
+}
 
-// 	asyncLogCtx, err := cayonlib.DeserializeAsyncLogContext(h.env, input)
-// 	if err != nil {
-// 		output += fmt.Sprintf("[FAIL] async shared log ctx propagate restore error: %v\n", err)
-// 		return []byte(output), nil
-// 	}
-// 	// DEBUG: print
-// 	output += fmt.Sprintf("async log ctx: %v\n", asyncLogCtx)
+func asyncToForward(ctx context.Context, env types.Environment,
+	headSeqNum uint64, tailSeqNum uint64) (time.Duration, time.Duration, error) {
 
-// 	err = asyncLogCtx.Sync(time.Second)
-// 	if err != nil {
-// 		output += fmt.Sprintf("[FAIL] async shared log remote sync error: %v\n", err)
-// 		return []byte(output), nil
-// 	} else {
-// 		output += fmt.Sprintln("[PASS] async shared log remote sync succeed")
-// 	}
-
-// 	return []byte(output), nil
-// }
+	popStart := time.Now()
+	futures := make([]types.Future[*types.CondLogEntry], 0, 100)
+	tag := uint64(1)
+	seqNum := headSeqNum
+	if tailSeqNum < seqNum {
+		log.Fatalf("[FATAL] Current seqNum=%#016x, cannot sync to %#016x", seqNum, tailSeqNum)
+	}
+	for seqNum < tailSeqNum {
+		logEntryFuture, err := env.AsyncSharedLogReadNext2(ctx, tag, seqNum)
+		if err != nil {
+			return -1, -1, err
+		}
+		logEntrySeqNum := logEntryFuture.GetLocalId()
+		if logEntryFuture == nil || logEntrySeqNum >= tailSeqNum {
+			break
+		}
+		seqNum = logEntrySeqNum + 1
+		futures = append(futures, logEntryFuture)
+	}
+	asyncElapsed := time.Since(popStart)
+	for _, logEntryFuture := range futures {
+		// logEntry, err := logEntryFuture.GetResult()
+		_, err := logEntryFuture.GetResult()
+		if err != nil {
+			return -1, -1, err
+		}
+		// bussiness logics:
+		// logContent := decodeLogEntry(logEntry)
+		// ...
+	}
+	elapsed := time.Since(popStart)
+	return asyncElapsed, elapsed, nil
+}
+func asyncLogRead(ctx context.Context, env types.Environment, input *common.FnInput) (*common.FnOutput, error) {
+	output, err := asyncLogAppend(ctx, env, input)
+	if err != nil {
+		return nil, err
+	} else if !output.Success {
+		return output, nil
+	} else if err := common.AssertSeqNumOrder(output); err != nil {
+		// log appends issued from a single function should be ordered
+		// whether it is async or not
+		return &common.FnOutput{
+			Success: false,
+			Message: fmt.Sprintf("log order assertion failed: %v", err),
+		}, nil
+	}
+	seqNums := output.SeqNums
+	asyncElapsed, elapsed, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+	if err != nil {
+		return &common.FnOutput{
+			Success: false,
+			Message: fmt.Sprintf("syncToForward failed: %v", err),
+		}, nil
+	}
+	return &common.FnOutput{
+		Success:      true,
+		AsyncLatency: int(asyncElapsed.Microseconds()),
+		Latency:      int(elapsed.Microseconds()),
+		BatchSize:    input.BatchSize,
+		SeqNums:      seqNums,
+	}, nil
+}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
