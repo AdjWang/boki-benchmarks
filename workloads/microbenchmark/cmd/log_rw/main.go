@@ -320,7 +320,7 @@ func asyncLogRead(ctx context.Context, env types.Environment, input *common.FnIn
 		if err != nil {
 			return &common.FnOutput{
 				Success: false,
-				Message: fmt.Sprintf("syncToForward failed: %v", err),
+				Message: fmt.Sprintf("asyncToForward failed: %v", err),
 			}, nil
 		}
 	}
@@ -328,7 +328,7 @@ func asyncLogRead(ctx context.Context, env types.Environment, input *common.FnIn
 	if err != nil {
 		return &common.FnOutput{
 			Success: false,
-			Message: fmt.Sprintf("syncToForward failed: %v", err),
+			Message: fmt.Sprintf("asyncToForward failed: %v", err),
 		}, nil
 	}
 	return &common.FnOutput{
