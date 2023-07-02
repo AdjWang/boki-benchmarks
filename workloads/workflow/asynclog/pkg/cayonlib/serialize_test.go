@@ -3,16 +3,11 @@ package cayonlib
 import (
 	"encoding/json"
 	"testing"
-
-	"cs.utexas.edu/zjia/faas/types"
 )
 
 func TestInputWrapperSerialize(t *testing.T) {
 	dummyAsyncLogCtx := DebugNewAsyncLogContext()
-	dummyFutureMeta := types.FutureMeta{
-		LocalId: 0,
-	}
-	dummyAsyncLogCtx.ChainStep(dummyFutureMeta)
+	dummyAsyncLogCtx.ChainStep(0 /*LocalId*/)
 	asyncLogCtxData, err := dummyAsyncLogCtx.Serialize()
 	if err != nil {
 		t.Fatal(err)

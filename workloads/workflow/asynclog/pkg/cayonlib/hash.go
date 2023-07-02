@@ -7,12 +7,10 @@ import (
 
 const IntentLogTag uint64 = 1
 
-func IntentLogTagMeta() []types.TagMeta {
-	return []types.TagMeta{
-		{
-			FsmType: FsmType_INTENTLOG,
-			TagKeys: []string{"1"},
-		},
+func IntentLogTagMeta() types.Tag {
+	return types.Tag{
+		StreamType: FsmType_INTENTLOG,
+		StreamId:   IntentLogTag,
 	}
 }
 

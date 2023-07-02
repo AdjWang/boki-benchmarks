@@ -181,7 +181,7 @@ func CondWrite(env *Env, tablename string, key string,
 	// resolve cond
 	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetLocalId())
 	CHECK(err)
-	if applied := ResolveLog(env, logEntry.Tags, logEntry.TagBuildMetas, logEntry.SeqNum); !applied {
+	if applied := ResolveLog(env, logEntry.Identifiers, logEntry.SeqNum); !applied {
 		// discarded
 		if ok := fnGetLoggedStepResult(preWriteLog); ok {
 			return

@@ -457,19 +457,17 @@ function test_workflow {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    echo "test singleop"
-    if [[ $BELDI_BASELINE == "0" ]]; then
-        timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
-            assert_should_success $LINENO
-    else
-        timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/bsingleop ||
-            assert_should_success $LINENO
-    fi
-    echo ""
-    # DEBUG
-    exit 0
-
-    if [[ $APP_NAME == "hotel" ]]; then
+    if [[ $APP_NAME == "singleop" ]]; then
+        echo "test singleop"
+        if [[ $BELDI_BASELINE == "0" ]]; then
+            timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
+                assert_should_success $LINENO
+        else
+            timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/bsingleop ||
+                assert_should_success $LINENO
+        fi
+        echo ""
+    elif [[ $APP_NAME == "hotel" ]]; then
         echo "test read (search) request"
         timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}}}' \
             http://localhost:9000/function/gateway ||
@@ -519,10 +517,10 @@ debug)
 build)
     build_boki
     # build_testcases
-    build_microbench
+    # build_microbench
     # build_queue
     # build_retwis
-    # build_workflow
+    build_workflow
     ;;
 push)
     echo "========== push docker images =========="
@@ -538,7 +536,7 @@ clean)
 run)
     # test_sharedlog
 
-    test_microbench
+    # test_microbench
     # test_queue
     # test_retwis
 
@@ -550,7 +548,7 @@ run)
     # test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
-    # test_workflow boki-singleop-asynclog
+    test_workflow boki-singleop-asynclog
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

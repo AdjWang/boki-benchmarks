@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -54,20 +53,20 @@ const (
 )
 
 type FsmHub interface {
-	GetOrCreateAbsFsm(fsmType uint8, tagKeys ...string) Fsm // Abs: Abstract
+	GetOrCreateAbsFsm(tag types.Tag) Fsm // Abs: Abstract
 	GetInstanceStepFsm() *IntentFsm
-	GetOrCreateLockFsm(lockId string) *LockFsm
+	GetOrCreateLockFsm(bokiTag uint64) *LockFsm
 	StoreBackLockFsm(fsm *LockFsm)
-	GetOrCreateTxnFsm(lambdaId string, txnId string) *TxnFsm
+	GetOrCreateTxnFsm(bokiTag uint64) *TxnFsm
 	StoreBackTxnFsm(fsm *TxnFsm)
 }
 type FsmHubImpl struct {
 	env *Env
 	// raw fsms required by bokiflow apps
 	stepFsm       *IntentFsm
-	lockFsms      map[string]*LockFsm
+	lockFsms      map[uint64]*LockFsm
 	lockFsmsMutex sync.RWMutex
-	txnFsms       map[string]*TxnFsm
+	txnFsms       map[uint64]*TxnFsm
 	txnFsmsMutex  sync.RWMutex
 	// abstracted fsms required by dependency tracking
 	absFsms map[uint64]Fsm
@@ -94,52 +93,42 @@ func (fsmhub *FsmHubImpl) String() string {
 }
 
 func NewFsmHub(env *Env) FsmHub {
-	stepFsm := NewIntentFsm(env.InstanceId)
+	stepFsm := NewIntentFsm(IntentStepStreamTag(env.InstanceId))
 	stepFsm.Catch(env)
 	return &FsmHubImpl{
 		env:           env,
 		stepFsm:       stepFsm,
-		lockFsms:      make(map[string]*LockFsm),
+		lockFsms:      make(map[uint64]*LockFsm),
 		lockFsmsMutex: sync.RWMutex{},
-		txnFsms:       make(map[string]*TxnFsm),
+		txnFsms:       make(map[uint64]*TxnFsm),
 		txnFsmsMutex:  sync.RWMutex{},
 		absFsms:       make(map[uint64]Fsm),
 	}
 }
 
 // Fsm is only used by depdency tracking, Env should use fsm raw allocators
-func (fsmhub *FsmHubImpl) GetOrCreateAbsFsm(fsmType uint8, tagKeys ...string) Fsm {
-	assertTagKeysNum := func(fsmType uint8, lenTagKeys int, requiredNum int) {
-		if len(tagKeys) != requiredNum {
-			panic(fmt.Sprintf("invalid fsm: %v tag keys: %v, requiring %v",
-				fsmType, strings.Join(tagKeys, ", "), requiredNum))
-		}
-	}
-
+func (fsmhub *FsmHubImpl) GetOrCreateAbsFsm(tag types.Tag) Fsm {
+	fsmType, bokiTag := tag.StreamType, tag.StreamId
 	switch fsmType {
 	case FsmType_STEPSTREAM:
-		assertTagKeysNum(fsmType, len(tagKeys), 1)
-		if fsmhub.stepFsm.instanceId == tagKeys[0] {
+		if fsmhub.stepFsm.bokiTag == tag.StreamId {
 			return fsmhub.stepFsm
 		} else {
-			if fsm, ok := fsmhub.absFsms[IntentStepStreamTag(tagKeys[0])]; ok {
+			if fsm, ok := fsmhub.absFsms[bokiTag]; ok {
 				return fsm
 			} else {
-				newAbsFsm := NewIntentFsm(tagKeys[0])
-				fsmhub.absFsms[IntentStepStreamTag(tagKeys[0])] = newAbsFsm
+				newAbsFsm := NewIntentFsm(bokiTag)
+				fsmhub.absFsms[bokiTag] = newAbsFsm
 				return newAbsFsm
 			}
 		}
 	case FsmType_INTENTLOG:
-		assertTagKeysNum(fsmType, len(tagKeys), 1)
 		// not necessary for now
 		panic("not implemented")
 	case FsmType_TRANSACTIONSTREAM:
-		assertTagKeysNum(fsmType, len(tagKeys), 2)
-		return fsmhub.GetOrCreateTxnFsm(tagKeys[0], tagKeys[1])
+		return fsmhub.GetOrCreateTxnFsm(bokiTag)
 	case FsmType_LOCKSTREAM:
-		assertTagKeysNum(fsmType, len(tagKeys), 1)
-		return fsmhub.GetOrCreateLockFsm(tagKeys[0])
+		return fsmhub.GetOrCreateLockFsm(bokiTag)
 	default:
 		panic("unreachable")
 	}
@@ -149,42 +138,42 @@ func (fsmhub *FsmHubImpl) GetInstanceStepFsm() *IntentFsm {
 	return fsmhub.stepFsm
 }
 
-func (fsmhub *FsmHubImpl) GetOrCreateLockFsm(lockId string) *LockFsm {
+func (fsmhub *FsmHubImpl) GetOrCreateLockFsm(bokiTag uint64) *LockFsm {
 	fsmhub.lockFsmsMutex.RLock()
-	fsm, exists := fsmhub.lockFsms[lockId]
+	fsm, exists := fsmhub.lockFsms[bokiTag]
 	fsmhub.lockFsmsMutex.RUnlock()
 	if exists {
 		return fsm
 	} else {
-		return NewLockFsm(lockId)
+		return NewLockFsm(bokiTag)
 	}
 }
 
 func (fsmhub *FsmHubImpl) StoreBackLockFsm(fsm *LockFsm) {
 	fsmhub.lockFsmsMutex.Lock()
-	current, exists := fsmhub.lockFsms[fsm.lockId]
+	current, exists := fsmhub.lockFsms[fsm.bokiTag]
 	if !exists || current.GetTailSeqNum() < fsm.GetTailSeqNum() {
-		fsmhub.lockFsms[fsm.lockId] = fsm
+		fsmhub.lockFsms[fsm.bokiTag] = fsm
 	}
 	fsmhub.lockFsmsMutex.Unlock()
 }
 
-func (fsmhub *FsmHubImpl) GetOrCreateTxnFsm(lambdaId string, txnId string) *TxnFsm {
+func (fsmhub *FsmHubImpl) GetOrCreateTxnFsm(bokiTag uint64) *TxnFsm {
 	fsmhub.txnFsmsMutex.RLock()
-	fsm, exists := fsmhub.txnFsms[lambdaId+"-"+txnId]
+	fsm, exists := fsmhub.txnFsms[bokiTag]
 	fsmhub.txnFsmsMutex.RUnlock()
 	if exists {
 		return fsm
 	} else {
-		return NewTxnFsm(lambdaId, txnId)
+		return NewTxnFsm(bokiTag)
 	}
 }
 
 func (fsmhub *FsmHubImpl) StoreBackTxnFsm(fsm *TxnFsm) {
 	fsmhub.txnFsmsMutex.Lock()
-	current, exists := fsmhub.lockFsms[fsm.LambdaId+"-"+fsm.TxnId]
+	current, exists := fsmhub.lockFsms[fsm.bokiTag]
 	if !exists || current.GetTailSeqNum() < fsm.GetTailSeqNum() {
-		fsmhub.txnFsms[fsm.LambdaId+"-"+fsm.TxnId] = fsm
+		fsmhub.txnFsms[fsm.bokiTag] = fsm
 	}
 	fsmhub.txnFsmsMutex.Unlock()
 }

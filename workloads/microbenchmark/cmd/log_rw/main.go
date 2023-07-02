@@ -127,12 +127,11 @@ func asyncLogAppend(ctx context.Context, env types.Environment, input *common.Fn
 	seqNums := make([]uint64, 0, input.BatchSize)
 	pushStart := time.Now()
 	// bench test case
-	tags := []uint64{1}
-	tagsMeta := []types.TagMeta{{FsmType: 1, TagKeys: []string{""}}}
+	tags := []types.Tag{{StreamType: 1, StreamId: uint64(1)}}
 	futures := make([]types.Future[uint64], 0, len(payloads))
 	deps := []uint64{}
 	for _, payload := range payloads {
-		future, err := env.AsyncSharedLogCondAppend(ctx, tags, tagsMeta, []byte(payload), deps)
+		future, err := env.AsyncSharedLogAppendWithDeps(ctx, tags, []byte(payload), deps)
 		if err != nil {
 			return &common.FnOutput{
 				Success: false,
@@ -144,7 +143,7 @@ func asyncLogAppend(ctx context.Context, env types.Environment, input *common.Fn
 	}
 	asyncElapsed := time.Since(pushStart)
 	for _, future := range futures {
-		if seqNum, err := future.GetResult(); err != nil {
+		if seqNum, err := future.GetResult(common.Timeout); err != nil {
 			return &common.FnOutput{
 				Success: false,
 				Message: fmt.Sprintf("AsyncLogAppend await failed: %v", err),
@@ -267,7 +266,7 @@ func asyncToForward(ctx context.Context, env types.Environment,
 	headSeqNum uint64, tailSeqNum uint64) (time.Duration, time.Duration, error) {
 
 	popStart := time.Now()
-	futures := make([]types.Future[*types.CondLogEntry], 0, 100)
+	futures := make([]types.Future[*types.LogEntryWithMeta], 0, 100)
 	tag := uint64(1)
 	seqNum := headSeqNum
 	if tailSeqNum < seqNum {
@@ -288,7 +287,7 @@ func asyncToForward(ctx context.Context, env types.Environment,
 	asyncElapsed := time.Since(popStart)
 	for _, logEntryFuture := range futures {
 		// logEntry, err := logEntryFuture.GetResult()
-		_, err := logEntryFuture.GetResult()
+		_, err := logEntryFuture.GetResult(common.Timeout)
 		if err != nil {
 			return -1, -1, err
 		}

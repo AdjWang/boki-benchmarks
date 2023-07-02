@@ -22,7 +22,6 @@ type IntentLogEntry struct {
 }
 
 type IntentFsm struct {
-	instanceId string
 	stepNumber int32
 	FsmCommon[IntentLogEntry]
 	stepLogs     map[int32]*IntentLogEntry
@@ -30,11 +29,10 @@ type IntentFsm struct {
 }
 
 // Implement Fsm and FsmReceiver
-func NewIntentFsm(instanceId string) *IntentFsm {
+func NewIntentFsm(bokiTag uint64) *IntentFsm {
 	this := &IntentFsm{
-		instanceId:   instanceId,
 		stepNumber:   0,
-		FsmCommon:    NewEmptyFsmCommon[IntentLogEntry](),
+		FsmCommon:    NewEmptyFsmCommon[IntentLogEntry](bokiTag),
 		stepLogs:     make(map[int32]*IntentLogEntry),
 		postStepLogs: make(map[int32]*IntentLogEntry),
 	}
@@ -42,13 +40,13 @@ func NewIntentFsm(instanceId string) *IntentFsm {
 	return this
 }
 
-func (fsm *IntentFsm) ApplyLog(logEntry *types.CondLogEntry) bool {
+func (fsm *IntentFsm) ApplyLog(logEntry *types.LogEntryWithMeta) bool {
 	decoded, err := snappy.Decode(nil, logEntry.Data)
 	CHECK(err)
 	var intentLog IntentLogEntry
 	err = json.Unmarshal(decoded, &intentLog)
 	CHECK(err)
-	if intentLog.InstanceId == fsm.instanceId {
+	if IntentStepStreamTag(intentLog.InstanceId) == fsm.bokiTag {
 		// log.Printf("[INFO] Found my log: seqnum=%d, step=%d", logEntry.SeqNum, intentLog.StepNumber)
 		intentLog.SeqNum = logEntry.SeqNum
 		fsm.applyLog(&intentLog)
@@ -87,10 +85,6 @@ func (fsm *IntentFsm) applyLog(intentLog *IntentLogEntry) {
 	}
 }
 
-func (fsm *IntentFsm) GetTag() uint64 {
-	return IntentStepStreamTag(fsm.instanceId)
-}
-
 func (fsm *IntentFsm) GetTailSeqNum() uint64 {
 	return fsm.tail.SeqNum
 }
@@ -124,13 +118,9 @@ func AsyncProposeNextStep(env *Env, data aws.JSONValue, depLocalId uint64) (type
 		PostStep:   false,
 		Data:       data,
 	}
-	future := LibAsyncAppendLog(env, IntentStepStreamTag(env.InstanceId),
-		[]types.TagMeta{
-			{
-				FsmType: FsmType_STEPSTREAM,
-				TagKeys: []string{env.InstanceId},
-			},
-		},
+	future := LibAsyncAppendLog(
+		env,
+		types.Tag{StreamType: FsmType_STEPSTREAM, StreamId: IntentStepStreamTag(env.InstanceId)},
 		&intentLog,
 		depLocalId,
 	)
@@ -138,13 +128,9 @@ func AsyncProposeNextStep(env *Env, data aws.JSONValue, depLocalId uint64) (type
 }
 
 func AsyncLogStepResult(env *Env, instanceId string, stepNumber int32, data aws.JSONValue, depLocalId uint64) types.Future[uint64] {
-	return LibAsyncAppendLog(env, IntentStepStreamTag(instanceId),
-		[]types.TagMeta{
-			{
-				FsmType: FsmType_STEPSTREAM,
-				TagKeys: []string{instanceId},
-			},
-		},
+	return LibAsyncAppendLog(
+		env,
+		types.Tag{StreamType: FsmType_STEPSTREAM, StreamId: IntentStepStreamTag(instanceId)},
 		&IntentLogEntry{
 			InstanceId: instanceId,
 			StepNumber: stepNumber,
@@ -168,8 +154,8 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 	return env.FsmHub.GetInstanceStepFsm().GetPostStepLog(stepNumber)
 }
 
-func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, depLocalId uint64) {
-	future := LibAsyncAppendLog(env, tag, tagMeta, data, depLocalId)
+func LibSyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uint64) {
+	future := LibAsyncAppendLog(env, tag, data, depLocalId)
 	env.AsyncLogCtx.ChainStep(future.GetLocalId())
 	// sync until receives index
 	// If the async log is not propagated to a different engine, waiting for
@@ -184,11 +170,11 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 	// CHECK(err)
 }
 
-func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, depLocalId uint64) types.Future[uint64] {
+func LibAsyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uint64) types.Future[uint64] {
 	serializedData, err := json.Marshal(data)
 	CHECK(err)
 	encoded := snappy.Encode(nil, serializedData)
-	future, err := env.FaasEnv.AsyncSharedLogCondAppend(env.FaasCtx, []uint64{tag}, tagMeta, encoded, []uint64{depLocalId})
+	future, err := env.FaasEnv.AsyncSharedLogAppendWithDeps(env.FaasCtx, []types.Tag{tag}, encoded, []uint64{depLocalId})
 	CHECK(err)
 	return future
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -13,6 +14,8 @@ import (
 	"cs.utexas.edu/zjia/faas/types"
 	"github.com/eniac/Beldi/pkg/cayonlib"
 )
+
+const timeout = time.Second * 60
 
 type basicLogOpHandler struct {
 	env types.Environment
@@ -187,17 +190,16 @@ func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output string) string {
 	output += "test async log append read\n"
 	var seqNumAppended uint64
-	tags := []uint64{1}
-	tagsMeta := []types.TagMeta{
+	tags := []types.Tag{
 		{
-			FsmType: 1,
-			TagKeys: []string{""},
+			StreamType: 1,
+			StreamId:   1,
 		},
 	}
 	data := []byte{1, 2, 3}
 	var lastFuture types.Future[uint64]
 	{
-		future, err := h.env.AsyncSharedLogAppend(ctx, tags, tagsMeta, data)
+		future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
@@ -206,7 +208,7 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 			if err := future.Await(time.Second); err != nil {
 				output += fmt.Sprintf("[FAIL] async shared log verify error: %v\n", err)
 				return output
-			} else if seqNum, err := future.GetResult(); err == nil {
+			} else if seqNum, err := future.GetResult(timeout); err == nil {
 				output += fmt.Sprintf("[PASS] async shared log append seqNum: 0x%016X\n", seqNum)
 				seqNumAppended = seqNum
 			} else {
@@ -216,15 +218,17 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 		}
 		lastFuture = future
 	}
+	log.Printf("[INFO] async append with local id: 0x%016X", lastFuture.GetLocalId())
 	{
 		condLogEntry, err := h.env.AsyncSharedLogRead(ctx, lastFuture.GetLocalId())
+		log.Printf("[INFO] async read with local id: 0x%016X response: %+v, %v", lastFuture.GetLocalId(), condLogEntry, err)
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log read error: %v\n", err)
 			return output
 		} else {
 			res, passed := assertLogEntry("async shared log read", &condLogEntry.LogEntry, &types.LogEntry{
 				SeqNum:  seqNumAppended,
-				Tags:    tags,
+				Tags:    []uint64{1}, // the same as which in []tags
 				Data:    data,
 				AuxData: []byte{},
 			})
@@ -241,22 +245,21 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, output string) string {
 	output += "test async log cond append read\n"
 	var seqNumAppended uint64
-	tags := []uint64{1}
-	tagsMeta := []types.TagMeta{
+	tags := []types.Tag{
 		{
-			FsmType: 1,
-			TagKeys: []string{""},
+			StreamType: 1,
+			StreamId:   1,
 		},
 	}
 	data := []byte{4, 5, 6}
 	var lastFuture types.Future[uint64]
 	{
-		preFuture, err := h.env.AsyncSharedLogAppend(ctx, tags, tagsMeta, []byte{1, 2, 3})
+		preFuture, err := h.env.AsyncSharedLogAppend(ctx, tags, []byte{1, 2, 3})
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
 		}
-		future, err := h.env.AsyncSharedLogCondAppend(ctx, tags, tagsMeta, data, []uint64{preFuture.GetLocalId()})
+		future, err := h.env.AsyncSharedLogAppendWithDeps(ctx, tags, data, []uint64{preFuture.GetLocalId()})
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
@@ -265,7 +268,7 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 			if err := future.Await(time.Second); err != nil {
 				output += fmt.Sprintf("[FAIL] async shared log verify error: %v\n", err)
 				return output
-			} else if seqNum, err := future.GetResult(); err == nil {
+			} else if seqNum, err := future.GetResult(timeout); err == nil {
 				output += fmt.Sprintf("[PASS] async shared log append seqNum: 0x%016X\n", seqNum)
 				seqNumAppended = seqNum
 			} else {
@@ -283,7 +286,7 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 		} else {
 			res, passed := assertLogEntry("async shared log read", &condLogEntry.LogEntry, &types.LogEntry{
 				SeqNum:  seqNumAppended,
-				Tags:    tags,
+				Tags:    []uint64{1}, // the same as which in []tags
 				Data:    data,
 				AuxData: []byte{},
 			})
@@ -300,16 +303,15 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 func asyncLogTestSync(ctx context.Context, h *asyncLogOpHandler, output string) string {
 	output += "test async log sync\n"
 	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
-	tags := []uint64{1}
-	tagsMeta := []types.TagMeta{
+	tags := []types.Tag{
 		{
-			FsmType: 1,
-			TagKeys: []string{""},
+			StreamType: 1,
+			StreamId:   1,
 		},
 	}
 	for i := 0; i < 10; i++ {
 		data := []byte{byte(i)}
-		future, err := h.env.AsyncSharedLogAppend(ctx, tags, tagsMeta, data)
+		future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 			return output
@@ -338,15 +340,14 @@ func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 
 	output += "test async log ctx propagate\n"
 	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
-	tags := []uint64{1}
-	tagsMeta := []types.TagMeta{
+	tags := []types.Tag{
 		{
-			FsmType: 1,
-			TagKeys: []string{""},
+			StreamType: 1,
+			StreamId:   1,
 		},
 	}
 	data := []byte{2}
-	future, err := h.env.AsyncSharedLogAppend(ctx, tags, tagsMeta, data)
+	future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
 	if err != nil {
 		output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
 		return []byte(output), nil
@@ -435,5 +436,6 @@ func (h *benchHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
 }
 
 func main() {
+	log.SetFlags(log.Lshortfile)
 	faas.Serve(&funcHandlerFactory{})
 }

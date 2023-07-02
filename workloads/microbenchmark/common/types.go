@@ -1,5 +1,7 @@
 package common
 
+import "time"
+
 // type QueueInitInput struct {
 // 	QueueNames []string `json:"queueNames"`
 // }
@@ -37,3 +39,5 @@ type FnInput struct {
 	BatchSize   int  `json:"batchSize"`
 	ReadCached  bool `json:"readCached"`
 }
+
+const Timeout = time.Second * 60

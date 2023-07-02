@@ -188,12 +188,11 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 		AsyncLogCtxPropagator: "", // assign later
 	}
 	if iw.Instruction == "EXECUTE" {
-		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId),
-			[]types.TagMeta{
-				{
-					FsmType: FsmType_TRANSACTIONSTREAM,
-					TagKeys: []string{env.LambdaId, env.TxnId},
-				},
+		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(
+			env,
+			types.Tag{
+				StreamType: FsmType_TRANSACTIONSTREAM,
+				StreamId:   TransactionStreamTag(env.LambdaId, env.TxnId),
 			},
 			&TxnLogEntry{
 				LambdaId: env.LambdaId,
@@ -278,12 +277,11 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 		AsyncLogCtxPropagator: "", // assign later
 	}
 	if iw.Instruction == "EXECUTE" {
-		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId),
-			[]types.TagMeta{
-				{
-					FsmType: FsmType_TRANSACTIONSTREAM,
-					TagKeys: []string{env.LambdaId, env.TxnId},
-				},
+		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(
+			env,
+			types.Tag{
+				StreamType: FsmType_TRANSACTIONSTREAM,
+				StreamId:   TransactionStreamTag(env.LambdaId, env.TxnId),
 			},
 			&TxnLogEntry{
 				LambdaId: env.LambdaId,
@@ -390,7 +388,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	var intentLogFuture types.Future[uint64]
 	if !iw.Async || iw.CallerName == "" {
 		// not async or outer call
-		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
+		intentLogFuture = LibAsyncAppendLog(env, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
 			"DONE":       false,
 			"ASYNC":      iw.Async,
@@ -398,7 +396,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			"ST":         time.Now().Unix(),
 		}, env.AsyncLogCtx.GetLastStepLocalId())
 	} else {
-		intentLogFuture = LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
+		intentLogFuture = LibAsyncAppendLog(env, IntentLogTagMeta(), aws.JSONValue{
 			"InstanceId": env.InstanceId,
 			"ST":         time.Now().Unix(),
 		}, env.AsyncLogCtx.GetLastStepLocalId())
@@ -437,7 +435,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 			"output": output,
 		}, env.AsyncLogCtx.GetLastStepLocalId()).GetLocalId())
 	}
-	env.AsyncLogCtx.ChainFuture(LibAsyncAppendLog(env, IntentLogTag, IntentLogTagMeta(), aws.JSONValue{
+	env.AsyncLogCtx.ChainFuture(LibAsyncAppendLog(env, IntentLogTagMeta(), aws.JSONValue{
 		"InstanceId": env.InstanceId,
 		"DONE":       true,
 		"TS":         time.Now().Unix(),
