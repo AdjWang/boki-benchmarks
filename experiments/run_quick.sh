@@ -31,30 +31,18 @@ BASE_DIR=$ROOT_DIR/experiments/microbenchmark
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# $BASE_DIR/run_once.sh wc100b1 "write" 100 1
-# $BASE_DIR/run_once.sh wc100b10 "write" 100 10
-$BASE_DIR/run_once.sh rc100b1 "read" 100 1
-$BASE_DIR/run_once.sh rc100b10 "read" 100 10
-$BASE_DIR/run_once.sh rc100b100 "read" 100 100
+$BASE_DIR/run_once.sh wc100b1 "write" 100 1
+$BASE_DIR/run_once.sh wc100b10 "write" 100 10
+$BASE_DIR/run_once.sh wc100b100 "write" 100 100
+$BASE_DIR/run_once.sh wc500b10 "write" 500 10
+$BASE_DIR/run_once.sh wc1000b10 "write" 1000 10
+
+# $BASE_DIR/run_once.sh rc100b1 "read" 100 1
+# $BASE_DIR/run_once.sh rc100b10 "read" 100 10
+# $BASE_DIR/run_once.sh rc100b100 "read" 100 100
 $BASE_DIR/run_once.sh rcachedc100b1 "read_cached" 100 1
 $BASE_DIR/run_once.sh rcachedc100b10 "read_cached" 100 10
 $BASE_DIR/run_once.sh rcachedc100b100 "read_cached" 100 100
-
-# # $BASE_DIR/run_once.sh c100b1 100 1
-# # $BASE_DIR/run_once.sh c100b10 100 10
-# # $BASE_DIR/run_once.sh c100b100 100 100
-
-# $BASE_DIR/run_once.sh c300b10 300 10
-# $BASE_DIR/run_once.sh c500b10 500 10
-# $BASE_DIR/run_once.sh c700b10 700 10
-
-# $BASE_DIR/run_once.sh c500b1 500 1
-# $BASE_DIR/run_once.sh c500b5 500 5
-# # $BASE_DIR/run_once.sh c500b10 500 10
-# $BASE_DIR/run_once.sh c500b30 500 30
-# $BASE_DIR/run_once.sh c500b50 500 50
-# # $BASE_DIR/run_once.sh c500b10 500 10
-# # $BASE_DIR/run_once.sh c1000b100 1000 100
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"
@@ -170,6 +158,24 @@ echo ""
 
 if [[ ! -z $RUN_WORKFLOW_BOKI ]] && [[ $RUN_WORKFLOW_BOKI == "y" ]]; then
 echo "====== Start running BokiFlow experiments ======"
+
+BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-baseline
+
+$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+$BASE_DIR/run_once.sh qps100 100
+
+$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+
+
+BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-asynclog
+
+$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+$BASE_DIR/run_once.sh qps100 100
+
+$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+
 
 BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-baseline
 

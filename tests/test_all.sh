@@ -268,19 +268,19 @@ function test_microbench {
     # curl -s -X POST -d '{"PayloadSize":1024,"BatchSize":1}' http://localhost:9000/function/benchAsyncLogRead | gunzip
 
     set -x
-    $BENCH_SRC_DIR/bin/benchmark \
-        --faas_gateway=localhost:9000 --bench_case="write" \
-        --batch_size=10 --concurrency=10 \
-        --payload_size=1024 --duration=3
+    # $BENCH_SRC_DIR/bin/benchmark \
+    #     --faas_gateway=localhost:9000 --bench_case="write" \
+    #     --batch_size=10 --concurrency=10 \
+    #     --payload_size=1024 --duration=3
 
-    $BENCH_SRC_DIR/bin/benchmark \
-        --faas_gateway=localhost:9000 --bench_case="read" \
-        --batch_size=10 --concurrency=10 \
-        --payload_size=1024 --duration=3
+    # $BENCH_SRC_DIR/bin/benchmark \
+    #     --faas_gateway=localhost:9000 --bench_case="read" \
+    #     --batch_size=10 --concurrency=10 \
+    #     --payload_size=1024 --duration=3
 
     $BENCH_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --bench_case="read_cached" \
-        --batch_size=10 --concurrency=10 \
+        --batch_size=100 --concurrency=2 \
         --payload_size=1024 --duration=3
 }
 
@@ -519,10 +519,10 @@ debug)
 build)
     build_boki
     # build_testcases
-    # build_microbench
+    build_microbench
     # build_queue
     # build_retwis
-    build_workflow
+    # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
@@ -538,7 +538,7 @@ clean)
 run)
     # test_sharedlog
 
-    # test_microbench
+    test_microbench
     # test_queue
     # test_retwis
 
@@ -548,7 +548,7 @@ run)
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
-    test_workflow beldi-singleop-baseline
+    # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
     # test_workflow boki-singleop-asynclog
     ;;
