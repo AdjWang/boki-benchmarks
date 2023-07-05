@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -232,8 +232,8 @@ function test_sharedlog {
     timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
         assert_should_success $LINENO
 
-    echo "run bench"
-    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/Bench ||
+    echo "run sharded aux data operations"
+    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/ShardedAuxData ||
         assert_should_success $LINENO
 
     echo "check docker status"
@@ -516,11 +516,11 @@ debug)
     ;;
 build)
     build_boki
-    # build_testcases
+    build_testcases
     # build_microbench
     # build_queue
     # build_retwis
-    build_workflow
+    # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
@@ -534,7 +534,7 @@ clean)
     cleanup
     ;;
 run)
-    # test_sharedlog
+    test_sharedlog
 
     # test_microbench
     # test_queue
@@ -548,7 +548,7 @@ run)
     # test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
-    test_workflow boki-singleop-asynclog
+    # test_workflow boki-singleop-asynclog
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"
