@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"cs.utexas.edu/zjia/faas"
+	"cs.utexas.edu/zjia/faas/protocol"
 	"cs.utexas.edu/zjia/faas/types"
 	"github.com/eniac/Beldi/pkg/cayonlib"
 )
@@ -423,14 +424,14 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 		}
 	}
 	{
-		logEntry, err := h.env.AsyncSharedLogCheckTailWithAux(ctx, tags[0].StreamId)
+		logEntry, err := h.env.AsyncSharedLogReadPrevWithAux(ctx, tags[0].StreamId, protocol.MaxLogSeqnum)
 		if err != nil {
-			output += fmt.Sprintf("[FAIL] async shared log check tail error: %v\n", err)
+			output += fmt.Sprintf("[FAIL] async shared log check tail with aux error: %v\n", err)
 			return []byte(output), nil
 		} else if logEntry == nil {
-			output += "[PASS] async shared log check tail return nil because no aux data\n"
+			output += "[PASS] async shared log check tail with aux return nil because no aux data\n"
 		} else {
-			output += fmt.Sprintf("[FAIL] async shared log check tail should return nil: %+v\n", logEntry)
+			output += fmt.Sprintf("[FAIL] async shared log check tail with aux should return nil: %+v\n", logEntry)
 			return []byte(output), nil
 		}
 	}
@@ -446,16 +447,16 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 	}
 
 	{
-		logEntry, err := h.env.AsyncSharedLogCheckTailWithAux(ctx, tags[0].StreamId)
+		logEntry, err := h.env.AsyncSharedLogReadPrevWithAux(ctx, tags[0].StreamId, protocol.MaxLogSeqnum)
 		// logEntry, err := h.env.AsyncSharedLogReadPrev(ctx, tags[0].StreamId, protocol.MaxLogSeqnum)
 		if err != nil {
-			output += fmt.Sprintf("[FAIL] async shared log check tail error: %v\n", err)
+			output += fmt.Sprintf("[FAIL] async shared log check tail with aux error: %v\n", err)
 			return []byte(output), nil
 		} else if logEntry == nil {
-			output += "[FAIL] async shared log check tail not found\n"
+			output += "[FAIL] async shared log check tail with aux not found\n"
 			return []byte(output), nil
 		} else {
-			res, passed := assertLogEntry("async shared log check tail", &logEntry.LogEntry, &types.LogEntry{
+			res, passed := assertLogEntry("async shared log check tail with aux", &logEntry.LogEntry, &types.LogEntry{
 				SeqNum:  seqNum,
 				Tags:    []uint64{1},
 				Data:    data,
@@ -468,14 +469,14 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 		}
 	}
 	{
-		logEntry, err := h.env.AsyncSharedLogCheckTailWithAux(ctx, 999)
+		logEntry, err := h.env.AsyncSharedLogReadPrevWithAux(ctx, 999, protocol.MaxLogSeqnum)
 		if err != nil {
-			output += fmt.Sprintf("[FAIL] async shared log check tail error: %v\n", err)
+			output += fmt.Sprintf("[FAIL] async shared log check tail with aux error: %v\n", err)
 			return []byte(output), nil
 		} else if logEntry == nil {
-			output += "[PASS] async shared log check tail return nil because no aux data\n"
+			output += "[PASS] async shared log check tail with aux return nil because no aux data\n"
 		} else {
-			output += fmt.Sprintf("[FAIL] async shared log check tail should return nil: %+v\n", logEntry)
+			output += fmt.Sprintf("[FAIL] async shared log check tail with aux should return nil: %+v\n", logEntry)
 			return []byte(output), nil
 		}
 	}

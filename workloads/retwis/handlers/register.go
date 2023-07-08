@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
@@ -49,13 +50,20 @@ func NewMongoRegisterHandler(env types.Environment) types.FuncHandler {
 }
 
 func registerSlib(ctx context.Context, env types.Environment, input *RegisterInput) (*RegisterOutput, error) {
-	store := statestore.CreateEnv(ctx, env)
-	nextUserIdObj := store.Object("next_user_id")
-	result := nextUserIdObj.NumberFetchAdd("value", 1)
-	if result.Err != nil {
-		return nil, result.Err
-	}
-	userIdValue := uint32(result.Value.AsNumber())
+	// // DEBUG
+	// log.Println("[DEBUG] Register fetch-add user id")
+
+	// store := statestore.CreateEnv(ctx, env)
+	// nextUserIdObj := store.Object("next_user_id")
+	// result := nextUserIdObj.NumberFetchAdd("value", 1)
+	// if result.Err != nil {
+	// 	return nil, result.Err
+	// }
+	// userIdValue := uint32(result.Value.AsNumber())
+	userIdValue := uint32(9)
+
+	// DEBUG
+	log.Printf("[DEBUG] Register add user: %v:%v to store", userIdValue, input.UserName)
 
 	txn, err := statestore.CreateTxnEnv(ctx, env)
 	if err != nil {
@@ -81,6 +89,9 @@ func registerSlib(ctx context.Context, env types.Environment, input *RegisterInp
 	userObj.MakeObject("followers")
 	userObj.MakeObject("followees")
 	userObj.MakeArray("posts", 0)
+
+	// DEBUG
+	log.Printf("[DEBUG] Register add user commit")
 
 	if committed, err := txn.TxnCommit(); err != nil {
 		return nil, err

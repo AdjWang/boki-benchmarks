@@ -357,6 +357,13 @@ function test_retwis {
     set -x
     # init
     curl -X POST http://localhost:9000/function/RetwisInit
+
+    # DEBUG
+    curl -X POST -d '{"username":"testuser_1","password":"123456"}' http://localhost:9000/function/RetwisRegister
+    # curl -X POST -d '{"username":"testuser_2","password":"123456"}' http://localhost:9000/function/RetwisRegister
+    curl -X POST -d '{"username":"testuser_1","password":"123456"}' http://localhost:9000/function/RetwisRegister
+    exit 0
+
     # create users
     $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
     # run benchmark
@@ -527,8 +534,8 @@ push)
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
-    # docker push adjwang/boki-retwisbench:dev
-    docker push adjwang/boki-beldibench:dev
+    docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
