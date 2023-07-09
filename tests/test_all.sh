@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -359,10 +359,10 @@ function test_retwis {
     curl -X POST http://localhost:9000/function/RetwisInit
 
     # DEBUG
-    curl -X POST -d '{"username":"testuser_1","password":"123456"}' http://localhost:9000/function/RetwisRegister
+    # curl -X POST -d '{"username":"testuser_1","password":"123456"}' http://localhost:9000/function/RetwisRegister
     # curl -X POST -d '{"username":"testuser_2","password":"123456"}' http://localhost:9000/function/RetwisRegister
-    curl -X POST -d '{"username":"testuser_1","password":"123456"}' http://localhost:9000/function/RetwisRegister
-    exit 0
+    # curl -X POST -d '{"username":"testuser_1","password":"123456"}' http://localhost:9000/function/RetwisRegister
+    # exit 0
 
     # create users
     $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
@@ -523,10 +523,10 @@ debug)
     ;;
 build)
     build_boki
-    build_testcases
+    # build_testcases
     # build_microbench
     # build_queue
-    # build_retwis
+    build_retwis
     # build_workflow
     ;;
 push)
@@ -541,11 +541,11 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
 
     # test_microbench
     # test_queue
-    # test_retwis
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

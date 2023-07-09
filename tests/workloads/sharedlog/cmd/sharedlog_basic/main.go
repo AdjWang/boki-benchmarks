@@ -391,18 +391,48 @@ func (h *asyncLogOpChildHandler) Call(ctx context.Context, input []byte) ([]byte
 func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
 	output := "worker.shardedAuxDataHandler.Call\n"
 
-	tags := []types.Tag{{StreamType: 0, StreamId: 1}}
+	// use tag 2 to avoid data unmarshal error by previous set sync log aux data
+	tags := []types.Tag{{StreamType: 0, StreamId: 2}}
 	data := []byte{1, 2, 3}
-
-	future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
-	if err != nil {
-		output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
-		return []byte(output), nil
+	seqNum1, seqNum2, seqNum3 := uint64(0), uint64(0), uint64(0)
+	{
+		future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+			return []byte(output), nil
+		}
+		seqNum, err := future.GetResult(60 * time.Second)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append get result error: %v\n", err)
+			return []byte(output), nil
+		}
+		seqNum1 = seqNum
 	}
-	seqNum, err := future.GetResult(60 * time.Second)
-	if err != nil {
-		output += fmt.Sprintf("[FAIL] async shared log append get result error: %v\n", err)
-		return []byte(output), nil
+	{
+		future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+			return []byte(output), nil
+		}
+		seqNum, err := future.GetResult(60 * time.Second)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append get result error: %v\n", err)
+			return []byte(output), nil
+		}
+		seqNum2 = seqNum
+	}
+	{
+		future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+			return []byte(output), nil
+		}
+		seqNum, err := future.GetResult(60 * time.Second)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log append get result error: %v\n", err)
+			return []byte(output), nil
+		}
+		seqNum3 = seqNum
 	}
 
 	{
@@ -412,8 +442,8 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 			return []byte(output), nil
 		} else {
 			res, passed := assertLogEntry("async shared log check tail", &logEntry.LogEntry, &types.LogEntry{
-				SeqNum:  seqNum,
-				Tags:    []uint64{1},
+				SeqNum:  seqNum3,
+				Tags:    []uint64{2},
 				Data:    data,
 				AuxData: []byte{},
 			})
@@ -436,9 +466,18 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 		}
 	}
 
-	auxData := []byte{7, 8, 9}
 	{
-		if err := h.env.AsyncSharedLogSetAuxData(ctx, tags[0].StreamId, seqNum, auxData); err != nil {
+		auxData := []byte{10, 11, 12}
+		if err := h.env.AsyncSharedLogSetAuxData(ctx, tags[0].StreamId, seqNum2, auxData); err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log set aux data error: %v\n", err)
+			return []byte(output), nil
+		} else {
+			output += fmt.Sprintf("[PASS] async shared log set aux data=%v\n", auxData)
+		}
+	}
+	{
+		auxData := []byte{7, 8, 9}
+		if err := h.env.AsyncSharedLogSetAuxData(ctx, tags[0].StreamId, seqNum1, auxData); err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log set aux data error: %v\n", err)
 			return []byte(output), nil
 		} else {
@@ -457,8 +496,30 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 			return []byte(output), nil
 		} else {
 			res, passed := assertLogEntry("async shared log check tail with aux", &logEntry.LogEntry, &types.LogEntry{
-				SeqNum:  seqNum,
-				Tags:    []uint64{1},
+				SeqNum:  seqNum2,
+				Tags:    []uint64{2},
+				Data:    data,
+				AuxData: []byte{10, 11, 12},
+			})
+			output += res
+			if !passed {
+				return []byte(output), nil
+			}
+		}
+	}
+	{
+		logEntry, err := h.env.AsyncSharedLogReadPrevWithAux(ctx, tags[0].StreamId, seqNum1)
+		// logEntry, err := h.env.AsyncSharedLogReadPrev(ctx, tags[0].StreamId, protocol.MaxLogSeqnum)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] async shared log check tail with aux error: %v\n", err)
+			return []byte(output), nil
+		} else if logEntry == nil {
+			output += "[FAIL] async shared log check tail with aux not found\n"
+			return []byte(output), nil
+		} else {
+			res, passed := assertLogEntry("async shared log check tail with aux", &logEntry.LogEntry, &types.LogEntry{
+				SeqNum:  seqNum1,
+				Tags:    []uint64{2},
 				Data:    data,
 				AuxData: []byte{7, 8, 9},
 			})
