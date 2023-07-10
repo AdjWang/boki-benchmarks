@@ -88,6 +88,7 @@ func registerSlib(ctx context.Context, env types.Environment, input *RegisterInp
 		return &RegisterOutput{
 			Success: true,
 			UserId:  userId,
+			Message: fmt.Sprintf("registerSlib username: %v, userid: %s", input.UserName, userId),
 		}, nil
 	} else {
 		return &RegisterOutput{

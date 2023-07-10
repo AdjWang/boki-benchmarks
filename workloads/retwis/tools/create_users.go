@@ -44,6 +44,7 @@ func createUsers() {
 		if result.Result.Success {
 			numSuccess++
 		}
+		// log.Println(result.Result.Message)
 	}
 	if numSuccess < FLAGS_num_users {
 		log.Printf("[ERROR] %d UserRegister requests failed", FLAGS_num_users-numSuccess)
@@ -95,7 +96,7 @@ func createFollowers() {
 }
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.Llongfile)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	flag.Parse()
 	createUsers()

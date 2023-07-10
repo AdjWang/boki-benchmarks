@@ -47,6 +47,26 @@ func NewMongoFollowHandler(env types.Environment) types.FuncHandler {
 	}
 }
 
+// DEBUG
+// func followSlib(ctx context.Context, env types.Environment, input *FollowInput) (*FollowOutput, error) {
+// 	txn, err := statestore.CreateReadOnlyTxnEnv(ctx, env)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	for i := 1; i <= 10; i++ {
+// 		userObj1 := txn.Object(fmt.Sprintf("userid:%08x", i))
+// 		if value, _ := userObj1.Get("username"); !value.IsNull() {
+// 			username := value.AsString()
+// 			log.Printf("[DEBUG] ListUsers userid=%d, username=%s", i, username)
+// 		} else {
+// 			log.Fatalf("[DEBUG] ListUsers userid=%d, username=nil", i)
+// 		}
+// 	}
+// 	return &FollowOutput{
+// 		Success: true,
+// 	}, nil
+// }
+
 func followSlib(ctx context.Context, env types.Environment, input *FollowInput) (*FollowOutput, error) {
 	txn, err := statestore.CreateTxnEnv(ctx, env)
 	if err != nil {

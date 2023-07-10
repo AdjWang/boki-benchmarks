@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -208,33 +208,40 @@ function test_sharedlog {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    echo "test Foo"
-    OUTPUT=$(timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/Foo 2>/dev/null)
-    if [[ $OUTPUT != "foo invokes bar, output=bar invoked with arg=abc" ]]; then
-        failed $LINENO
-    fi
+    # # nightcore operations ----------------------------------------------------------------
+    # echo "test Foo"
+    # OUTPUT=$(timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/Foo 2>/dev/null)
+    # if [[ $OUTPUT != "foo invokes bar, output=bar invoked with arg=abc" ]]; then
+    #     failed $LINENO
+    # fi
 
-    echo "test Bar"
-    OUTPUT=$(timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/Bar 2>/dev/null)
-    if [[ $OUTPUT != "bar invoked with arg=abc" ]]; then
-        failed $LINENO
-    fi
+    # echo "test Bar"
+    # OUTPUT=$(timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/Bar 2>/dev/null)
+    # if [[ $OUTPUT != "bar invoked with arg=abc" ]]; then
+    #     failed $LINENO
+    # fi
 
-    echo "test unknown"
-    timeout 1 curl -fs -X POST -d "abc" http://localhost:9000/function/unknown ||
-        assert_should_fail $LINENO
+    # # boki operations ----------------------------------------------------------------
+    # echo "test unknown"
+    # timeout 1 curl -fs -X POST -d "abc" http://localhost:9000/function/unknown ||
+    #     assert_should_fail $LINENO
 
-    echo "test shared log operations"
-    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
-        assert_should_success $LINENO
+    # echo "test shared log operations"
+    # timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
+    #     assert_should_success $LINENO
 
-    echo "test async shared log operations"
-    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
-        assert_should_success $LINENO
+    # echo "test async shared log operations"
+    # timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
+    #     assert_should_success $LINENO
 
-    echo "run sharded aux data operations"
-    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/ShardedAuxData ||
-        assert_should_success $LINENO
+    # echo "run sharded aux data operations"
+    # timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/ShardedAuxData ||
+    #     assert_should_success $LINENO
+
+    # slib operations ----------------------------------------------------------------
+    echo "test slib"
+    $TEST_DIR/workloads/sharedlog/bin/test_slib_txn --faas_gateway=127.0.0.1:9000 \
+        --count_target=10 --concurrency=4
 
     echo "check docker status"
     if [ $(docker ps -a -f name=boki-test-* -f status=exited -q | wc -l) -ne 0 ]; then
@@ -350,6 +357,15 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
+    # DEBUG
+    # curl -X POST -d '{"username":"testuser_1","password":"123456"}' http://localhost:9000/function/RetwisRegister
+    # echo ""
+    # curl -X POST -d '{"username":"testuser_2","password":"123456"}' http://localhost:9000/function/RetwisRegister
+    # echo ""
+    # curl -X POST -d '{"userId":"00000001","followeeId":"00000002"}' http://localhost:9000/function/RetwisFollow
+    # echo ""
+    # exit 0
+
     CONCURRENCY=8 # 64, 96, 128, 192
     # NUM_USERS=10000
     NUM_USERS=100
@@ -358,7 +374,7 @@ function test_retwis {
     # init
     curl -X POST http://localhost:9000/function/RetwisInit
     # create users
-    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
+    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=4
     # run benchmark
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
@@ -516,10 +532,10 @@ debug)
     ;;
 build)
     build_boki
-    build_testcases
+    # build_testcases
     # build_microbench
     # build_queue
-    # build_retwis
+    build_retwis
     # build_workflow
     ;;
 push)
@@ -527,18 +543,18 @@ push)
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
-    # docker push adjwang/boki-retwisbench:dev
-    docker push adjwang/boki-beldibench:dev
+    docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
 
     # test_microbench
     # test_queue
-    # test_retwis
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

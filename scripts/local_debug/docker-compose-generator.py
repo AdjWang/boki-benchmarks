@@ -470,6 +470,34 @@ sharedlog_funcs_f = """\
       - boki-engine-{node_id}
     # restart: always
 
+  sharedlog-StatestoreTxnExec-{node_id}:
+    image: adjwang/boki-tests:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/test-bin/sharedlog/slib", "7"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  sharedlog-StatestoreTxnCheck-{node_id}:
+    image: adjwang/boki-tests:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "/test-bin/sharedlog/slib", "8"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
 """
 
 retwis_funcs_f = """\
@@ -1042,7 +1070,7 @@ if __name__ == '__main__':
     METALOG_REPLICAS = args.metalog_reps
     USERLOG_REPLICAS = args.userlog_reps
     INDEX_REPLICAS = args.index_reps
-    VERBOSE = 1
+    VERBOSE = 0
     IO_URING_ENTRIES = 64
     IO_URING_FD_SLOTS = 1024
     FUNC_ENV = "- DBENV=LOCAL"

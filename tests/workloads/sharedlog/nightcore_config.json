@@ -4,5 +4,7 @@
     { "funcName": "BasicLogOp", "funcId": 3, "minWorkers": 1, "maxWorkers": 32 },
     { "funcName": "AsyncLogOp", "funcId": 4, "minWorkers": 1, "maxWorkers": 32 },
     { "funcName": "AsyncLogOpChild", "funcId": 5, "minWorkers": 1, "maxWorkers": 32 },
-    { "funcName": "ShardedAuxData", "funcId": 6, "minWorkers": 1, "maxWorkers": 32 }
+    { "funcName": "ShardedAuxData", "funcId": 6, "minWorkers": 1, "maxWorkers": 32 },
+    { "funcName": "StatestoreTxnExec", "funcId": 7, "minWorkers": 32, "maxWorkers": 32 },
+    { "funcName": "StatestoreTxnCheck", "funcId": 8, "minWorkers": 1, "maxWorkers": 32 }
 ]
