@@ -159,37 +159,22 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 	}
 	latencies := make([]int, 0, 128)
 	startTime := time.Now()
-	// messages := make([]string, 0, 128)
-	numMessages := make([]int, 0, 128)
 	for time.Since(startTime) < duration {
 		var err error
-		// var payload string
-		var payloads []string
+		var payload string
 		popStart := time.Now()
-		// if input.FixedShard != -1 {
-		// 	payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
-		// } else {
-		// 	if input.BlockingPop {
-		// 		payload, err = q.PopBlocking()
-		// 	} else {
-		// 		payload, err = q.Pop()
-		// 	}
-		// }
-		payloads, err = q.BatchPop(10)
+		if input.FixedShard != -1 {
+			payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
+		} else {
+			if input.BlockingPop {
+				payload, err = q.PopBlocking()
+			} else {
+				payload, err = q.Pop()
+			}
+		}
 		// elapsed := time.Since(popStart)
 		if err != nil {
 			if sync.IsQueueEmptyError(err) {
-				if payloads != nil && len(payloads) > 0 {
-					maxDelay := time.Duration(0)
-					for _, payload := range payloads {
-						delay := time.Since(utils.ParseTime(payload))
-						if maxDelay < delay {
-							maxDelay = delay
-						}
-					}
-					latencies = append(latencies, int(maxDelay.Microseconds()))
-					numMessages = append(numMessages, len(payloads))
-				}
 				time.Sleep(popStart.Add(interval).Sub(time.Now()))
 				continue
 			} else if sync.IsQueueTimeoutError(err) {
@@ -202,26 +187,13 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 				}, nil
 			}
 		}
-		// delay := time.Since(utils.ParseTime(payload))
-		// latencies = append(latencies, int(delay.Microseconds()))
-		maxDelay := time.Duration(0)
-		for _, payload := range payloads {
-			delay := time.Since(utils.ParseTime(payload))
-			if maxDelay < delay {
-				maxDelay = delay
-			}
-		}
-		latencies = append(latencies, int(maxDelay.Microseconds()))
-		numMessages = append(numMessages, len(payloads))
-		// messages = append(messages, utils.ParseSeqNum(payload))
-
+		delay := time.Since(utils.ParseTime(payload))
+		latencies = append(latencies, int(delay.Microseconds()))
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
 	return &common.FnOutput{
 		Success:   true,
 		Duration:  time.Since(startTime).Seconds(),
 		Latencies: latencies,
-		// Message:   strings.Join(messages, ","),
-		NumMessages: numMessages,
 	}, nil
 }

@@ -312,10 +312,10 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=2
-    INTERVAL1=800 # ms
-    INTERVAL2=500 # ms
-    NUM_PRODUCER=2
+    NUM_SHARDS=1
+    INTERVAL1=200 # ms
+    INTERVAL2=200 # ms
+    NUM_PRODUCER=1
     NUM_CONSUMER=2
 
     set -x
@@ -324,8 +324,8 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
-        --consumer_fix_shard=true \
-        --payload_size=1024 --duration=3
+        --payload_size=40 --duration=30
+        # --consumer_fix_shard=true \
 }
 
 function test_retwis {
