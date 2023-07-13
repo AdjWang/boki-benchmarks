@@ -10,6 +10,7 @@ require (
 require (
 	github.com/aws/aws-sdk-go v1.34.6 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/enriquebris/goconcurrentqueue v0.7.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
