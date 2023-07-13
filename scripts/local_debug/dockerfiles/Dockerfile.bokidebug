@@ -16,6 +16,9 @@ FROM ubuntu:focal as release
 # RUN apt update && \
 #     apt install -y curl
 
+# DEBUG
+RUN apt update && apt install -y gdb
+
 COPY ./worker /src/boki/worker
 COPY ./slib /src/boki/slib
 
