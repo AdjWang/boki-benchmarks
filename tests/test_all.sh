@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -314,7 +314,7 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=1
+    NUM_SHARDS=2
     INTERVAL1=200 # ms
     INTERVAL2=200 # ms
     NUM_PRODUCER=1
@@ -326,7 +326,7 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
-        --payload_size=40 --duration=3
+        --payload_size=40 --duration=30
         # --consumer_fix_shard=true \
 }
 
@@ -518,9 +518,9 @@ debug)
     ;;
 build)
     build_boki
-    build_testcases
+    # build_testcases
     # build_microbench
-    # build_queue
+    build_queue
     # build_retwis
     # build_workflow
     ;;
@@ -536,10 +536,10 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
 
     # test_microbench
-    # test_queue
+    test_queue
     # test_retwis
 
     # test_workflow beldi-hotel-baseline
