@@ -456,6 +456,15 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \\
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
+mkdir -p $EXP_DIR/logs/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/fn_output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/fn_output.tar.gz /tmp
+    mkdir -p $EXP_DIR/logs/fn_output/$HOST
+    tar -xzf /tmp/fn_output.tar.gz -C $EXP_DIR/logs/fn_output/$HOST
+    rm /tmp/fn_output.tar.gz
+done
+
 """
 
 retwis_docker_compose_f = """\

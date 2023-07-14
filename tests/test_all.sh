@@ -317,8 +317,8 @@ function test_queue {
     NUM_SHARDS=2
     INTERVAL1=200 # ms
     INTERVAL2=200 # ms
-    NUM_PRODUCER=1
-    NUM_CONSUMER=2
+    NUM_PRODUCER=32
+    NUM_CONSUMER=32
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -326,7 +326,7 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
-        --payload_size=40 --duration=30
+        --payload_size=40 --duration=10
         # --consumer_fix_shard=true \
 }
 

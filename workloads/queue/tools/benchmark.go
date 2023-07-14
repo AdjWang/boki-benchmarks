@@ -161,7 +161,7 @@ func main() {
 			MaxIdleConns:    FLAGS_num_producer + FLAGS_num_consumer,
 			IdleConnTimeout: 30 * time.Second,
 		},
-		Timeout: time.Duration(FLAGS_duration*10) * time.Second,
+		Timeout: time.Duration(FLAGS_duration*2) * time.Second,
 	}
 
 	var wg sync.WaitGroup

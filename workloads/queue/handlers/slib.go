@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -41,6 +42,7 @@ type QueueIface interface {
 	Pop() (string /* payload */, error)
 	BatchPop(n int) ([]string /* payloads */, error)
 	PopBlocking() (string /* payload */, error)
+	GetProfInfo() []string
 }
 
 func (h *slibProducerHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
@@ -138,6 +140,12 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 		// sleep for `interval`
 		time.Sleep(time.Until(pushStart.Add(interval)))
 	}
+
+	// PROF
+	for _, profInfo := range q.GetProfInfo() {
+		log.Printf("prof=[%v]\n", profInfo)
+	}
+
 	return &common.FnOutput{
 		Success:     true,
 		Duration:    time.Since(startTime).Seconds(),
@@ -191,6 +199,12 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 		latencies = append(latencies, int(delay.Microseconds()))
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
+
+	// PROF
+	for _, profInfo := range q.GetProfInfo() {
+		log.Printf("prof=[%v]\n", profInfo)
+	}
+
 	return &common.FnOutput{
 		Success:   true,
 		Duration:  time.Since(startTime).Seconds(),
