@@ -317,8 +317,8 @@ function test_queue {
     NUM_SHARDS=2
     INTERVAL1=200 # ms
     INTERVAL2=200 # ms
-    NUM_PRODUCER=1
-    NUM_CONSUMER=2
+    NUM_PRODUCER=32
+    NUM_CONSUMER=32
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \

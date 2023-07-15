@@ -1046,7 +1046,7 @@ if __name__ == '__main__':
     METALOG_REPLICAS = args.metalog_reps
     USERLOG_REPLICAS = args.userlog_reps
     INDEX_REPLICAS = args.index_reps
-    VERBOSE = 0
+    VERBOSE = 1
     IO_URING_ENTRIES = 64
     IO_URING_FD_SLOTS = 1024
     FUNC_ENV = "- DBENV=LOCAL"
