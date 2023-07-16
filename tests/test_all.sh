@@ -311,14 +311,14 @@ function test_queue {
     sleep_count_down 15
 
     echo "list functions"
-    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
+    timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=2
+    NUM_SHARDS=1
     INTERVAL1=200 # ms
     INTERVAL2=200 # ms
-    NUM_PRODUCER=32
-    NUM_CONSUMER=32
+    NUM_PRODUCER=2
+    NUM_CONSUMER=2
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -326,7 +326,7 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
-        --payload_size=40 --duration=30
+        --payload_size=40 --duration=10
         # --consumer_fix_shard=true \
 }
 

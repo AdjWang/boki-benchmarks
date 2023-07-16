@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"cs.utexas.edu/zjia/faas-queue/common"
+	"github.com/pkg/errors"
 )
 
 func JsonPostRequest(client *http.Client, url string, request interface{}, response interface{}) error {
@@ -17,7 +18,7 @@ func JsonPostRequest(client *http.Client, url string, request interface{}, respo
 	}
 	resp, err := client.Post(url, "application/json", bytes.NewReader(encoded))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "url=%v, data=%v", url, string(encoded))
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
