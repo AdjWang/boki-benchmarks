@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go v1.37.20
 	github.com/google/uuid v1.2.0
 	github.com/montanaflynn/stats v0.6.3
+	github.com/pkg/errors v0.9.1
 )
 
 require (
@@ -35,7 +36,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/pierrec/lz4 v2.0.5+incompatible // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.7.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.10.0 // indirect

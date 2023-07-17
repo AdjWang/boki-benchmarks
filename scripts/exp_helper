@@ -366,7 +366,7 @@ def collect_container_logs_main(base_dir, log_path):
     def collect_container_log(machine_info):
         if machine_info['role'] == 'client':
             return
-        container_ids, _ = run_remote_command(machine_info['dns'], ['docker', 'ps', '-q'])
+        container_ids, _ = run_remote_command(machine_info['dns'], ['docker', 'ps', '-aq'])
         container_ids = container_ids.strip().split()
         for container_id in container_ids:
             container_info, _ = run_remote_command(

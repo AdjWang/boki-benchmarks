@@ -11,7 +11,7 @@ import (
 	"cs.utexas.edu/zjia/faas-queue/common"
 	"cs.utexas.edu/zjia/faas-queue/utils"
 
-	"cs.utexas.edu/zjia/faas/slib/sync"
+	sync "cs.utexas.edu/zjia/faas/slib/asyncqueue"
 	"cs.utexas.edu/zjia/faas/types"
 )
 
@@ -37,9 +37,9 @@ func NewSlibConsumerHandler(env types.Environment) types.FuncHandler {
 
 type QueueIface interface {
 	Push(payload string) error
-	BatchPush(payloads []string) error
+	// BatchPush(payloads []string) error
 	Pop() (string /* payload */, error)
-	BatchPop(n int) ([]string /* payloads */, error)
+	// BatchPop(n int) ([]string /* payloads */, error)
 	PopBlocking() (string /* payload */, error)
 }
 
@@ -117,12 +117,7 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 			payloads[i] = utils.FormatTime(pushStart) + payloads[i]
 		}
 		// push to queue
-		var err error
-		if len(payloads) == 1 {
-			err = q.Push(payloads[0])
-		} else {
-			err = q.BatchPush(payloads)
-		}
+		err := q.Push(payloads[0])
 		elapsed := time.Since(pushStart)
 		if err != nil {
 			return &common.FnOutput{
