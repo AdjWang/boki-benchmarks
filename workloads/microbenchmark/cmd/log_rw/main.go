@@ -277,11 +277,10 @@ func asyncToForward(ctx context.Context, env types.Environment,
 		if err != nil {
 			return -1, -1, err
 		}
-		logEntrySeqNum := logEntryFuture.GetLocalId()
-		if logEntryFuture == nil || logEntrySeqNum >= tailSeqNum {
+		if logEntryFuture == nil || logEntryFuture.GetSeqNum() >= tailSeqNum {
 			break
 		}
-		seqNum = logEntrySeqNum + 1
+		seqNum = logEntryFuture.GetSeqNum() + 1
 		futures = append(futures, logEntryFuture)
 	}
 	asyncElapsed := time.Since(popStart)

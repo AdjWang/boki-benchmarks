@@ -314,11 +314,11 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=64
+    NUM_SHARDS=16
     INTERVAL1=20 # ms
     INTERVAL2=10 # ms
-    NUM_PRODUCER=16
-    NUM_CONSUMER=64
+    NUM_PRODUCER=4
+    NUM_CONSUMER=16
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -327,7 +327,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=10
+        --payload_size=40 --duration=30
 }
 
 function test_retwis {
@@ -517,7 +517,7 @@ debug)
     debug $LINENO
     ;;
 build)
-    build_boki
+    # build_boki
     # build_testcases
     # build_microbench
     build_queue
@@ -526,7 +526,7 @@ build)
     ;;
 push)
     echo "========== push docker images =========="
-    docker push adjwang/boki:dev
+    # docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
     docker push adjwang/boki-queuebench:dev
     # docker push adjwang/boki-retwisbench:dev

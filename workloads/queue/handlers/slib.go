@@ -3,15 +3,17 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"log"
 	"os"
+	"runtime/pprof"
 	"time"
 
 	"cs.utexas.edu/zjia/faas-queue/common"
 	"cs.utexas.edu/zjia/faas-queue/utils"
+	"github.com/pkg/errors"
 
-	sync "cs.utexas.edu/zjia/faas/slib/asyncqueue"
+	"cs.utexas.edu/zjia/faas/slib/sync"
 	"cs.utexas.edu/zjia/faas/types"
 )
 
@@ -41,6 +43,7 @@ type QueueIface interface {
 	Pop() (string /* payload */, error)
 	// BatchPop(n int) ([]string /* payloads */, error)
 	PopBlocking() (string /* payload */, error)
+	GetProfInfo() []string
 }
 
 func (h *slibProducerHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
@@ -142,6 +145,14 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 }
 
 func consumerSlib(ctx context.Context, env types.Environment, input *common.ConsumerFnInput) (*common.FnOutput, error) {
+	profileName := fmt.Sprintf("/tmp/boki/output/queue_consumer_profile_%v", input.QueueName)
+	cpuProfile, err := os.Create(profileName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "create cpu profile failed at path: %v", profileName)
+	}
+	pprof.StartCPUProfile(cpuProfile)
+	defer pprof.StopCPUProfile()
+
 	duration := time.Duration(input.Duration) * time.Second
 	interval := time.Duration(input.IntervalMs) * time.Millisecond
 	// halfInterval := time.Duration(input.IntervalMs/2) * time.Millisecond
@@ -156,18 +167,21 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 	startTime := time.Now()
 	for time.Since(startTime) < duration {
 		var err error
-		var payload string
+		// var payload string
 		popStart := time.Now()
 		if input.FixedShard != -1 {
-			payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
+			// payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
+			_, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
 		} else {
 			if input.BlockingPop {
-				payload, err = q.PopBlocking()
+				// payload, err = q.PopBlocking()
+				_, err = q.PopBlocking()
 			} else {
-				payload, err = q.Pop()
+				// payload, err = q.Pop()
+				_, err = q.Pop()
 			}
 		}
-		// elapsed := time.Since(popStart)
+		elapsed := time.Since(popStart)
 		if err != nil {
 			if sync.IsQueueEmptyError(err) {
 				time.Sleep(popStart.Add(interval).Sub(time.Now()))
@@ -182,10 +196,15 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 				}, nil
 			}
 		}
-		delay := time.Since(utils.ParseTime(payload))
-		latencies = append(latencies, int(delay.Microseconds()))
+		// delay := time.Since(utils.ParseTime(payload))
+		// latencies = append(latencies, int(delay.Microseconds()))
+		latencies = append(latencies, int(elapsed.Microseconds()))
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
+
+	// PROF
+	log.Printf("prof=[%v]\n", q.GetProfInfo())
+
 	return &common.FnOutput{
 		Success:   true,
 		Duration:  time.Since(startTime).Seconds(),
