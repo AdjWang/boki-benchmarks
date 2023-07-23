@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -236,6 +236,14 @@ function test_sharedlog {
     timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/ShardedAuxData ||
         assert_should_success $LINENO
 
+    echo "run sync to operations"
+    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/SyncToOp ||
+        assert_should_success $LINENO
+
+    echo "run sync to future operations"
+    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/SyncToFutureOp ||
+        assert_should_success $LINENO
+
     echo "check docker status"
     if [ $(docker ps -a -f name=boki-test-* -f status=exited -q | wc -l) -ne 0 ]; then
         failed $LINENO
@@ -297,12 +305,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=1 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 queue
+    setup_env 3 3 1 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -315,8 +323,8 @@ function test_queue {
         assert_should_success $LINENO
 
     NUM_SHARDS=16
-    INTERVAL1=20 # ms
-    INTERVAL2=10 # ms
+    INTERVAL1=80 # ms
+    INTERVAL2=20 # ms
     NUM_PRODUCER=4
     NUM_CONSUMER=16
 
@@ -326,8 +334,8 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
-        --consumer_fix_shard=true \
         --payload_size=40 --duration=30
+        # --consumer_fix_shard=true \
 }
 
 function test_retwis {
@@ -517,7 +525,7 @@ debug)
     debug $LINENO
     ;;
 build)
-    # build_boki
+    build_boki
     # build_testcases
     # build_microbench
     build_queue
@@ -526,7 +534,7 @@ build)
     ;;
 push)
     echo "========== push docker images =========="
-    # docker push adjwang/boki:dev
+    docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
     docker push adjwang/boki-queuebench:dev
     # docker push adjwang/boki-retwisbench:dev

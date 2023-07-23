@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"runtime/pprof"
 	"time"
@@ -13,7 +12,7 @@ import (
 	"cs.utexas.edu/zjia/faas-queue/utils"
 	"github.com/pkg/errors"
 
-	"cs.utexas.edu/zjia/faas/slib/sync"
+	sync "cs.utexas.edu/zjia/faas/slib/asyncqueue"
 	"cs.utexas.edu/zjia/faas/types"
 )
 
@@ -43,7 +42,7 @@ type QueueIface interface {
 	Pop() (string /* payload */, error)
 	// BatchPop(n int) ([]string /* payloads */, error)
 	PopBlocking() (string /* payload */, error)
-	GetProfInfo() []string
+	// GetProfInfo() []string
 }
 
 func (h *slibProducerHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
@@ -203,7 +202,7 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 	}
 
 	// PROF
-	log.Printf("prof=[%v]\n", q.GetProfInfo())
+	// log.Printf("prof=[%v]\n", q.GetProfInfo())
 
 	return &common.FnOutput{
 		Success:   true,
