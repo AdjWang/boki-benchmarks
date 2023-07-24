@@ -283,15 +283,15 @@ function test_microbench {
     #     --batch_size=10 --concurrency=10 \
     #     --payload_size=1024 --duration=3
 
-    # $BENCH_SRC_DIR/bin/benchmark \
-    #     --faas_gateway=localhost:9000 --bench_case="read" \
-    #     --batch_size=10 --concurrency=10 \
-    #     --payload_size=1024 --duration=3
-
     $BENCH_SRC_DIR/bin/benchmark \
-        --faas_gateway=localhost:9000 --bench_case="read_cached" \
-        --batch_size=100 --concurrency=2 \
-        --payload_size=1024 --duration=3
+        --faas_gateway=localhost:9000 --bench_case="read" \
+        --batch_size=10 --concurrency=10 \
+        --payload_size=1024 --duration=30
+
+    # $BENCH_SRC_DIR/bin/benchmark \
+    #     --faas_gateway=localhost:9000 --bench_case="read_cached" \
+    #     --batch_size=100 --concurrency=2 \
+    #     --payload_size=1024 --duration=3
 }
 
 function test_queue {
@@ -324,7 +324,7 @@ function test_queue {
 
     NUM_SHARDS=16
     INTERVAL1=80 # ms
-    INTERVAL2=20 # ms
+    INTERVAL2=60 # ms
     NUM_PRODUCER=1
     NUM_CONSUMER=16
 
@@ -334,7 +334,7 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
-        --payload_size=40 --duration=5
+        --payload_size=40 --duration=10
         # --consumer_fix_shard=true \
 }
 

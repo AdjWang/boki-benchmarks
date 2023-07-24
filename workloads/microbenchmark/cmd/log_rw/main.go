@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"cs.utexas.edu/zjia/faas"
+	"cs.utexas.edu/zjia/faas/protocol"
 	"cs.utexas.edu/zjia/faas/types"
 	"cs.utexas.edu/zjia/microbenchmark/common"
 	"cs.utexas.edu/zjia/microbenchmark/utils"
@@ -204,6 +205,47 @@ func syncToForward(ctx context.Context, env types.Environment, headSeqNum uint64
 	elapsed := time.Since(popStart)
 	return elapsed, nil
 }
+func syncToForwardU(ctx context.Context, env types.Environment, headSeqNum uint64, tailSeqNum uint64) (time.Duration, error) {
+	popStart := time.Now()
+	logStream := env.SharedLogReadNextUntil(ctx, 1 /*tag*/, types.LogEntryIndex{LocalId: protocol.InvalidLogLocalId, SeqNum: tailSeqNum})
+	doneCh := make(chan struct{})
+	errCh := make(chan error)
+	go func(ctx context.Context) {
+		for {
+			var logEntry *types.LogEntry
+			select {
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
+			default:
+				logStreamEntry, err := logStream.DequeueOrWaitForNextElement()
+				if err != nil {
+					errCh <- ctx.Err()
+					return
+				}
+				logEntry = logStreamEntry.(types.LogStreamEntry[types.LogEntry]).LogEntry
+				err = logStreamEntry.(types.LogStreamEntry[types.LogEntry]).Err
+				if err != nil {
+					errCh <- ctx.Err()
+					return
+				}
+			}
+			if logEntry == nil {
+				doneCh <- struct{}{}
+				break
+			}
+			log.Printf("[DEBUG] got logEntry seqnum=%016X", logEntry.SeqNum)
+		}
+	}(ctx)
+	select {
+	case <-doneCh:
+		elapsed := time.Since(popStart)
+		return elapsed, nil
+	case err := <-errCh:
+		elapsed := time.Since(popStart)
+		return elapsed, err
+	}
+}
 func bokiLogRead(ctx context.Context, env types.Environment, input *common.FnInput) (*common.FnOutput, error) {
 	output, err := bokiLogAppend(ctx, env, input)
 	if err != nil {
@@ -221,15 +263,15 @@ func bokiLogRead(ctx context.Context, env types.Environment, input *common.FnInp
 	seqNums := output.SeqNums
 	if input.ReadCached {
 		// fill cache
-		_, err := syncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
-		if err != nil {
-			return &common.FnOutput{
-				Success: false,
-				Message: fmt.Sprintf("syncToForward failed: %v", err),
-			}, nil
-		}
+		// _, err := syncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+		// if err != nil {
+		// 	return &common.FnOutput{
+		// 		Success: false,
+		// 		Message: fmt.Sprintf("syncToForward failed: %v", err),
+		// 	}, nil
+		// }
 	}
-	elapsed, err := syncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+	elapsed, err := syncToForwardU(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
 	if err != nil {
 		return &common.FnOutput{
 			Success: false,
@@ -313,14 +355,15 @@ func asyncLogRead(ctx context.Context, env types.Environment, input *common.FnIn
 	}
 	seqNums := output.SeqNums
 	if input.ReadCached {
+		// FIXME: cache miss may only happens on cross engine append/read
 		// fill cache
-		_, _, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
-		if err != nil {
-			return &common.FnOutput{
-				Success: false,
-				Message: fmt.Sprintf("asyncToForward failed: %v", err),
-			}, nil
-		}
+		// _, _, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+		// if err != nil {
+		// 	return &common.FnOutput{
+		// 		Success: false,
+		// 		Message: fmt.Sprintf("asyncToForward failed: %v", err),
+		// 	}, nil
+		// }
 	}
 	asyncElapsed, elapsed, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
 	if err != nil {
