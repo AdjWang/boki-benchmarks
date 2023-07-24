@@ -322,11 +322,11 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=16
+    NUM_SHARDS=32
     INTERVAL1=80 # ms
     INTERVAL2=60 # ms
-    NUM_PRODUCER=1
-    NUM_CONSUMER=16
+    NUM_PRODUCER=4
+    NUM_CONSUMER=32
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
