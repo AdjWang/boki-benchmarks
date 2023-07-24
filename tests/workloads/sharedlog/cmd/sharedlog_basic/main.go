@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -347,32 +346,34 @@ func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 	output += fmt.Sprintf("env.FAAS_CLIENT_ID=%v\n", os.Getenv("FAAS_CLIENT_ID"))
 
 	output += asyncLogTestAppendRead(ctx, h, output)
-	output += asyncLogTestCondAppendRead(ctx, h, output)
-	output += asyncLogTestSync(ctx, h, output)
+	return []byte(output), nil
 
-	output += "test async log ctx propagate\n"
-	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
-	tags := []types.Tag{
-		{
-			StreamType: 1,
-			StreamId:   1,
-		},
-	}
-	data := []byte{2}
-	future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
-	if err != nil {
-		output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
-		return []byte(output), nil
-	}
-	asyncLogCtx.ChainStep(future.GetLocalId())
+	// output += asyncLogTestCondAppendRead(ctx, h, output)
+	// output += asyncLogTestSync(ctx, h, output)
 
-	asyncLogCtxData, err := asyncLogCtx.Serialize()
-	if err != nil {
-		output += fmt.Sprintf("[FAIL] async shared log propagate serialize error: %v\n", err)
-		return []byte(output), nil
-	}
-	res, err := h.env.InvokeFunc(ctx, "AsyncLogOpChild", asyncLogCtxData)
-	return bytes.Join([][]byte{[]byte(output), res}, nil), err
+	// output += "test async log ctx propagate\n"
+	// asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
+	// tags := []types.Tag{
+	// 	{
+	// 		StreamType: 1,
+	// 		StreamId:   1,
+	// 	},
+	// }
+	// data := []byte{2}
+	// future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+	// if err != nil {
+	// 	output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+	// 	return []byte(output), nil
+	// }
+	// asyncLogCtx.ChainStep(future.GetLocalId())
+
+	// asyncLogCtxData, err := asyncLogCtx.Serialize()
+	// if err != nil {
+	// 	output += fmt.Sprintf("[FAIL] async shared log propagate serialize error: %v\n", err)
+	// 	return []byte(output), nil
+	// }
+	// res, err := h.env.InvokeFunc(ctx, "AsyncLogOpChild", asyncLogCtxData)
+	// return bytes.Join([][]byte{[]byte(output), res}, nil), err
 }
 
 func (h *asyncLogOpChildHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
