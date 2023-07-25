@@ -305,12 +305,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=1 \
+        --index-reps=2 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 queue
+    setup_env 3 3 2 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -334,7 +334,7 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
-        --payload_size=40 --duration=10
+        --payload_size=40 --duration=30
         # --consumer_fix_shard=true \
 }
 
