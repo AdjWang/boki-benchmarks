@@ -167,11 +167,11 @@ func main() {
 			benchCase := "BokiLogRead"
 			runBench(client, benchCase, benchFnName, input)
 		}
-		// {
-		// 	benchFnName := "benchAsyncLogRead"
-		// 	benchCase := "AsyncLogRead"
-		// 	runBench(client, benchCase, benchFnName, input)
-		// }
+		{
+			benchFnName := "benchAsyncLogRead"
+			benchCase := "AsyncLogRead"
+			runBench(client, benchCase, benchFnName, input)
+		}
 	} else if FLAGS_bench_case == "read_cached" {
 		input := &common.FnInput{
 			PayloadSize: FLAGS_payload_size,

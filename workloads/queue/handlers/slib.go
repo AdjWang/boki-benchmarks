@@ -166,21 +166,18 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 	startTime := time.Now()
 	for time.Since(startTime) < duration {
 		var err error
-		// var payload string
+		var payload string
 		popStart := time.Now()
 		if input.FixedShard != -1 {
-			// payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
-			_, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
+			payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
 		} else {
 			if input.BlockingPop {
-				// payload, err = q.PopBlocking()
-				_, err = q.PopBlocking()
+				payload, err = q.PopBlocking()
 			} else {
-				// payload, err = q.Pop()
-				_, err = q.Pop()
+				payload, err = q.Pop()
 			}
 		}
-		elapsed := time.Since(popStart)
+		// elapsed := time.Since(popStart)
 		if err != nil {
 			if sync.IsQueueEmptyError(err) {
 				time.Sleep(popStart.Add(interval).Sub(time.Now()))
@@ -195,9 +192,9 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 				}, nil
 			}
 		}
-		// delay := time.Since(utils.ParseTime(payload))
-		// latencies = append(latencies, int(delay.Microseconds()))
-		latencies = append(latencies, int(elapsed.Microseconds()))
+		delay := time.Since(utils.ParseTime(payload))
+		latencies = append(latencies, int(delay.Microseconds()))
+		// latencies = append(latencies, int(elapsed.Microseconds()))
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
 
