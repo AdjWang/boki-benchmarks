@@ -305,12 +305,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=1 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 queue
+    setup_env 3 3 1 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -322,11 +322,11 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=16
-    INTERVAL1=20 # ms
-    INTERVAL2=40 # ms
-    NUM_PRODUCER=16
-    NUM_CONSUMER=16
+    NUM_SHARDS=8
+    INTERVAL1=6 # ms
+    INTERVAL2=1 # ms
+    NUM_PRODUCER=2
+    NUM_CONSUMER=8
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -334,8 +334,8 @@ function test_queue {
         --queue_prefix=$QUEUE_PREFIX --num_queues=1 --queue_shards=$NUM_SHARDS \
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
+        --consumer_fix_shard=true \
         --payload_size=40 --duration=30
-        # --consumer_fix_shard=true \
 }
 
 function test_retwis {

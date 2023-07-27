@@ -162,6 +162,7 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 			Message: fmt.Sprintf("NewQueue failed: %v", err),
 		}, nil
 	}
+	seqNums := make([]string, 0, 128)
 	latencies := make([]int, 0, 128)
 	startTime := time.Now()
 	for time.Since(startTime) < duration {
@@ -192,6 +193,7 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 				}, nil
 			}
 		}
+		seqNums = append(seqNums, utils.ParseSeqNum(payload))
 		delay := time.Since(utils.ParseTime(payload))
 		latencies = append(latencies, int(delay.Microseconds()))
 		// latencies = append(latencies, int(elapsed.Microseconds()))
@@ -203,6 +205,7 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 
 	return &common.FnOutput{
 		Success:   true,
+		Message:   fmt.Sprint(seqNums, len(seqNums)),
 		Duration:  time.Since(startTime).Seconds(),
 		Latencies: latencies,
 	}, nil

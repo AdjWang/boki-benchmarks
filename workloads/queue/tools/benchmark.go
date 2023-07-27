@@ -91,10 +91,9 @@ func invokeConsumer(client *http.Client, queueIndex int, shard int, response *co
 		log.Printf("[ERROR] Consumer request failed: %v", err)
 	} else if !response.Success {
 		log.Printf("[ERROR] Consumer request failed: %s", response.Message)
+	} else {
+		log.Printf("[DEBUG] Consumer messages: %s", response.Message)
 	}
-	// else {
-	// 	log.Printf("[DEBUG] Consumer messages: %s", response.Message)
-	// }
 }
 
 func printSummary(title string, results []common.FnOutput) {
@@ -149,7 +148,9 @@ func main() {
 		log.Fatalf("[FATAL] Only one queue allows for sharded queue")
 	}
 	if FLAGS_consumer_fix_shard && FLAGS_queue_shards == 1 {
-		log.Fatalf("[FATAL] Fix shard can only be set for sharded queue")
+		// log.Fatalf("[FATAL] Fix shard can only be set for sharded queue")
+		log.Printf("[WARN] Disable consumer fix shard due to only 1 shard set")
+		FLAGS_consumer_fix_shard = false
 	}
 	if FLAGS_consumer_fix_shard && FLAGS_num_consumer%FLAGS_queue_shards != 0 {
 		log.Fatalf("[FATAL] When fixing shard, \"num_consumer\" must be divisible by \"queue_shards\"")
