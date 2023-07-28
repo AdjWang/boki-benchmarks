@@ -580,13 +580,9 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 			SeqNum:  seqNums[2]})
 		count := 0
 		for {
-			logStreamEntry, err := logStream.DequeueOrWaitForNextElement()
-			if err != nil {
-				output += fmt.Sprintf("[FAIL] log stream deqeque failed: %v\n", err)
-				return []byte(output), nil
-			}
-			logEntry := logStreamEntry.(types.LogStreamEntry[types.LogEntry]).LogEntry
-			err = logStreamEntry.(types.LogStreamEntry[types.LogEntry]).Err
+			logStreamEntry := logStream.BlockingDequeue()
+			logEntry := logStreamEntry.LogEntry
+			err = logStreamEntry.Err
 			if err != nil {
 				output += fmt.Sprintf("[FAIL] log stream entry type assertion failed: %v\n", err)
 				return []byte(output), nil
@@ -632,13 +628,9 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 			SeqNum:  seqNums[5]})
 		count := 0
 		for {
-			logStreamEntry, err := logStream.DequeueOrWaitForNextElement()
-			if err != nil {
-				output += fmt.Sprintf("[FAIL] log stream deqeque failed: %v\n", err)
-				return []byte(output), nil
-			}
-			logEntry := logStreamEntry.(types.LogStreamEntry[types.LogEntry]).LogEntry
-			err = logStreamEntry.(types.LogStreamEntry[types.LogEntry]).Err
+			logStreamEntry := logStream.BlockingDequeue()
+			logEntry := logStreamEntry.LogEntry
+			err = logStreamEntry.Err
 			if err != nil {
 				output += fmt.Sprintf("[FAIL] log stream entry type assertion failed: %v\n", err)
 				return []byte(output), nil
@@ -674,19 +666,15 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 		}
 	}
 	{
-		// sync to an existing view, should return EOF only
+		// sync to an existing view, should return one synced entry
 		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
 			SeqNum:  seqNums[2]})
 		count := 0
 		for {
-			logStreamEntry, err := logStream.DequeueOrWaitForNextElement()
-			if err != nil {
-				output += fmt.Sprintf("[FAIL] log stream deqeque failed: %v\n", err)
-				return []byte(output), nil
-			}
-			logEntry := logStreamEntry.(types.LogStreamEntry[types.LogEntry]).LogEntry
-			err = logStreamEntry.(types.LogStreamEntry[types.LogEntry]).Err
+			logStreamEntry := logStream.BlockingDequeue()
+			logEntry := logStreamEntry.LogEntry
+			err = logStreamEntry.Err
 			if err != nil {
 				output += fmt.Sprintf("[FAIL] log stream entry decode failed: %v\n", err)
 				return []byte(output), nil
@@ -702,8 +690,39 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 			resultSeqNums = append(resultSeqNums, logEntry.SeqNum)
 		}
 		output += fmt.Sprintf("[INFO] sync to seqnums: %v\n", resultSeqNums)
-		if count != 0 {
-			output += fmt.Sprintf("[FAIL] incorrect sync to num : %v, need: 0\n", count)
+		if count != 1 {
+			output += fmt.Sprintf("[FAIL] incorrect sync to num : %v, need: 1\n", count)
+			return []byte(output), nil
+		}
+	}
+	{
+		// sync to an existing view, should return one synced entry
+		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], types.LogEntryIndex{
+			LocalId: protocol.InvalidLogLocalId,
+			SeqNum:  seqNums[1]})
+		count := 0
+		for {
+			logStreamEntry := logStream.BlockingDequeue()
+			logEntry := logStreamEntry.LogEntry
+			err = logStreamEntry.Err
+			if err != nil {
+				output += fmt.Sprintf("[FAIL] log stream entry decode failed: %v\n", err)
+				return []byte(output), nil
+			}
+			if logEntry == nil {
+				break
+			}
+			count++
+			logEntries = append(logEntries, logEntry)
+		}
+		resultSeqNums := make([]uint64, 0)
+		for _, logEntry := range logEntries {
+			resultSeqNums = append(resultSeqNums, logEntry.SeqNum)
+		}
+		output += fmt.Sprintf("[INFO] sync to seqnums: %v\n", resultSeqNums)
+		if count != 1 {
+			// just return the synced view entry
+			output += fmt.Sprintf("[FAIL] incorrect sync to num : %v, need: 1\n", count)
 			return []byte(output), nil
 		}
 	}
@@ -734,13 +753,9 @@ func (h *syncToFutureHandler) Call(ctx context.Context, input []byte) ([]byte, e
 		SeqNum:  protocol.InvalidLogSeqNum})
 	count := 0
 	for {
-		logStreamEntry, err := logStream.DequeueOrWaitForNextElement()
-		if err != nil {
-			output += fmt.Sprintf("[FAIL] log stream deqeque failed: %v\n", err)
-			return []byte(output), nil
-		}
-		logEntry := logStreamEntry.(types.LogStreamEntry[types.LogEntryWithMeta]).LogEntry
-		err = logStreamEntry.(types.LogStreamEntry[types.LogEntryWithMeta]).Err
+		logStreamEntry := logStream.BlockingDequeue()
+		logEntry := logStreamEntry.LogEntry
+		err = logStreamEntry.Err
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] log stream entry decode failed: %v\n", err)
 			return []byte(output), nil

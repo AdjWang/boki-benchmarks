@@ -10,13 +10,13 @@ require (
 require (
 	github.com/aws/aws-sdk-go v1.34.6 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
-	github.com/enriquebris/goconcurrentqueue v0.7.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/lithammer/shortuuid v3.0.0+incompatible // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 )
 
 replace cs.utexas.edu/zjia/faas => /home/adjwang/dev/boki-benchmarks/boki/worker/golang
