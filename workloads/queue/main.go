@@ -29,11 +29,6 @@ func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.
 		return handlers.NewPulsarProducerHandler(env), nil
 	case "pulsarQueueConsumer":
 		return handlers.NewPulsarConsumerHandler(env), nil
-	// DEBUG
-	case "debugQueueProducer":
-		return handlers.NewDebugProducerHandler(env), nil
-	case "debugQueueConsumer":
-		return handlers.NewDebugConsumerHandler(env), nil
 	default:
 		return nil, fmt.Errorf("Unknown function name: %s", funcName)
 	}

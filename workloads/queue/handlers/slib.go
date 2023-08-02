@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime/pprof"
 	"time"
 
 	"cs.utexas.edu/zjia/faas-queue/common"
@@ -79,10 +78,10 @@ func (h *slibConsumerHandler) Call(ctx context.Context, input []byte) ([]byte, e
 	return common.CompressData(encodedOutput), nil
 }
 
-func createQueue(ctx context.Context, env types.Environment, name string, shards int) (QueueIface, error) {
+func createQueue(ctx context.Context, env types.Environment, name string, shards int, iShard int) (QueueIface, error) {
 	ctx = context.WithValue(ctx, "stdout", os.Stdout)
 	if shards == 1 {
-		return sync.NewQueue(ctx, env, name)
+		return sync.NewQueue(ctx, env, name, iShard)
 	} else {
 		return sync.NewShardedQueue(ctx, env, name, shards)
 	}
@@ -91,7 +90,7 @@ func createQueue(ctx context.Context, env types.Environment, name string, shards
 func producerSlib(ctx context.Context, env types.Environment, input *common.ProducerFnInput, seqNumCh chan string) (*common.FnOutput, error) {
 	duration := time.Duration(input.Duration) * time.Second
 	interval := time.Duration(input.IntervalMs) * time.Millisecond
-	q, err := createQueue(ctx, env, input.QueueName, input.QueueShards)
+	q, err := createQueue(ctx, env, input.QueueName, input.QueueShards, 0)
 	if err != nil {
 		return &common.FnOutput{
 			Success: false,
@@ -144,18 +143,18 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 }
 
 func consumerSlib(ctx context.Context, env types.Environment, input *common.ConsumerFnInput) (*common.FnOutput, error) {
-	profileName := fmt.Sprintf("/tmp/boki/output/queue_consumer_profile_%v", input.QueueName)
-	cpuProfile, err := os.Create(profileName)
-	if err != nil {
-		return nil, errors.Wrapf(err, "create cpu profile failed at path: %v", profileName)
-	}
-	pprof.StartCPUProfile(cpuProfile)
-	defer pprof.StopCPUProfile()
+	// profileName := fmt.Sprintf("/tmp/boki/output/queue_consumer_profile_%v", input.QueueName)
+	// cpuProfile, err := os.Create(profileName)
+	// if err != nil {
+	// 	return nil, errors.Wrapf(err, "create cpu profile failed at path: %v", profileName)
+	// }
+	// pprof.StartCPUProfile(cpuProfile)
+	// defer pprof.StopCPUProfile()
 
 	duration := time.Duration(input.Duration) * time.Second
 	interval := time.Duration(input.IntervalMs) * time.Millisecond
 	// halfInterval := time.Duration(input.IntervalMs/2) * time.Millisecond
-	q, err := createQueue(ctx, env, input.QueueName, input.QueueShards)
+	q, err := createQueue(ctx, env, input.QueueName, input.QueueShards, input.FixedShard)
 	if err != nil {
 		return &common.FnOutput{
 			Success: false,
@@ -205,7 +204,7 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 
 	return &common.FnOutput{
 		Success:   true,
-		Message:   fmt.Sprint(seqNums, len(seqNums)),
+		Message:   fmt.Sprint(input.FixedShard, seqNums, len(seqNums)),
 		Duration:  time.Since(startTime).Seconds(),
 		Latencies: latencies,
 	}, nil

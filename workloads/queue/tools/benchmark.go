@@ -91,10 +91,9 @@ func invokeConsumer(client *http.Client, queueIndex int, shard int, response *co
 		log.Printf("[ERROR] Consumer request failed: %v", err)
 	} else if !response.Success {
 		log.Printf("[ERROR] Consumer request failed: %s", response.Message)
+	} else {
+		log.Printf("[DEBUG] Consumer messages: %s", response.Message)
 	}
-	// else {
-	// 	log.Printf("[DEBUG] Consumer messages: %s", response.Message)
-	// }
 }
 
 func printSummary(title string, results []common.FnOutput) {
