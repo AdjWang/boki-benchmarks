@@ -1,5 +1,5 @@
 FROM adjwang/boki:dev as boki
 FROM ubuntu:focal
 
-COPY ./bin        /queuebench-bin
+COPY ./bin           /queuebench-bin
 COPY --from=boki     /boki/launcher       /boki/launcher

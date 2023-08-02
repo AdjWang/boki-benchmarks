@@ -18,7 +18,7 @@ WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
 WORK_DIR=/tmp/boki-test
 
-DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
+DOCKER_BUILDER="docker buildx"
 NO_CACHE=""
 
 function setup_env {
@@ -106,7 +106,9 @@ function build_microbench {
 }
 function build_queue {
     echo "========== build queue =========="
-    $QUEUE_SRC_DIR/build.sh
+    # $QUEUE_SRC_DIR/build.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/workloads/queue/build.sh
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-queuebench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.queuebench \
@@ -305,12 +307,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=1 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 queue
+    setup_env 3 3 1 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -322,11 +324,11 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=16
+    NUM_SHARDS=2
     INTERVAL1=3 # ms
     INTERVAL2=10 # ms
     NUM_PRODUCER=1
-    NUM_CONSUMER=16
+    NUM_CONSUMER=2
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -335,7 +337,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=30
+        --payload_size=40 --duration=3
 }
 
 function test_retwis {
@@ -526,9 +528,9 @@ debug)
     ;;
 build)
     build_boki
-    build_testcases
+    # build_testcases
     # build_microbench
-    # build_queue
+    build_queue
     # build_retwis
     # build_workflow
     ;;
@@ -544,10 +546,10 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
 
     # test_microbench
-    # test_queue
+    test_queue
     # test_retwis
 
     # test_workflow beldi-hotel-baseline
