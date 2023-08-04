@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
@@ -93,10 +92,36 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 	}
 	postList = postList[0 : len(postList)-input.Skip]
 	lastIdx := len(postList) - 1
+
+	// wg := sync.WaitGroup{}
+	// postObjsMu := sync.Mutex{}
+	// postObjs := make(map[string]*statestore.ObjectRef)
+	// groupCh := make(chan struct{}, 50)
+	// for i := len(postList) - 1; i >= 0; i-- {
+	// 	wg.Add(1)
+	// 	groupCh <- struct{}{}
+	// 	go func(i int) {
+	// 		postId := postList[i].(string)
+	// 		key := fmt.Sprintf("post:%s", postId)
+	// 		postObj := txn.Object(key)
+	// 		if err := postObj.EnsureView(); err != nil {
+	// 			panic(err)
+	// 		}
+	// 		postObjsMu.Lock()
+	// 		postObjs[key] = postObj
+	// 		postObjsMu.Unlock()
+	// 		wg.Done()
+	// 		<-groupCh
+	// 	}(i)
+	// }
+	// wg.Wait()
+	tracer.Trace().Tip("EnsureView")
+
 	for i := len(postList) - 1; i >= 0; i-- {
 		lastIdx = i
 		postId := postList[i].(string)
 		postObj := txn.Object(fmt.Sprintf("post:%s", postId))
+		// postObj := postObjs[fmt.Sprintf("post:%s", postId)]
 		post := make(map[string]string)
 		if value, _ := postObj.Get("body"); !value.IsNull() {
 			post["body"] = value.AsString()
@@ -114,7 +139,7 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 	}
 
 	tracer.Trace().Tip(fmt.Sprintf("Get2 posts: %d~%d(%d)", len(postList)-1, lastIdx, len(postList)-1-lastIdx))
-	log.Println(tracer)
+	// log.Println(tracer)
 
 	return output, nil
 }

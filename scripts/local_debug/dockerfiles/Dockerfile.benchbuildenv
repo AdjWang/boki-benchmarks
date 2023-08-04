@@ -20,3 +20,4 @@ COPY ./boki /boki-benchmarks/boki
 COPY ./workloads /boki-benchmarks/workloads
 # RUN cd /boki-benchmarks/workloads/microbenchmark && ./build.sh
 RUN cd /boki-benchmarks/workloads/queue && ./build.sh
+RUN cd /boki-benchmarks/workloads/retwis && ./build.sh

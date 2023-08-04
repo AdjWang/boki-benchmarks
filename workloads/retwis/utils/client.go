@@ -112,7 +112,7 @@ func NewFaasClient(faasGateway string, concurrency int) *FaasClient {
 					MaxIdleConns:    1,
 					IdleConnTimeout: 30 * time.Second,
 				},
-				Timeout: 4 * time.Second,
+				Timeout: 10 * time.Second,
 			},
 			reqChan: reqChan,
 			wg:      wg,

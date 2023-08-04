@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"cs.utexas.edu/zjia/faas-retwis/handlers"
 
@@ -52,5 +53,6 @@ func (f *funcHandlerFactory) GrpcNew(env types.Environment, service string) (typ
 }
 
 func main() {
+	log.SetFlags(log.Lshortfile)
 	faas.Serve(&funcHandlerFactory{})
 }

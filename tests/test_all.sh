@@ -116,7 +116,9 @@ function build_queue {
 }
 function build_retwis {
     echo "========== build retwis =========="
-    $RETWIS_SRC_DIR/build.sh
+    # $RETWIS_SRC_DIR/build.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/workloads/retwis/build.sh
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-retwisbench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.retwisbench \
@@ -362,20 +364,20 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=8 # 64, 96, 128, 192
+    CONCURRENCY=1 # 64, 96, 128, 192
     # NUM_USERS=10000
-    NUM_USERS=100
+    NUM_USERS=10
 
     set -x
     # init
     curl -X POST http://localhost:9000/function/RetwisInit
     # create users
-    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
+    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=4 --followers_per_user=8
     # run benchmark
-    $RETWIS_SRC_DIR/bin/benchmark \
-        --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
-        --percentages=15,30,50,5 \
-        --duration=5 --concurrency=$CONCURRENCY
+    # $RETWIS_SRC_DIR/bin/benchmark \
+    #     --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
+    #     --percentages=15,30,50,5 \
+    #     --duration=3 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
@@ -530,16 +532,16 @@ build)
     build_boki
     # build_testcases
     # build_microbench
-    build_queue
-    # build_retwis
+    # build_queue
+    build_retwis
     # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
-    docker push adjwang/boki-queuebench:dev
-    # docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-queuebench:dev
+    docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -549,8 +551,8 @@ run)
     # test_sharedlog
 
     # test_microbench
-    test_queue
-    # test_retwis
+    # test_queue
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
