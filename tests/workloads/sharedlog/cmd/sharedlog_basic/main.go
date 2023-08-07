@@ -575,7 +575,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 				return []byte(output), nil
 			}
 		}
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], types.LogEntryIndex{
+		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], 0 /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
 			SeqNum:  seqNums[2]})
 		count := 0
@@ -623,7 +623,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 				return []byte(output), nil
 			}
 		}
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], types.LogEntryIndex{
+		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], 0 /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
 			SeqNum:  seqNums[5]})
 		count := 0
@@ -667,7 +667,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 	}
 	{
 		// sync to an existing view, should return one synced entry
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], types.LogEntryIndex{
+		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNums[0] /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
 			SeqNum:  seqNums[2]})
 		count := 0
@@ -697,7 +697,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 	}
 	{
 		// sync to an existing view, should return one synced entry
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], types.LogEntryIndex{
+		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNums[0] /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
 			SeqNum:  seqNums[1]})
 		count := 0
@@ -748,7 +748,7 @@ func (h *syncToFutureHandler) Call(ctx context.Context, input []byte) ([]byte, e
 		return []byte(output), nil
 	}
 
-	logStream := h.env.AsyncSharedLogReadNextUntil(ctx, tags[0].StreamId, types.LogEntryIndex{
+	logStream := h.env.AsyncSharedLogReadNextUntil(ctx, tags[0].StreamId, 0 /*fromSeqNum*/, types.LogEntryIndex{
 		LocalId: future2.GetLocalId(),
 		SeqNum:  protocol.InvalidLogSeqNum})
 	count := 0

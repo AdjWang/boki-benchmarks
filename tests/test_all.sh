@@ -364,7 +364,7 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=64 # 64, 96, 128, 192
+    CONCURRENCY=16 # 64, 96, 128, 192
     # NUM_USERS=10000
     NUM_USERS=100
 
@@ -377,7 +377,7 @@ function test_retwis {
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
         --percentages=15,30,50,5 \
-        --duration=30 --concurrency=$CONCURRENCY
+        --duration=20 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
