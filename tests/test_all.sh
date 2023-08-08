@@ -373,11 +373,12 @@ function test_retwis {
     curl -X POST http://localhost:9000/function/RetwisInit
     # create users
     $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
-    # run benchmark
+
+    echo "run benchmark"
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
         --percentages=15,30,50,5 \
-        --duration=20 --concurrency=$CONCURRENCY
+        --duration=3 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
