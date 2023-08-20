@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -531,10 +531,10 @@ debug)
     ;;
 build)
     build_boki
-    # build_testcases
+    build_testcases
     # build_microbench
     # build_queue
-    build_retwis
+    # build_retwis
     # build_workflow
     ;;
 push)
@@ -549,11 +549,11 @@ clean)
     cleanup
     ;;
 run)
-    # test_sharedlog
+    test_sharedlog
 
     # test_microbench
     # test_queue
-    test_retwis
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

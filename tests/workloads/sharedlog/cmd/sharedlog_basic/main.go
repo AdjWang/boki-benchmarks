@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +14,7 @@ import (
 	"cs.utexas.edu/zjia/faas/protocol"
 	"cs.utexas.edu/zjia/faas/types"
 	"github.com/eniac/Beldi/pkg/cayonlib"
+	"github.com/pkg/errors"
 )
 
 const timeout = time.Second * 60
@@ -66,6 +69,52 @@ func (f *funcHandlerFactory) GrpcNew(env types.Environment, service string) (typ
 	return nil, fmt.Errorf("not implemented")
 }
 
+// AuxData format:
+type AuxData map[ /*tag*/ uint64] /*value*/ string
+
+// result := AuxBucket{}
+//
+//	if err := json.Unmarshal(logEntry.AuxData, &result); err != nil {
+//		output += err.Error()
+//		return output, false
+//	} else {
+//
+//		output += fmt.Sprintf("[INFO] AuxData=%+v\n", result)
+//	}
+
+func NewAuxData() AuxData {
+	return make(AuxData)
+}
+
+func DeserializeAuxData(rawData []byte) AuxData {
+	if len(rawData) == 0 {
+		return nil
+	}
+	result := NewAuxData()
+	if err := json.Unmarshal(rawData, &result); err != nil {
+		rawDataStr := "["
+		for _, i := range rawData {
+			rawDataStr += fmt.Sprintf("%02X ", i)
+		}
+		rawDataStr += "]"
+		panic(errors.Wrap(err, rawDataStr))
+	}
+	return result
+}
+
+func (ab AuxData) Update(tag uint64, value string) AuxData {
+	ab[tag] = value
+	return ab
+}
+
+func (ab AuxData) Serialize() []byte {
+	res, err := json.Marshal(ab)
+	if err != nil {
+		panic(err)
+	}
+	return res
+}
+
 func assertLogEntry(funcName string, logEntry *types.LogEntry, expected *types.LogEntry) (string, bool) {
 	output := ""
 	if logEntry == nil && expected != nil {
@@ -83,12 +132,13 @@ func assertLogEntry(funcName string, logEntry *types.LogEntry, expected *types.L
 	} else if !reflect.DeepEqual(logEntry.Data, expected.Data) {
 		output += fmt.Sprintf("[FAIL] %v data=%v, expect=%v\n", funcName, logEntry.Data, expected.Data)
 		return output, false
-	} else if !reflect.DeepEqual(logEntry.AuxData, expected.AuxData) {
-		output += fmt.Sprintf("[FAIL]  %v aux data=%v, expect=%v\n", funcName, logEntry.AuxData, expected.AuxData)
+	} else if !reflect.DeepEqual(DeserializeAuxData(logEntry.AuxData), DeserializeAuxData(expected.AuxData)) {
+		output += fmt.Sprintf("[FAIL]  %v aux data=%v:%v, expect=%v:%v\n",
+			funcName, logEntry.AuxData, string(logEntry.AuxData), expected.AuxData, string(expected.AuxData))
 		return output, false
 	} else {
 		output += fmt.Sprintf("[PASS] %v seqNum=0x%016X, tags=%v, data=%v, auxData=%v\n",
-			funcName, logEntry.SeqNum, logEntry.Tags, logEntry.Data, logEntry.AuxData)
+			funcName, logEntry.SeqNum, logEntry.Tags, logEntry.Data, string(logEntry.AuxData))
 		return output, true
 	}
 }
@@ -183,10 +233,11 @@ func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 			return []byte(output), nil
 		} else {
 			res, passed := assertLogEntry("shared log check tail", logEntry, &types.LogEntry{
-				SeqNum:  seqNumAppended,
-				Tags:    tags,
-				Data:    data,
-				AuxData: []byte{7, 8, 9},
+				SeqNum: seqNumAppended,
+				Tags:   tags,
+				Data:   data,
+				// AuxData: []byte{7, 8, 9},
+				AuxData: NewAuxData().Update(0 /*tag*/, string([]byte{7, 8, 9})).Serialize(),
 			})
 			output += res
 			if !passed {
@@ -346,34 +397,32 @@ func (h *asyncLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 	output += fmt.Sprintf("env.FAAS_CLIENT_ID=%v\n", os.Getenv("FAAS_CLIENT_ID"))
 
 	output += asyncLogTestAppendRead(ctx, h, output)
-	return []byte(output), nil
+	output += asyncLogTestCondAppendRead(ctx, h, output)
+	output += asyncLogTestSync(ctx, h, output)
 
-	// output += asyncLogTestCondAppendRead(ctx, h, output)
-	// output += asyncLogTestSync(ctx, h, output)
+	output += "test async log ctx propagate\n"
+	asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
+	tags := []types.Tag{
+		{
+			StreamType: 1,
+			StreamId:   1,
+		},
+	}
+	data := []byte{2}
+	future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
+	if err != nil {
+		output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
+		return []byte(output), nil
+	}
+	asyncLogCtx.ChainStep(future.GetLocalId())
 
-	// output += "test async log ctx propagate\n"
-	// asyncLogCtx := cayonlib.NewAsyncLogContext(h.env)
-	// tags := []types.Tag{
-	// 	{
-	// 		StreamType: 1,
-	// 		StreamId:   1,
-	// 	},
-	// }
-	// data := []byte{2}
-	// future, err := h.env.AsyncSharedLogAppend(ctx, tags, data)
-	// if err != nil {
-	// 	output += fmt.Sprintf("[FAIL] async shared log append error: %v\n", err)
-	// 	return []byte(output), nil
-	// }
-	// asyncLogCtx.ChainStep(future.GetLocalId())
-
-	// asyncLogCtxData, err := asyncLogCtx.Serialize()
-	// if err != nil {
-	// 	output += fmt.Sprintf("[FAIL] async shared log propagate serialize error: %v\n", err)
-	// 	return []byte(output), nil
-	// }
-	// res, err := h.env.InvokeFunc(ctx, "AsyncLogOpChild", asyncLogCtxData)
-	// return bytes.Join([][]byte{[]byte(output), res}, nil), err
+	asyncLogCtxData, err := asyncLogCtx.Serialize()
+	if err != nil {
+		output += fmt.Sprintf("[FAIL] async shared log propagate serialize error: %v\n", err)
+		return []byte(output), nil
+	}
+	res, err := h.env.InvokeFunc(ctx, "AsyncLogOpChild", asyncLogCtxData)
+	return bytes.Join([][]byte{[]byte(output), res}, nil), err
 }
 
 func (h *asyncLogOpChildHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
@@ -481,7 +530,7 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 
 	{
 		auxData := []byte{10, 11, 12}
-		if err := h.env.SharedLogSetAuxDataWithShards(ctx, []uint64{tags[0].StreamId}, seqNum2, auxData); err != nil {
+		if err := h.env.SharedLogSetAuxDataWithShards(ctx, seqNum2, tags[0].StreamId, auxData); err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log set aux data error: %v\n", err)
 			return []byte(output), nil
 		} else {
@@ -490,7 +539,7 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 	}
 	{
 		auxData := []byte{7, 8, 9}
-		if err := h.env.SharedLogSetAuxDataWithShards(ctx, []uint64{tags[0].StreamId}, seqNum1, auxData); err != nil {
+		if err := h.env.SharedLogSetAuxDataWithShards(ctx, seqNum1, tags[0].StreamId, auxData); err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log set aux data error: %v\n", err)
 			return []byte(output), nil
 		} else {
@@ -509,10 +558,11 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 			return []byte(output), nil
 		} else {
 			res, passed := assertLogEntry("async shared log check tail with aux", &logEntry.LogEntry, &types.LogEntry{
-				SeqNum:  seqNum2,
-				Tags:    []uint64{2},
-				Data:    data,
-				AuxData: []byte{10, 11, 12},
+				SeqNum: seqNum2,
+				Tags:   []uint64{2},
+				Data:   data,
+				// AuxData: []byte{10, 11, 12},
+				AuxData: NewAuxData().Update(tags[0].StreamId, string([]byte{10, 11, 12})).Serialize(),
 			})
 			output += res
 			if !passed {
@@ -531,10 +581,11 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 			return []byte(output), nil
 		} else {
 			res, passed := assertLogEntry("async shared log check tail with aux", &logEntry.LogEntry, &types.LogEntry{
-				SeqNum:  seqNum1,
-				Tags:    []uint64{2},
-				Data:    data,
-				AuxData: []byte{7, 8, 9},
+				SeqNum: seqNum1,
+				Tags:   []uint64{2},
+				Data:   data,
+				// AuxData: []byte{7, 8, 9},
+				AuxData: NewAuxData().Update(tags[0].StreamId, string([]byte{7, 8, 9})).Serialize(),
 			})
 			output += res
 			if !passed {
@@ -610,7 +661,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 			}
 		}
 	}
-	if err := h.env.SharedLogSetAuxDataWithShards(ctx, tags, seqNums[1], []byte{3, 4, 5}); err != nil {
+	if err := h.env.SharedLogSetAuxDataWithShards(ctx, seqNums[1], tags[0], []byte{3, 4, 5}); err != nil {
 		output += fmt.Sprintf("[FAIL] set aux data failed: %v\n", err)
 		return []byte(output), nil
 	}
