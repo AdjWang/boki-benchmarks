@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -364,21 +364,24 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=1 # 64, 96, 128, 192
+    CONCURRENCY=16 # 64, 96, 128, 192
     # NUM_USERS=10000
-    NUM_USERS=10
+    NUM_USERS=100
 
     set -x
     # init
     curl -X POST http://localhost:9000/function/RetwisInit
     # create users
-    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=1
+    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
 
-    # echo "run benchmark"
-    # $RETWIS_SRC_DIR/bin/benchmark \
-    #     --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
-    #     --percentages=10,0,0,90 \
-    #     --duration=20 --concurrency=$CONCURRENCY
+    # curl -X POST -d '{"password":"password_2","username":"testuser_2"}' http://localhost:9000/function/RetwisLogin
+    # echo ""
+
+    echo "run benchmark"
+    $RETWIS_SRC_DIR/bin/benchmark \
+        --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
+        --percentages=10,25,60,5 \
+        --duration=3 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
