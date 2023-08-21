@@ -72,16 +72,6 @@ func (f *funcHandlerFactory) GrpcNew(env types.Environment, service string) (typ
 // AuxData format:
 type AuxData map[ /*tag*/ uint64] /*value*/ string
 
-// result := AuxBucket{}
-//
-//	if err := json.Unmarshal(logEntry.AuxData, &result); err != nil {
-//		output += err.Error()
-//		return output, false
-//	} else {
-//
-//		output += fmt.Sprintf("[INFO] AuxData=%+v\n", result)
-//	}
-
 func NewAuxData() AuxData {
 	return make(AuxData)
 }
