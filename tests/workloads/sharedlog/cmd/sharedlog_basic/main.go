@@ -618,7 +618,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 		}
 		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], 0 /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[2]})
+			SeqNum:  seqNums[2]}, true /*fromCached*/)
 		count := 0
 		for {
 			logStreamEntry := logStream.BlockingDequeue()
@@ -666,7 +666,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 		}
 		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], 0 /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[5]})
+			SeqNum:  seqNums[5]}, true /*fromCached*/)
 		count := 0
 		for {
 			logStreamEntry := logStream.BlockingDequeue()
@@ -710,7 +710,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 		// sync to an existing view, should return one synced entry
 		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNums[0] /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[2]})
+			SeqNum:  seqNums[2]}, true /*fromCached*/)
 		count := 0
 		for {
 			logStreamEntry := logStream.BlockingDequeue()
@@ -740,7 +740,7 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 		// sync to an existing view, should return one synced entry
 		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNums[0] /*fromSeqNum*/, types.LogEntryIndex{
 			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[1]})
+			SeqNum:  seqNums[1]}, true /*fromCached*/)
 		count := 0
 		for {
 			logStreamEntry := logStream.BlockingDequeue()
@@ -791,7 +791,7 @@ func (h *syncToFutureHandler) Call(ctx context.Context, input []byte) ([]byte, e
 
 	logStream := h.env.AsyncSharedLogReadNextUntil(ctx, tags[0].StreamId, 0 /*fromSeqNum*/, types.LogEntryIndex{
 		LocalId: future2.GetLocalId(),
-		SeqNum:  protocol.InvalidLogSeqNum})
+		SeqNum:  protocol.InvalidLogSeqNum}, true /*fromCached*/)
 	count := 0
 	for {
 		logStreamEntry := logStream.BlockingDequeue()

@@ -376,11 +376,12 @@ function test_retwis {
 
     # curl -X POST -d '{"password":"password_2","username":"testuser_2"}' http://localhost:9000/function/RetwisLogin
     # echo ""
+    # --percentages=10,25,60,5 \
 
     echo "run benchmark"
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
-        --percentages=10,25,60,5 \
+        --percentages=10,0,0,90 \
         --duration=3 --concurrency=$CONCURRENCY
 }
 
