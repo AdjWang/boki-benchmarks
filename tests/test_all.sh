@@ -18,7 +18,7 @@ WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
 WORK_DIR=/tmp/boki-test
 
-DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
+DOCKER_BUILDER="docker buildx"
 NO_CACHE=""
 
 function setup_env {
@@ -122,7 +122,9 @@ function build_retwis {
 }
 function build_workflow {
     echo "========== build workloads =========="
-    $WORKFLOW_SRC_DIR/build_all.sh
+    # $WORKFLOW_SRC_DIR/build_all.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/workloads/workflow/build_all.sh
 
     # build app docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
@@ -500,10 +502,11 @@ function test_workflow {
     fi
 
     echo "test more requests"
+    WRKBENCHDIR=$SCRIPT_DIR
+    # WRKBENCHDIR=$APP_SRC_DIR
+    WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 3 -s $SCRIPT_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
-
-    # BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 150 -s $APP_SRC_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then
@@ -542,13 +545,13 @@ run)
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    # test_workflow boki-hotel-baseline
+    test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
-    test_workflow boki-singleop-asynclog
+    # test_workflow boki-singleop-asynclog
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"
