@@ -89,3 +89,11 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && cp -r $HOST $EXP_DIR/fn_output
+done
+cd -
