@@ -52,6 +52,6 @@ require (
 	google.golang.org/protobuf v1.23.0 // indirect
 )
 
-replace cs.utexas.edu/zjia/faas => /home/adjwang/dev/boki-benchmarks/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang
 
-replace cs.utexas.edu/zjia/faas/slib => /home/adjwang/dev/boki-benchmarks/boki/slib
+replace cs.utexas.edu/zjia/faas/slib => /boki-benchmark/boki/slib

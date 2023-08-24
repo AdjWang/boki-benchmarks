@@ -3,9 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"cs.utexas.edu/zjia/faas-queue/common"
@@ -16,8 +14,7 @@ import (
 )
 
 type slibProducerHandler struct {
-	env      types.Environment
-	seqNumCh chan string
+	env types.Environment
 }
 
 type slibConsumerHandler struct {
@@ -25,10 +22,7 @@ type slibConsumerHandler struct {
 }
 
 func NewSlibProducerHandler(env types.Environment) types.FuncHandler {
-	return &slibProducerHandler{
-		env:      env,
-		seqNumCh: utils.SeqNumGenerator(),
-	}
+	return &slibProducerHandler{env: env}
 }
 
 func NewSlibConsumerHandler(env types.Environment) types.FuncHandler {
@@ -37,9 +31,7 @@ func NewSlibConsumerHandler(env types.Environment) types.FuncHandler {
 
 type QueueIface interface {
 	Push(payload string) error
-	BatchPush(payloads []string) error
 	Pop() (string /* payload */, error)
-	BatchPop(n int) ([]string /* payloads */, error)
 	PopBlocking() (string /* payload */, error)
 }
 
@@ -49,7 +41,7 @@ func (h *slibProducerHandler) Call(ctx context.Context, input []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-	output, err := producerSlib(ctx, h.env, parsedInput, h.seqNumCh)
+	output, err := producerSlib(ctx, h.env, parsedInput)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +70,6 @@ func (h *slibConsumerHandler) Call(ctx context.Context, input []byte) ([]byte, e
 }
 
 func createQueue(ctx context.Context, env types.Environment, name string, shards int) (QueueIface, error) {
-	ctx = context.WithValue(ctx, "stdout", os.Stdout)
 	if shards == 1 {
 		return sync.NewQueue(ctx, env, name)
 	} else {
@@ -86,7 +77,7 @@ func createQueue(ctx context.Context, env types.Environment, name string, shards
 	}
 }
 
-func producerSlib(ctx context.Context, env types.Environment, input *common.ProducerFnInput, seqNumCh chan string) (*common.FnOutput, error) {
+func producerSlib(ctx context.Context, env types.Environment, input *common.ProducerFnInput) (*common.FnOutput, error) {
 	duration := time.Duration(input.Duration) * time.Second
 	interval := time.Duration(input.IntervalMs) * time.Millisecond
 	q, err := createQueue(ctx, env, input.QueueName, input.QueueShards)
@@ -96,33 +87,13 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 			Message: fmt.Sprintf("NewQueue failed: %v", err),
 		}, nil
 	}
-
-	latencies := make([]int, 0, 128) // record push duration
+	latencies := make([]int, 0, 128)
 	startTime := time.Now()
-	if input.BatchSize <= 0 {
-		panic(errors.New(fmt.Sprintf("invalid batch size: %v", input.BatchSize)))
-	}
-	numMessages := make([]int, 0, 128)
 	for time.Since(startTime) < duration {
-		// prepare payload
-		payloads := make([]string, 0, input.BatchSize)
-		for i := 0; i < input.BatchSize; i++ {
-			seqNumStr := <-seqNumCh
-			payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen - utils.SeqNumStrLen)
-			payload = seqNumStr + payload
-			payloads = append(payloads, payload)
-		}
+		payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen)
 		pushStart := time.Now()
-		for i := 0; i < input.BatchSize; i++ {
-			payloads[i] = utils.FormatTime(pushStart) + payloads[i]
-		}
-		// push to queue
-		var err error
-		if len(payloads) == 1 {
-			err = q.Push(payloads[0])
-		} else {
-			err = q.BatchPush(payloads)
-		}
+		payload = utils.FormatTime(pushStart) + payload
+		err := q.Push(payload)
 		elapsed := time.Since(pushStart)
 		if err != nil {
 			return &common.FnOutput{
@@ -131,18 +102,13 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 				Duration: time.Since(startTime).Seconds(),
 			}, nil
 		}
-		// record push duration
 		latencies = append(latencies, int(elapsed.Microseconds()))
-		// record push num
-		numMessages = append(numMessages, len(payloads))
-		// sleep for `interval`
-		time.Sleep(time.Until(pushStart.Add(interval)))
+		time.Sleep(pushStart.Add(interval).Sub(time.Now()))
 	}
 	return &common.FnOutput{
-		Success:     true,
-		Duration:    time.Since(startTime).Seconds(),
-		Latencies:   latencies,
-		NumMessages: numMessages,
+		Success:   true,
+		Duration:  time.Since(startTime).Seconds(),
+		Latencies: latencies,
 	}, nil
 }
 
@@ -159,37 +125,22 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 	}
 	latencies := make([]int, 0, 128)
 	startTime := time.Now()
-	// messages := make([]string, 0, 128)
-	numMessages := make([]int, 0, 128)
 	for time.Since(startTime) < duration {
 		var err error
-		// var payload string
-		var payloads []string
+		var payload string
 		popStart := time.Now()
-		// if input.FixedShard != -1 {
-		// 	payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
-		// } else {
-		// 	if input.BlockingPop {
-		// 		payload, err = q.PopBlocking()
-		// 	} else {
-		// 		payload, err = q.Pop()
-		// 	}
-		// }
-		payloads, err = q.BatchPop(10)
+		if input.FixedShard != -1 {
+			payload, err = q.(*sync.ShardedQueue).PopFromShard(input.FixedShard)
+		} else {
+			if input.BlockingPop {
+				payload, err = q.PopBlocking()
+			} else {
+				payload, err = q.Pop()
+			}
+		}
 		// elapsed := time.Since(popStart)
 		if err != nil {
 			if sync.IsQueueEmptyError(err) {
-				if payloads != nil && len(payloads) > 0 {
-					maxDelay := time.Duration(0)
-					for _, payload := range payloads {
-						delay := time.Since(utils.ParseTime(payload))
-						if maxDelay < delay {
-							maxDelay = delay
-						}
-					}
-					latencies = append(latencies, int(maxDelay.Microseconds()))
-					numMessages = append(numMessages, len(payloads))
-				}
 				time.Sleep(popStart.Add(interval).Sub(time.Now()))
 				continue
 			} else if sync.IsQueueTimeoutError(err) {
@@ -202,26 +153,13 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 				}, nil
 			}
 		}
-		// delay := time.Since(utils.ParseTime(payload))
-		// latencies = append(latencies, int(delay.Microseconds()))
-		maxDelay := time.Duration(0)
-		for _, payload := range payloads {
-			delay := time.Since(utils.ParseTime(payload))
-			if maxDelay < delay {
-				maxDelay = delay
-			}
-		}
-		latencies = append(latencies, int(maxDelay.Microseconds()))
-		numMessages = append(numMessages, len(payloads))
-		// messages = append(messages, utils.ParseSeqNum(payload))
-
+		delay := time.Since(utils.ParseTime(payload))
+		latencies = append(latencies, int(delay.Microseconds()))
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
 	return &common.FnOutput{
 		Success:   true,
 		Duration:  time.Since(startTime).Seconds(),
 		Latencies: latencies,
-		// Message:   strings.Join(messages, ","),
-		NumMessages: numMessages,
 	}, nil
 }

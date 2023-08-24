@@ -2,6 +2,8 @@ package cayonlib
 
 import (
 	"fmt"
+	"log"
+	"time"
 
 	// "log"
 	"encoding/json"
@@ -110,8 +112,14 @@ func ProposeNextStep(env *Env, data aws.JSONValue) (bool, *IntentLogEntry) {
 		PostStep:   false,
 		Data:       data,
 	}
+	// PROF
+	appendStart := time.Now()
 	seqNum := LibAppendLog(env, IntentStepStreamTag(env.InstanceId), &intentLog)
+	log.Printf("[PROF] append=%v us", time.Since(appendStart).Microseconds())
+	// PROF
+	readStart := time.Now()
 	env.Fsm.Catch(env)
+	log.Printf("[PROF] read=%v us", time.Since(readStart).Microseconds())
 	intentLog = env.Fsm.GetStepLog(step)
 	if intentLog == nil {
 		panic(fmt.Sprintf("Cannot find intent log for step %d", step))

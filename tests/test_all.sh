@@ -106,7 +106,9 @@ function build_microbench {
 }
 function build_queue {
     echo "========== build queue =========="
-    $QUEUE_SRC_DIR/build.sh
+    # $QUEUE_SRC_DIR/build.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/workloads/queue/build.sh
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-queuebench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.queuebench \
@@ -114,7 +116,9 @@ function build_queue {
 }
 function build_retwis {
     echo "========== build retwis =========="
-    $RETWIS_SRC_DIR/build.sh
+    # $RETWIS_SRC_DIR/build.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/workloads/retwis/build.sh
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-retwisbench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.retwisbench \
@@ -297,12 +301,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=1 \
+        --index-reps=2 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 queue
+    setup_env 3 3 2 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -314,11 +318,11 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=2
-    INTERVAL1=800 # ms
-    INTERVAL2=500 # ms
-    NUM_PRODUCER=2
-    NUM_CONSUMER=2
+    NUM_SHARDS=16
+    INTERVAL1=10 # ms
+    INTERVAL2=2 # ms
+    NUM_PRODUCER=16
+    NUM_CONSUMER=16
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -521,17 +525,17 @@ build)
     build_boki
     # build_testcases
     # build_microbench
-    # build_queue
+    build_queue
     # build_retwis
-    build_workflow
+    # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
-    # docker push adjwang/boki-queuebench:dev
+    docker push adjwang/boki-queuebench:dev
     # docker push adjwang/boki-retwisbench:dev
-    docker push adjwang/boki-beldibench:dev
+    # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
@@ -540,12 +544,12 @@ run)
     # test_sharedlog
 
     # test_microbench
-    # test_queue
+    test_queue
     # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    test_workflow boki-hotel-baseline
+    # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
