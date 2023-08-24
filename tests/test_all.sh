@@ -329,8 +329,14 @@ function test_queue {
     NUM_SHARDS=16
     INTERVAL1=6 # ms
     INTERVAL2=10 # ms
-    NUM_PRODUCER=1
+    NUM_PRODUCER=2
     NUM_CONSUMER=16
+
+    # NUM_SHARDS=1
+    # INTERVAL1=800 # ms
+    # INTERVAL2=600 # ms
+    # NUM_PRODUCER=1
+    # NUM_CONSUMER=1
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -537,16 +543,16 @@ build)
     build_boki
     # build_testcases
     # build_microbench
-    # build_queue
-    build_retwis
+    build_queue
+    # build_retwis
     # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
-    # docker push adjwang/boki-queuebench:dev
-    docker push adjwang/boki-retwisbench:dev
+    docker push adjwang/boki-queuebench:dev
+    # docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -556,8 +562,8 @@ run)
     # test_sharedlog
 
     # test_microbench
-    # test_queue
-    test_retwis
+    test_queue
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
