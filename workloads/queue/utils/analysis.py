@@ -46,11 +46,11 @@ if __name__ == '__main__':
     print_percentile('read', read_statistics)
     print_percentile('aar', append_ratio)
 
-    plt.figure()
-    x, CDF_counts = np.unique(append_ratio, return_counts = True)
-    y = np.cumsum(CDF_counts)/np.sum(CDF_counts)
-    plt.plot(x, y)
-    plt.savefig('/tmp/queue_prof.png')
+    # plt.figure()
+    # x, CDF_counts = np.unique(append_ratio, return_counts = True)
+    # y = np.cumsum(CDF_counts)/np.sum(CDF_counts)
+    # plt.plot(x, y)
+    # plt.savefig('/tmp/queue_prof.png')
 
 
     # pop_statistics = []

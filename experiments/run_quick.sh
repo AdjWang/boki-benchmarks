@@ -60,7 +60,7 @@ echo "====== Start running BokiQueue experiments ======"
 
 BASE_DIR=$ROOT_DIR/experiments/queue/boki
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
 $BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
 # $BASE_DIR/run_once.sh p128c128b10 128 6 1 128 10
