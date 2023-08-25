@@ -328,6 +328,15 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \\
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && mv $HOST $EXP_DIR/fn_output
+done
+cd -
+
 """
 
 queue_docker_compose_f = """\
@@ -455,6 +464,15 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \\
     --payload_size=1024 --duration=180 >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && mv $HOST $EXP_DIR/fn_output
+done
+cd -
 
 """
 
@@ -643,6 +661,15 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \\
     --duration=180 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && mv $HOST $EXP_DIR/fn_output
+done
+cd -
 
 """
 
@@ -1149,6 +1176,15 @@ ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
     /tmp/{app_dir}/init clean {init_mode}
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && mv $HOST $EXP_DIR/fn_output
+done
+cd -
 
 """
 

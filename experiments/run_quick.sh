@@ -12,7 +12,7 @@ RUN_QUEUE_PUSLAR=
 RUN_QUEUE_SQS=
 
 # Retwis workload for BokiStore and MongoDB
-RUN_STORE_BOKI=
+RUN_STORE_BOKI=y
 RUN_STORE_MONGO=
 
 # Workflow workload for BokiFlow and Beldi
@@ -123,12 +123,14 @@ echo "====== Start running BokiStore experiments ======"
 
 BASE_DIR=$ROOT_DIR/experiments/retwis/boki
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
 $BASE_DIR/run_once.sh con128 128
-$BASE_DIR/run_once.sh con192 192
+# $BASE_DIR/run_once.sh con192 192
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+echo "[DEBUG] early exit"
+exit 0
 
 echo "====== Finish running BokiStore experiments ======"
 else

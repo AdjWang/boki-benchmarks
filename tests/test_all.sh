@@ -309,12 +309,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=4 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 queue
+    setup_env 3 3 4 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -326,11 +326,11 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=16
+    NUM_SHARDS=64
     INTERVAL1=6 # ms
-    INTERVAL2=10 # ms
-    NUM_PRODUCER=2
-    NUM_CONSUMER=16
+    INTERVAL2=1 # ms
+    NUM_PRODUCER=64
+    NUM_CONSUMER=64
 
     # NUM_SHARDS=1
     # INTERVAL1=800 # ms
@@ -345,7 +345,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=30
+        --payload_size=40 --duration=180
 }
 
 function test_retwis {
@@ -353,12 +353,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=1 \
+        --index-reps=4 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 retwis
+    setup_env 3 3 4 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -370,25 +370,27 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=16 # 64, 96, 128, 192
+    CONCURRENCY=128 # 64, 96, 128, 192
     # NUM_USERS=10000
-    NUM_USERS=100
+    NUM_USERS=1000
 
     set -x
     # init
     curl -X POST http://localhost:9000/function/RetwisInit
     # create users
-    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=32
+    $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=16
 
     # curl -X POST -d '{"password":"password_2","username":"testuser_2"}' http://localhost:9000/function/RetwisLogin
     # echo ""
-    # --percentages=10,25,60,5 \
+    # curl -X POST -d '{"password":"password_2","username":"testuser_2"}' http://localhost:9000/function/RetwisLogin
+    # echo ""
+    # --percentages=10,0,0,90 \
 
     echo "run benchmark"
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
-        --percentages=10,0,0,90 \
-        --duration=3 --concurrency=$CONCURRENCY
+        --percentages=15,30,50,5 \
+        --duration=180 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
