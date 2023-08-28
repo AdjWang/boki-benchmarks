@@ -339,12 +339,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=1 \
+        --index-reps=2 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 retwis
+    setup_env 3 3 2 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -356,7 +356,7 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=8 # 64, 96, 128, 192
+    CONCURRENCY=64 # 64, 96, 128, 192
     # NUM_USERS=10000
     NUM_USERS=100
 
@@ -527,8 +527,8 @@ build)
     # build_testcases
     # build_microbench
     # build_queue
-    # build_retwis
-    build_workflow
+    build_retwis
+    # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
@@ -546,11 +546,11 @@ run)
 
     # test_microbench
     # test_queue
-    # test_retwis
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    test_workflow boki-hotel-baseline
+    # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
