@@ -164,7 +164,7 @@ boki_engine_f = """\
       - --io_uring_fd_slots={io_uring_fd_slots}
       - --enable_shared_log
       - --slog_engine_enable_cache
-      - --slog_engine_cache_cap_mb=1
+      - --slog_engine_cache_cap_mb=512
       - --slog_engine_propagate_auxdata
       - --v={verbose}
     depends_on:
@@ -1074,7 +1074,7 @@ if __name__ == '__main__':
     METALOG_REPLICAS = args.metalog_reps
     USERLOG_REPLICAS = args.userlog_reps
     INDEX_REPLICAS = args.index_reps
-    VERBOSE = 1
+    VERBOSE = 0
     IO_URING_ENTRIES = 64
     IO_URING_FD_SLOTS = 1024
     FUNC_ENV = "- DBENV=LOCAL"
