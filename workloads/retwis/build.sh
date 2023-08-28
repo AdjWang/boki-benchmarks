@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ASYNC_BENCH=1
+# CONSISTENCY=SEQUENTIAL
+CONSISTENCY=STRONG
 
 APP_DIR="$(realpath $(dirname "$0"))"
 PROJECT_DIR=$(realpath $APP_DIR/../../)
@@ -21,7 +23,7 @@ go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
 go mod tidy
 
 export CGO_ENABLED=1
-go build -o bin/main main.go
+go build -ldflags="-X cs.utexas.edu/zjia/faas/slib/common.CONSISTENCY=$CONSISTENCY" -o bin/main main.go
 go build -o bin/create_users tools/create_users.go
 go build -o bin/benchmark tools/benchmark.go
 cd -
