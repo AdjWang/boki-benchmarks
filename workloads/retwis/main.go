@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"cs.utexas.edu/zjia/faas-retwis/handlers"
+	"cs.utexas.edu/zjia/faas-retwis/microbenchmark"
 
 	"cs.utexas.edu/zjia/faas"
 	"cs.utexas.edu/zjia/faas/types"
@@ -15,6 +16,8 @@ type funcHandlerFactory struct {
 
 func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.FuncHandler, error) {
 	switch funcName {
+	case "MicrobenchSingleOp":
+		return microbenchmark.NewSlibSingleOpHandler(env), nil
 	case "RetwisInit":
 		return handlers.NewSlibInitHandler(env), nil
 	case "RetwisRegister":

@@ -309,12 +309,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=4 \
+        --index-reps=2 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 4 queue
+    setup_env 3 3 2 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -345,7 +345,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=180
+        --payload_size=40 --duration=10
 }
 
 function test_retwis {
@@ -353,12 +353,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=4 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 retwis
+    setup_env 3 3 4 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -370,7 +370,7 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=16 # 64, 96, 128, 192
+    CONCURRENCY=128 # 64, 96, 128, 192
     # NUM_USERS=10000
     NUM_USERS=100
 
