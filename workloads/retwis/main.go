@@ -56,6 +56,6 @@ func (f *funcHandlerFactory) GrpcNew(env types.Environment, service string) (typ
 }
 
 func main() {
-	log.SetFlags(log.Lshortfile)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	faas.Serve(&funcHandlerFactory{})
 }

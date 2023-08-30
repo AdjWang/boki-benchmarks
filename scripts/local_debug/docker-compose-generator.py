@@ -164,7 +164,7 @@ boki_engine_f = """\
       - --io_uring_fd_slots={io_uring_fd_slots}
       - --enable_shared_log
       - --slog_engine_enable_cache
-      - --slog_engine_cache_cap_mb=512
+      - --slog_engine_cache_cap_mb=64
       - --slog_engine_propagate_auxdata
       - --v={verbose}
     depends_on:
