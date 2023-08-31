@@ -26,7 +26,7 @@ func init() {
 	flag.StringVar(&FLAGS_fn_prefix, "fn_prefix", "", "")
 	flag.IntVar(&FLAGS_concurrency, "concurrency", 1, "")
 	flag.IntVar(&FLAGS_duration, "duration", 10, "")
-	flag.StringVar(&FLAGS_percentages, "percentages", "50,50,0", "read,write,txn")
+	flag.StringVar(&FLAGS_percentages, "percentages", "50,50,0,0", "read,write,txnread,txnwr")
 	flag.IntVar(&FLAGS_rand_seed, "rand_seed", 23333, "")
 
 	rand.Seed(int64(FLAGS_rand_seed))
@@ -55,14 +55,13 @@ func parsePercentages(s string) ([]int, error) {
 }
 
 func buildSingleOpReadRequest() utils.JSONValue {
-	return utils.JSONValue{
-		"optype": "read",
-	}
+	return utils.JSONValue{}
 }
 
 func buildSingleOpWriteRequest() utils.JSONValue {
+	value := int64(rand.Intn(100))
 	return utils.JSONValue{
-		"optype": "write",
+		"var": strconv.FormatInt(value, 10),
 	}
 }
 
@@ -88,6 +87,7 @@ func printFnResult(fnName string, duration time.Duration, results []*utils.FaasC
 		}
 	}
 	if total == 0 {
+		fmt.Println("No results")
 		return
 	}
 	failed := total - succeeded - txnConflit
@@ -126,9 +126,9 @@ func main() {
 		}
 		k := rand.Intn(100)
 		if k < percentages[0] {
-			client.AddJsonFnCall(FLAGS_fn_prefix+"MicrobenchSingleOp", buildSingleOpReadRequest())
+			client.AddJsonFnCall(FLAGS_fn_prefix+"MicrobenchSingleOpRead", buildSingleOpReadRequest())
 		} else if k < percentages[1] {
-			client.AddJsonFnCall(FLAGS_fn_prefix+"MicrobenchSingleOp", buildSingleOpWriteRequest())
+			client.AddJsonFnCall(FLAGS_fn_prefix+"MicrobenchSingleOpWrite", buildSingleOpWriteRequest())
 		} else {
 			panic("not implemented") // for txn
 		}
@@ -137,6 +137,6 @@ func main() {
 	elapsed := time.Since(startTime)
 	fmt.Printf("Benchmark runs for %v, %.1f request per sec\n", elapsed, float64(len(results))/elapsed.Seconds())
 
-	printFnResult("MicrobenchSingleOp Read", elapsed, results)
-	printFnResult("MicrobenchSingleOp Write", elapsed, results)
+	printFnResult("MicrobenchSingleOpRead", elapsed, results)
+	printFnResult("MicrobenchSingleOpWrite", elapsed, results)
 }

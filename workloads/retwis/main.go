@@ -16,8 +16,10 @@ type funcHandlerFactory struct {
 
 func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.FuncHandler, error) {
 	switch funcName {
-	case "MicrobenchSingleOp":
-		return microbenchmark.NewSlibSingleOpHandler(env), nil
+	case "MicrobenchSingleOpRead":
+		return microbenchmark.NewSlibSingleOpReadHandler(env), nil
+	case "MicrobenchSingleOpWrite":
+		return microbenchmark.NewSlibSingleOpWriteHandler(env), nil
 	case "RetwisInit":
 		return handlers.NewSlibInitHandler(env), nil
 	case "RetwisRegister":

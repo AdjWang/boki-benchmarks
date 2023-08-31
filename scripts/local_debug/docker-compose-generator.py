@@ -603,6 +603,34 @@ retwis_funcs_f = """\
       - boki-engine-{node_id}
     # restart: always
 
+  retwis-microbench-singleop-read-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "8"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  retwis-microbench-singleop-write-{node_id}:
+    image: adjwang/boki-retwisbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/main", "9"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
 """
 
 bokiflow_hotel_funcs_f = """\

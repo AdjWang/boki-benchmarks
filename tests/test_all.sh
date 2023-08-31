@@ -353,12 +353,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=4 \
+        --index-reps=2 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 4 retwis
+    setup_env 3 3 2 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -370,14 +370,28 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=128 # 64, 96, 128, 192
+    CONCURRENCY=64 # 64, 96, 128, 192
     # NUM_USERS=10000
     NUM_USERS=100
 
     set -x
-    # init
+
+    # microbenchmark
+    # curl -X POST -d '{"var":"19"}' http://localhost:9000/function/MicrobenchSingleOpWrite
+    # echo ""
+    # # curl -X POST -d '{}' http://localhost:9000/function/MicrobenchSingleOpRead
+    # # echo ""
+
+    # echo "run microbenchmark"
+    # $RETWIS_SRC_DIR/bin/microbenchmark \
+    #     --faas_gateway=localhost:9000 \
+    #     --percentages=20,80,0,0 \
+    #     --duration=30 --concurrency=$CONCURRENCY
+    # # DEBUG
+    # exit 0
+
+    # retwis
     curl -X POST http://localhost:9000/function/RetwisInit
-    # create users
     $RETWIS_SRC_DIR/bin/create_users --faas_gateway=localhost:9000 --num_users=$NUM_USERS --concurrency=16
 
     # curl -X POST -d '{"password":"password_2","username":"testuser_2"}' http://localhost:9000/function/RetwisLogin
@@ -385,12 +399,13 @@ function test_retwis {
     # curl -X POST -d '{"password":"password_2","username":"testuser_2"}' http://localhost:9000/function/RetwisLogin
     # echo ""
     # --percentages=10,0,0,90 \
+    # --percentages=15,30,50,5 \
 
     echo "run benchmark"
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
-        --percentages=15,30,50,5 \
-        --duration=180 --concurrency=$CONCURRENCY
+        --percentages=0,0,80,20 \
+        --duration=30 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1

@@ -561,6 +561,30 @@ retwis_docker_compose_f = """\
       - boki-engine
     restart: always
 
+  retwis-microbench-singleop-read:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "8"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-microbench-singleop-write:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "9"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
 """
 
 retwis_nightcore_config = """\
@@ -571,7 +595,9 @@ retwis_nightcore_config = """\
     { "funcName": "RetwisProfile", "funcId": 4, "minWorkers": 24, "maxWorkers": 24 },
     { "funcName": "RetwisFollow", "funcId": 5, "minWorkers": 24, "maxWorkers": 24 },
     { "funcName": "RetwisPost", "funcId": 6, "minWorkers": 24, "maxWorkers": 24 },
-    { "funcName": "RetwisPostList", "funcId": 7, "minWorkers": 24, "maxWorkers": 24 }
+    { "funcName": "RetwisPostList", "funcId": 7, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "MicrobenchSingleOpRead", "funcId": 8, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "MicrobenchSingleOpWrite", "funcId": 9, "minWorkers": 24, "maxWorkers": 24 }
 ]
 """
 

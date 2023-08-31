@@ -5,5 +5,7 @@
     { "funcName": "RetwisProfile", "funcId": 4, "minWorkers": 24, "maxWorkers": 24 },
     { "funcName": "RetwisFollow", "funcId": 5, "minWorkers": 24, "maxWorkers": 24 },
     { "funcName": "RetwisPost", "funcId": 6, "minWorkers": 24, "maxWorkers": 24 },
-    { "funcName": "RetwisPostList", "funcId": 7, "minWorkers": 24, "maxWorkers": 24 }
+    { "funcName": "RetwisPostList", "funcId": 7, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "MicrobenchSingleOpRead", "funcId": 8, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "MicrobenchSingleOpWrite", "funcId": 9, "minWorkers": 24, "maxWorkers": 24 }
 ]

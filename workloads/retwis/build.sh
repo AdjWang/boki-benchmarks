@@ -24,6 +24,7 @@ go mod tidy
 
 export CGO_ENABLED=1
 go build -ldflags="-X cs.utexas.edu/zjia/faas/slib/common.CONSISTENCY=$CONSISTENCY" -o bin/main main.go
-go build -o bin/create_users tools/create_users.go
-go build -o bin/benchmark tools/benchmark.go
+go build -o bin/create_users tools/create_users/main.go
+go build -o bin/benchmark tools/benchmark/main.go
+go build -o bin/microbenchmark tools/microbenchmark/main.go
 cd -

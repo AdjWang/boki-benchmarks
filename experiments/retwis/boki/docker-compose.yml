@@ -51,7 +51,7 @@ services:
       - --zookeeper_host=zookeeper:2181
       - --metalog_replicas=3
       - --userlog_replicas=3
-      - --index_replicas=1
+      - --index_replicas=8
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -199,6 +199,30 @@ services:
   retwis-post-list:
     image: adjwang/boki-retwisbench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "7"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-microbench-singleop-read:
+    image: adjwang/boki-retwisbench:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "8"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=4
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
+  retwis-microbench-singleop-write:
+    image: adjwang/boki-retwisbench:dev
+    entrypoint: ["/tmp/boki/run_launcher", "/retwisbench-bin/main", "9"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
