@@ -353,12 +353,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=3 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 retwis
+    setup_env 3 3 3 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -404,7 +404,7 @@ function test_retwis {
     echo "run benchmark"
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
-        --percentages=0,0,80,20 \
+        --percentages=0,0,50,50 \
         --duration=30 --concurrency=$CONCURRENCY
 }
 
