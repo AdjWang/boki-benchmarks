@@ -62,10 +62,10 @@ BASE_DIR=$ROOT_DIR/experiments/queue/boki
 
 # $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
+# $BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
 # $BASE_DIR/run_once.sh p128c128b10 128 6 1 128 10
 # $BASE_DIR/run_once.sh p128c32  32  8 1 128
-# $BASE_DIR/run_once.sh p32c128  128 3 1 32
+$BASE_DIR/run_once.sh p32c128  128 3 1 32
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"
@@ -125,8 +125,8 @@ BASE_DIR=$ROOT_DIR/experiments/retwis/boki
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh con128 128
-# $BASE_DIR/run_once.sh con192 192
+# $BASE_DIR/run_once.sh con128 128
+$BASE_DIR/run_once.sh con192 192
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"

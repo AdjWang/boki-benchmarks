@@ -177,7 +177,7 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 				payload, err = q.Pop()
 			}
 		}
-		elapsed := time.Since(popStart)
+		// elapsed := time.Since(popStart)
 		if err != nil {
 			if sync.IsQueueEmptyError(err) {
 				time.Sleep(popStart.Add(interval).Sub(time.Now()))
@@ -193,9 +193,9 @@ func consumerSlib(ctx context.Context, env types.Environment, input *common.Cons
 			}
 		}
 		seqNums = append(seqNums, utils.ParseSeqNum(payload))
-		// delay := time.Since(utils.ParseTime(payload))
-		// latencies = append(latencies, int(delay.Microseconds()))
-		latencies = append(latencies, int(elapsed.Microseconds()))
+		delay := time.Since(utils.ParseTime(payload))
+		latencies = append(latencies, int(delay.Microseconds()))
+		// latencies = append(latencies, int(elapsed.Microseconds()))
 		time.Sleep(popStart.Add(interval).Sub(time.Now()))
 	}
 

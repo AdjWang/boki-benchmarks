@@ -6,7 +6,7 @@
 /workloads/retwis/bin
 
 /experiments/**/docker-compose-generated.yml
-/experiments/**/results
+/experiments/**/results*
 /experiments/**/machines.json
 
 /tests/workloads/**/bin/
