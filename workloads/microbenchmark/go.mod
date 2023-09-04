@@ -8,10 +8,10 @@ require (
 )
 
 require (
-	github.com/enriquebris/goconcurrentqueue v0.7.0 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 )
 
-replace cs.utexas.edu/zjia/faas => /home/adjwang/dev/boki-benchmarks/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /home/ubuntu/boki-benchmarks/boki/worker/golang
 
-replace github.com/eniac/Beldi => /home/adjwang/dev/boki-benchmarks/workloads/workflow/asynclog
+replace github.com/eniac/Beldi => /home/ubuntu/boki-benchmarks/workloads/workflow/asynclog

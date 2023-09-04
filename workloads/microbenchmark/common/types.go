@@ -25,19 +25,4 @@ import "time"
 // 	BlockingPop bool   `json:"blocking"`
 // }
 
-type FnOutput struct {
-	Success      bool     `json:"success"`
-	Message      string   `json:"message"`
-	AsyncLatency int      `json:"alatency"`
-	Latency      int      `json:"latency"`
-	BatchSize    int      `json:"batchSize"`
-	SeqNums      []uint64 `json:"seqNums"`
-}
-
-type FnInput struct {
-	PayloadSize int  `json:"payloadSize"`
-	BatchSize   int  `json:"batchSize"`
-	ReadCached  bool `json:"readCached"`
-}
-
 const Timeout = time.Second * 60
