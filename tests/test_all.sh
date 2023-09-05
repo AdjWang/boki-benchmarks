@@ -372,7 +372,7 @@ function test_retwis {
 
     CONCURRENCY=192 # 64, 96, 128, 192
     # NUM_USERS=10000
-    NUM_USERS=1000
+    NUM_USERS=100
 
     set -x
 
@@ -568,8 +568,8 @@ push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
-    docker push adjwang/boki-queuebench:dev
-    # docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-queuebench:dev
+    docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
