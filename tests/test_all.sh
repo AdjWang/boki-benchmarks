@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -372,7 +372,7 @@ function test_retwis {
 
     CONCURRENCY=192 # 64, 96, 128, 192
     # NUM_USERS=10000
-    NUM_USERS=100
+    NUM_USERS=1000
 
     set -x
 
@@ -558,8 +558,8 @@ debug)
     ;;
 build)
     build_boki
-    # build_testcases
-    build_microbench
+    build_testcases
+    # build_microbench
     # build_queue
     # build_retwis
     # build_workflow
@@ -576,9 +576,9 @@ clean)
     cleanup
     ;;
 run)
-    # test_sharedlog
+    test_sharedlog
 
-    test_microbench
+    # test_microbench
     # test_queue
     # test_retwis
 

@@ -5,6 +5,9 @@ export ZOO_LOG4J_PROP="WARN,CONSOLE"
 # SERVER="${ZK_HOST:-zookeeper:2181}"
 SERVER="0.0.0.0:2181"
 
+# DEBUG: allow gdb to attach before zk startup
+sleep 5
+
 ./bin/zkCli.sh -server $SERVER <<EOF
 deleteall /faas
 create /faas
@@ -19,7 +22,7 @@ if [[ $? != 0 ]]; then
     exit 1
 fi
 
-sleep 10
+sleep 5
 
 ./bin/zkCli.sh -server $SERVER create /faas/cmd/start
 

@@ -520,7 +520,10 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 
 	{
 		auxData := []byte{10, 11, 12}
-		if err := h.env.SharedLogSetAuxDataWithShards(ctx, seqNum2, tags[0].StreamId, auxData); err != nil {
+		if err := h.env.SharedLogSetAuxDataWithShards(ctx, types.LogEntryIndex{
+			SeqNum:  seqNum2,
+			LocalId: protocol.InvalidLogLocalId,
+		}, tags[0].StreamId, auxData); err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log set aux data error: %v\n", err)
 			return []byte(output), nil
 		} else {
@@ -529,7 +532,10 @@ func (h *shardedAuxDataHandler) Call(ctx context.Context, input []byte) ([]byte,
 	}
 	{
 		auxData := []byte{7, 8, 9}
-		if err := h.env.SharedLogSetAuxDataWithShards(ctx, seqNum1, tags[0].StreamId, auxData); err != nil {
+		if err := h.env.SharedLogSetAuxDataWithShards(ctx, types.LogEntryIndex{
+			SeqNum:  seqNum1,
+			LocalId: protocol.InvalidLogLocalId,
+		}, tags[0].StreamId, auxData); err != nil {
 			output += fmt.Sprintf("[FAIL] async shared log set aux data error: %v\n", err)
 			return []byte(output), nil
 		} else {
@@ -651,7 +657,10 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 			}
 		}
 	}
-	if err := h.env.SharedLogSetAuxDataWithShards(ctx, seqNums[1], tags[0], []byte{3, 4, 5}); err != nil {
+	if err := h.env.SharedLogSetAuxDataWithShards(ctx, types.LogEntryIndex{
+		SeqNum:  seqNums[1],
+		LocalId: protocol.InvalidLogLocalId,
+	}, tags[0], []byte{3, 4, 5}); err != nil {
 		output += fmt.Sprintf("[FAIL] set aux data failed: %v\n", err)
 		return []byte(output), nil
 	}
