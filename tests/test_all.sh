@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -332,11 +332,11 @@ function test_queue {
     NUM_PRODUCER=64
     NUM_CONSUMER=64
 
-    # NUM_SHARDS=1
-    # INTERVAL1=800 # ms
-    # INTERVAL2=600 # ms
-    # NUM_PRODUCER=1
-    # NUM_CONSUMER=1
+    # NUM_SHARDS=4
+    # INTERVAL1=80 # ms
+    # INTERVAL2=10 # ms
+    # NUM_PRODUCER=2
+    # NUM_CONSUMER=4
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -558,10 +558,10 @@ debug)
     ;;
 build)
     build_boki
-    build_testcases
+    # build_testcases
     # build_microbench
     # build_queue
-    # build_retwis
+    build_retwis
     # build_workflow
     ;;
 push)
@@ -576,11 +576,11 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
 
     # test_microbench
     # test_queue
-    # test_retwis
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

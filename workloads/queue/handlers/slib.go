@@ -11,7 +11,7 @@ import (
 	"cs.utexas.edu/zjia/faas-queue/utils"
 	"github.com/pkg/errors"
 
-	"cs.utexas.edu/zjia/faas/slib/sync"
+	sync "cs.utexas.edu/zjia/faas/slib/asyncqueue"
 	"cs.utexas.edu/zjia/faas/types"
 )
 

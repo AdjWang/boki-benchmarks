@@ -148,8 +148,8 @@ boki_engine_f = """\
     hostname: faas-engine-{node_id}
     networks:
       - boki-net
-    ports:
-      - 9001:9001
+    # ports:
+    #   - 9001:9001
     entrypoint:
       # - gdbserver
       # - 0.0.0.0:9001
@@ -1102,7 +1102,7 @@ if __name__ == '__main__':
     METALOG_REPLICAS = args.metalog_reps
     USERLOG_REPLICAS = args.userlog_reps
     INDEX_REPLICAS = args.index_reps
-    VERBOSE = 1
+    VERBOSE = 0
     IO_URING_ENTRIES = 64
     IO_URING_FD_SLOTS = 1024
     FUNC_ENV = "- DBENV=LOCAL"
