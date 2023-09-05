@@ -326,17 +326,17 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=64
-    INTERVAL1=6 # ms
-    INTERVAL2=1 # ms
-    NUM_PRODUCER=64
-    NUM_CONSUMER=64
+    # NUM_SHARDS=64
+    # INTERVAL1=6 # ms
+    # INTERVAL2=1 # ms
+    # NUM_PRODUCER=64
+    # NUM_CONSUMER=64
 
-    # NUM_SHARDS=4
-    # INTERVAL1=80 # ms
-    # INTERVAL2=10 # ms
-    # NUM_PRODUCER=2
-    # NUM_CONSUMER=4
+    NUM_SHARDS=64
+    INTERVAL1=8 # ms
+    INTERVAL2=2 # ms
+    NUM_PRODUCER=32
+    NUM_CONSUMER=64
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -345,7 +345,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=10
+        --payload_size=40 --duration=30
 }
 
 function test_retwis {
@@ -353,12 +353,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=4 \
+        --index-reps=2 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 4 retwis
+    setup_env 3 3 2 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -405,7 +405,7 @@ function test_retwis {
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
         --percentages=0,0,50,50 \
-        --duration=30 --concurrency=$CONCURRENCY
+        --duration=10 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1

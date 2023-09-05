@@ -622,21 +622,20 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 				return []byte(output), nil
 			}
 		}
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], 0 /*fromSeqNum*/, types.LogEntryIndex{
-			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[2]}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0]}})
 		count := 0
-		for {
-			logStreamEntry := logStream.BlockingDequeue()
-			logEntry := logStreamEntry.LogEntry
-			err = logStreamEntry.Err
+		seqNum := uint64(0)
+		for seqNum < seqNums[2] {
+			logEntry, err := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNum, types.LogEntryIndex{
+				LocalId: protocol.InvalidLogLocalId,
+				SeqNum:  seqNums[2]}, types.ReadOptions{FromCached: false, AuxTags: []uint64{tags[0]}})
 			if err != nil {
 				output += fmt.Sprintf("[FAIL] log stream entry type assertion failed: %v\n", err)
 				return []byte(output), nil
 			}
-			if logEntry == nil {
+			if logEntry == nil || logEntry.SeqNum >= seqNums[2] {
 				break
 			}
+			seqNum = logEntry.SeqNum + 1
 			count++
 			logEntries = append(logEntries, logEntry)
 		}
@@ -673,21 +672,20 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 				return []byte(output), nil
 			}
 		}
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], 0 /*fromSeqNum*/, types.LogEntryIndex{
-			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[5]}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0]}})
 		count := 0
-		for {
-			logStreamEntry := logStream.BlockingDequeue()
-			logEntry := logStreamEntry.LogEntry
-			err = logStreamEntry.Err
+		seqNum := uint64(0)
+		for seqNum < seqNums[5] {
+			logEntry, err := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNum, types.LogEntryIndex{
+				LocalId: protocol.InvalidLogLocalId,
+				SeqNum:  seqNums[5]}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0]}})
 			if err != nil {
 				output += fmt.Sprintf("[FAIL] log stream entry type assertion failed: %v\n", err)
 				return []byte(output), nil
 			}
-			if logEntry == nil {
+			if logEntry == nil || logEntry.SeqNum >= seqNums[5] {
 				break
 			}
+			seqNum = logEntry.SeqNum + 1
 			count++
 			logEntries = append(logEntries, logEntry)
 		}
@@ -717,21 +715,20 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 	}
 	{
 		// sync to an existing view, should return one synced entry
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNums[0] /*fromSeqNum*/, types.LogEntryIndex{
-			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[2]}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0]}})
 		count := 0
-		for {
-			logStreamEntry := logStream.BlockingDequeue()
-			logEntry := logStreamEntry.LogEntry
-			err = logStreamEntry.Err
+		seqNum := seqNums[0]
+		for seqNum < seqNums[2] {
+			logEntry, err := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNum, types.LogEntryIndex{
+				LocalId: protocol.InvalidLogLocalId,
+				SeqNum:  seqNums[2]}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0]}})
 			if err != nil {
 				output += fmt.Sprintf("[FAIL] log stream entry decode failed: %v\n", err)
 				return []byte(output), nil
 			}
-			if logEntry == nil {
+			if logEntry == nil || logEntry.SeqNum >= seqNums[2] {
 				break
 			}
+			seqNum = logEntry.SeqNum + 1
 			count++
 			logEntries = append(logEntries, logEntry)
 		}
@@ -747,21 +744,20 @@ func (h *syncToHandler) Call(ctx context.Context, input []byte) ([]byte, error) 
 	}
 	{
 		// sync to an existing view, should return one synced entry
-		logStream := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNums[0] /*fromSeqNum*/, types.LogEntryIndex{
-			LocalId: protocol.InvalidLogLocalId,
-			SeqNum:  seqNums[1]}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0]}})
 		count := 0
-		for {
-			logStreamEntry := logStream.BlockingDequeue()
-			logEntry := logStreamEntry.LogEntry
-			err = logStreamEntry.Err
+		seqNum := seqNums[0]
+		for seqNum < seqNums[1] {
+			logEntry, err := h.env.SharedLogReadNextUntil(ctx, tags[0], seqNum, types.LogEntryIndex{
+				LocalId: protocol.InvalidLogLocalId,
+				SeqNum:  seqNums[1]}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0]}})
 			if err != nil {
 				output += fmt.Sprintf("[FAIL] log stream entry decode failed: %v\n", err)
 				return []byte(output), nil
 			}
-			if logEntry == nil {
+			if logEntry == nil || logEntry.SeqNum >= seqNums[1] {
 				break
 			}
+			seqNum = logEntry.SeqNum + 1
 			count++
 			logEntries = append(logEntries, logEntry)
 		}
@@ -798,23 +794,32 @@ func (h *syncToFutureHandler) Call(ctx context.Context, input []byte) ([]byte, e
 		return []byte(output), nil
 	}
 
-	logStream := h.env.AsyncSharedLogReadNextUntil(ctx, tags[0].StreamId, 0 /*fromSeqNum*/, types.LogEntryIndex{
-		LocalId: future2.GetLocalId(),
-		SeqNum:  protocol.InvalidLogSeqNum}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0].StreamId}})
 	count := 0
+	seqNum := uint64(0)
 	for {
-		logStreamEntry := logStream.BlockingDequeue()
-		logEntry := logStreamEntry.LogEntry
-		err = logStreamEntry.Err
+		logEntry, err := h.env.AsyncSharedLogReadNextUntil(ctx, tags[0].StreamId, seqNum, types.LogEntryIndex{
+			LocalId: future2.GetLocalId(),
+			SeqNum:  protocol.InvalidLogSeqNum}, types.ReadOptions{FromCached: true, AuxTags: []uint64{tags[0].StreamId}})
 		if err != nil {
 			output += fmt.Sprintf("[FAIL] log stream entry decode failed: %v\n", err)
 			return []byte(output), nil
 		}
-		if logEntry == nil {
+		if logEntry == nil || logEntry.LocalId == future2.GetLocalId() {
 			break
 		}
+		seqNum = logEntry.SeqNum + 1
 		count++
 		logEntries = append(logEntries, logEntry)
+
+		// if future2.IsResolved() {
+		// 	seqNum2, err := future2.GetResult(time.Second)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// 	if seqNum >= seqNum2 {
+		// 		break
+		// 	}
+		// }
 	}
 	resultSeqNums := make([]uint64, 0)
 	for _, logEntry := range logEntries {
@@ -825,14 +830,14 @@ func (h *syncToFutureHandler) Call(ctx context.Context, input []byte) ([]byte, e
 		output += fmt.Sprintf("[FAIL] incorrect sync to num: %v, need: 1\n", count)
 		return []byte(output), nil
 	}
-	seqNum, err := future1.GetResult(60 * time.Second)
+	seqNum1, err := future1.GetResult(60 * time.Second)
 	if err != nil {
 		output += fmt.Sprintf("[FAIL] future1 GetResult failed: %v\n", err)
 		return []byte(output), nil
 	}
-	if logEntries[0].SeqNum != seqNum {
+	if logEntries[0].SeqNum != seqNum1 {
 		output += fmt.Sprintf("[FAIL] incorrect log entry seqnum=%016X need seqnum=%016X\n",
-			logEntries[0].SeqNum, seqNum)
+			logEntries[0].SeqNum, seqNum1)
 		return []byte(output), nil
 	}
 	return []byte(output), nil

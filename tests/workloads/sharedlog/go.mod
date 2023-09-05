@@ -16,6 +16,7 @@ require (
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/lithammer/shortuuid v3.0.0+incompatible // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 )
 
