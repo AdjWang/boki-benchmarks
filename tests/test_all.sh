@@ -326,17 +326,17 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    # NUM_SHARDS=64
-    # INTERVAL1=6 # ms
-    # INTERVAL2=1 # ms
-    # NUM_PRODUCER=64
-    # NUM_CONSUMER=64
-
     NUM_SHARDS=64
-    INTERVAL1=8 # ms
-    INTERVAL2=2 # ms
-    NUM_PRODUCER=32
+    INTERVAL1=6 # ms
+    INTERVAL2=1 # ms
+    NUM_PRODUCER=64
     NUM_CONSUMER=64
+
+    # NUM_SHARDS=64
+    # INTERVAL1=8 # ms
+    # INTERVAL2=2 # ms
+    # NUM_PRODUCER=32
+    # NUM_CONSUMER=64
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -345,7 +345,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=30
+        --payload_size=40 --duration=60
 }
 
 function test_retwis {
@@ -559,17 +559,17 @@ debug)
 build)
     build_boki
     # build_testcases
-    # build_microbench
+    build_microbench
     # build_queue
-    build_retwis
+    # build_retwis
     # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
-    # docker push adjwang/boki-queuebench:dev
-    docker push adjwang/boki-retwisbench:dev
+    docker push adjwang/boki-queuebench:dev
+    # docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -578,9 +578,9 @@ clean)
 run)
     # test_sharedlog
 
-    # test_microbench
+    test_microbench
     # test_queue
-    test_retwis
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

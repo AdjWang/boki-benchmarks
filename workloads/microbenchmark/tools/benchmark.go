@@ -92,12 +92,18 @@ func printReadSummary(results []handlers.ReadOutput) {
 				normedLatencies = append(normedLatencies, latency/float64(result.BatchSize))
 			}
 		} else {
-			log.Printf("[ERROR] failed append: %v", result.Message)
+			log.Printf("[ERROR] failed read: %v", result.Message)
 		}
 	}
 
 	printSummary("Append Latency", appendLatencies)
 	printSummary("Normed Append Latency", normedAppendLatencies)
+
+	syncToCount := make([]float64, 0)
+	for _, res := range results {
+		syncToCount = append(syncToCount, float64(len(res.SeqNums)))
+	}
+	printSummary("Syncto Count", syncToCount)
 
 	synctoLatencies := common.ListSub(latencies, appendLatencies)
 	normedSynctoLatencies := common.ListSub(normedLatencies, normedAppendLatencies)

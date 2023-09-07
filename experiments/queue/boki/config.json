@@ -7,11 +7,6 @@
         "bokiexp-engine-1": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
         "bokiexp-engine-2": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
         "bokiexp-engine-3": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-4": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-5": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-6": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-7": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
-        "bokiexp-engine-8": { "type": "c5d.2xlarge", "role": "worker", "labels": [ "engine_node=true" ] },
         "bokiexp-storage-1": { "type": "c5d.2xlarge", "role": "worker", "mount_instance_storage": "nvme1n1", "labels": ["storage_node=true"] },
         "bokiexp-storage-2": { "type": "c5d.2xlarge", "role": "worker", "mount_instance_storage": "nvme1n1", "labels": ["storage_node=true"] },
         "bokiexp-storage-3": { "type": "c5d.2xlarge", "role": "worker", "mount_instance_storage": "nvme1n1", "labels": ["storage_node=true"] },
@@ -24,8 +19,8 @@
         "boki-gateway": { "placement": "bokiexp-gateway" },
         "boki-storage": { "placement_label": "storage_node", "replicas": 3 },
         "boki-sequencer": { "placement_label": "sequencer_node", "replicas": 3 },
-        "boki-engine": { "placement_label": "engine_node", "replicas": 8 },
-        "consumer-fn": { "placement_label": "engine_node", "replicas": 8 },
-        "producer-fn": { "placement_label": "engine_node", "replicas": 8 }
+        "boki-engine": { "placement_label": "engine_node", "replicas": 3 },
+        "consumer-fn": { "placement_label": "engine_node", "replicas": 3 },
+        "producer-fn": { "placement_label": "engine_node", "replicas": 3 }
     }
 }

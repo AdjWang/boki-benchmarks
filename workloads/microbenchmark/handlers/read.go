@@ -52,19 +52,18 @@ func syncToForward(ctx context.Context, env types.Environment, headSeqNum uint64
 }
 
 func syncToFuture(ctx context.Context, env types.Environment, headSeqNum uint64, logIndex types.LogEntryIndex) ([]uint64, error) {
-	logStream := env.SharedLogReadNextUntil(ctx, 1 /*tag*/, headSeqNum, logIndex,
-		types.ReadOptions{FromCached: true, AuxTags: []uint64{1}})
 	seqNums := make([]uint64, 0, 100)
-	for {
-		logStreamEntry := logStream.BlockingDequeue()
-		logEntry := logStreamEntry.LogEntry
-		err := logStreamEntry.Err
+	seqNum := headSeqNum
+	for seqNum < logIndex.SeqNum {
+		logEntry, err := env.SharedLogReadNextUntil(ctx, 1 /*tag*/, seqNum, logIndex,
+			types.ReadOptions{FromCached: true, AuxTags: []uint64{1}})
 		if err != nil {
 			return nil, err
 		}
-		if logEntry == nil {
+		if logEntry == nil || logEntry.LocalId == logIndex.LocalId || logEntry.SeqNum >= logIndex.SeqNum {
 			break
 		}
+		seqNum = logEntry.SeqNum + 1
 		seqNums = append(seqNums, logEntry.SeqNum)
 	}
 	return seqNums, nil
