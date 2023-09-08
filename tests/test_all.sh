@@ -327,16 +327,16 @@ function test_queue {
         assert_should_success $LINENO
 
     NUM_SHARDS=64
-    INTERVAL1=6 # ms
-    INTERVAL2=1 # ms
+    INTERVAL1=12 # ms
+    INTERVAL2=4 # ms
     NUM_PRODUCER=64
     NUM_CONSUMER=64
 
-    # NUM_SHARDS=4
+    # NUM_SHARDS=2
     # INTERVAL1=80 # ms
     # INTERVAL2=10 # ms
-    # NUM_PRODUCER=2
-    # NUM_CONSUMER=4
+    # NUM_PRODUCER=1
+    # NUM_CONSUMER=2
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -345,7 +345,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=10
+        --payload_size=40 --duration=60
 }
 
 function test_retwis {
@@ -560,8 +560,8 @@ build)
     build_boki
     # build_testcases
     # build_microbench
-    # build_queue
-    build_retwis
+    build_queue
+    # build_retwis
     # build_workflow
     ;;
 push)
@@ -579,8 +579,8 @@ run)
     # test_sharedlog
 
     # test_microbench
-    # test_queue
-    test_retwis
+    test_queue
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

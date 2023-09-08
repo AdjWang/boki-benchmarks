@@ -72,6 +72,9 @@ func invokeProducer(client *http.Client, queueIndex int, response *common.FnOutp
 	} else if !response.Success {
 		log.Printf("[ERROR] Producer request failed: %s", response.Message)
 	}
+	// else {
+	// 	log.Printf("[DEBUG] Producer messages: %s", response.Message)
+	// }
 }
 
 func invokeConsumer(client *http.Client, queueIndex int, shard int, response *common.FnOutput, wg *sync.WaitGroup) {

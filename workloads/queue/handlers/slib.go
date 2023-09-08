@@ -104,11 +104,13 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 		panic(errors.New(fmt.Sprintf("invalid batch size: %v", input.BatchSize)))
 	}
 	numMessages := make([]int, 0, 128)
+	lastSeqNumStr := "nil"
 	for time.Since(startTime) < duration {
 		// prepare payload
 		payloads := make([]string, 0, input.BatchSize)
 		for i := 0; i < input.BatchSize; i++ {
 			seqNumStr := <-seqNumCh
+			lastSeqNumStr = seqNumStr
 			payload := utils.RandomString(input.PayloadSize - utils.TimestampStrLen - utils.SeqNumStrLen)
 			payload = seqNumStr + payload
 			payloads = append(payloads, payload)
@@ -139,6 +141,7 @@ func producerSlib(ctx context.Context, env types.Environment, input *common.Prod
 		Duration:    time.Since(startTime).Seconds(),
 		Latencies:   latencies,
 		NumMessages: numMessages,
+		Message:     lastSeqNumStr,
 	}, nil
 }
 
