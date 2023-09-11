@@ -7,7 +7,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
-	statestore "cs.utexas.edu/zjia/faas/slib/asyncstatestore"
+	"cs.utexas.edu/zjia/faas/slib/statestore"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -49,6 +49,7 @@ func NewMongoProfileHandler(env types.Environment) types.FuncHandler {
 }
 
 func profileSlib(ctx context.Context, env types.Environment, input *ProfileInput) (*ProfileOutput, error) {
+	ctx = context.WithValue(ctx, "PROF", "ON")
 	output := &ProfileOutput{Success: true}
 
 	store := statestore.CreateEnv(ctx, env)

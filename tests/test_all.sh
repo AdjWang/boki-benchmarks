@@ -356,7 +356,7 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=8 # 64, 96, 128, 192
+    CONCURRENCY=16 # 64, 96, 128, 192
     # NUM_USERS=10000
     NUM_USERS=100
 
@@ -369,7 +369,7 @@ function test_retwis {
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
         --percentages=15,30,50,5 \
-        --duration=5 --concurrency=$CONCURRENCY
+        --duration=10 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
@@ -525,16 +525,16 @@ build)
     build_boki
     # build_testcases
     # build_microbench
-    build_queue
-    # build_retwis
+    # build_queue
+    build_retwis
     # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
-    docker push adjwang/boki-queuebench:dev
-    # docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-queuebench:dev
+    docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -544,8 +544,8 @@ run)
     # test_sharedlog
 
     # test_microbench
-    test_queue
-    # test_retwis
+    # test_queue
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

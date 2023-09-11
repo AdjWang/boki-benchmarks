@@ -8,7 +8,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
-	statestore "cs.utexas.edu/zjia/faas/slib/asyncstatestore"
+	"cs.utexas.edu/zjia/faas/slib/statestore"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,6 +53,7 @@ const kUserPostListLimit = 24
 const kTimeLinePostListLimit = 96
 
 func postSlib(ctx context.Context, env types.Environment, input *PostInput) (*PostOutput, error) {
+	ctx = context.WithValue(ctx, "PROF", "ON")
 	txn, err := statestore.CreateTxnEnv(ctx, env)
 	if err != nil {
 		return nil, err

@@ -7,7 +7,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
-	statestore "cs.utexas.edu/zjia/faas/slib/asyncstatestore"
+	"cs.utexas.edu/zjia/faas/slib/statestore"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -48,6 +48,7 @@ func NewMongoLoginHandler(env types.Environment) types.FuncHandler {
 }
 
 func loginSlib(ctx context.Context, env types.Environment, input *LoginInput) (*LoginOutput, error) {
+	ctx = context.WithValue(ctx, "PROF", "ON")
 	txn, err := statestore.CreateReadOnlyTxnEnv(ctx, env)
 	if err != nil {
 		return nil, err
