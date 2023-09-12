@@ -127,7 +127,7 @@ func asyncLogAppend(ctx context.Context, env types.Environment, input *common.Fn
 	seqNums := make([]uint64, 0, input.BatchSize)
 	pushStart := time.Now()
 	// bench test case
-	tags := []types.Tag{{StreamType: 1, StreamId: uint64(1)}}
+	tags := []types.Tag{{StreamType: 2, StreamId: uint64(2)}}
 	futures := make([]types.Future[uint64], 0, len(payloads))
 	deps := []uint64{}
 	for _, payload := range payloads {
@@ -267,7 +267,7 @@ func asyncToForward(ctx context.Context, env types.Environment,
 
 	popStart := time.Now()
 	futures := make([]types.Future[*types.LogEntryWithMeta], 0, 100)
-	tag := uint64(1)
+	tag := uint64(2)
 	seqNum := headSeqNum
 	if tailSeqNum < seqNum {
 		log.Fatalf("[FATAL] Current seqNum=%#016x, cannot sync to %#016x", seqNum, tailSeqNum)

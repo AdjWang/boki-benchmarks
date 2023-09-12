@@ -100,30 +100,34 @@ func printSummary(results []common.FnOutput) {
 }
 
 func runBench(client *http.Client, benchCase string, benchFnName string, fnInput *common.FnInput) {
-	throughput := FLAGS_concurrency * FLAGS_batch_size
 	durationNs := FLAGS_duration * 1000000000 // s -> ns
 
 	resultsMu := sync.Mutex{}
 	appendResults := make([]common.FnOutput, 0, 100000)
+	resCount := 0
 
 	start := time.Now()
-	for time.Since(start) < time.Duration(durationNs) {
-		for i := 0; i < FLAGS_concurrency; i++ {
-			go func() {
+	wg := sync.WaitGroup{}
+	for i := 0; i < FLAGS_concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			for time.Since(start) < time.Duration(durationNs) {
 				res := invokeFn(client, benchFnName, fnInput)
 				resultsMu.Lock()
 				appendResults = append(appendResults, res)
+				resCount += len(res.SeqNums)
 				resultsMu.Unlock()
-			}()
-		}
-		time.Sleep(time.Second)
+			}
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 	actualDuration := time.Since(start).Seconds()
 
 	resultsMu.Lock()
 	fmt.Printf("[%s]\n", benchCase)
-	fmt.Printf("Target Throughput: %d, Actual Throughput: %.1f ops per sec\n",
-		throughput, float64(len(appendResults))*float64(FLAGS_batch_size)/actualDuration)
+	fmt.Printf("Duration: %vs Throughput: %.1f ops per sec\n",
+		actualDuration, float64(resCount)/actualDuration)
 	printSummary(appendResults)
 	resultsMu.Unlock()
 }
@@ -138,7 +142,7 @@ func main() {
 			// MaxIdleConns:    FLAGS_concurrency,
 			IdleConnTimeout: 30 * time.Second,
 		},
-		Timeout: time.Duration(FLAGS_duration*10) * time.Second,
+		Timeout: time.Duration(FLAGS_duration*2) * time.Second,
 	}
 
 	if FLAGS_bench_case == "write" {
