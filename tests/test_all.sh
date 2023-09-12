@@ -284,7 +284,7 @@ function test_microbench {
     set -x
     $BENCH_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --bench_case="write" \
-        --batch_size=2 --concurrency=1 \
+        --batch_size=2 --concurrency=1000 \
         --payload_size=128 --duration=10
 
     # $BENCH_SRC_DIR/bin/benchmark \
@@ -292,10 +292,10 @@ function test_microbench {
     #     --batch_size=3 --concurrency=100 \
     #     --payload_size=256 --duration=10
 
-    $BENCH_SRC_DIR/bin/benchmark \
-        --faas_gateway=localhost:9000 --bench_case="read_stream" \
-        --batch_size=1 --concurrency=200 \
-        --payload_size=1024 --duration=10
+    # $BENCH_SRC_DIR/bin/benchmark \
+    #     --faas_gateway=localhost:9000 --bench_case="read_stream" \
+    #     --batch_size=1 --concurrency=200 \
+    #     --payload_size=1024 --duration=10
 }
 
 function test_queue {

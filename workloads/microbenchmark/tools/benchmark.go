@@ -171,10 +171,12 @@ func printAppendSummary(results []handlers.AppendOutput) {
 	printSummary("AsyncLatency", asyncLatencies)
 	printSummary("Normed AsyncLatency", normedAsyncLatencies)
 
-	awaitLatencies := common.ListSub(latencies, asyncLatencies)
-	normedAwaitLatencies := common.ListSub(normedLatencies, normedAsyncLatencies)
-	printSummary("Await Latency", awaitLatencies)
-	printSummary("Normed Await Latency", normedAwaitLatencies)
+	if len(asyncLatencies) > 0 {
+		awaitLatencies := common.ListSub(latencies, asyncLatencies)
+		normedAwaitLatencies := common.ListSub(normedLatencies, normedAsyncLatencies)
+		printSummary("Await Latency", awaitLatencies)
+		printSummary("Normed Await Latency", normedAwaitLatencies)
+	}
 
 	printSummary("Total Latency", latencies)
 	printSummary("Normed Total Latency", normedLatencies)
@@ -187,18 +189,21 @@ func runAppendBench(client *http.Client, benchCase string, benchFnName string, f
 	resCount := 0
 
 	start := time.Now()
-	for time.Since(start) < time.Duration(durationNs) {
-		for i := 0; i < FLAGS_concurrency; i++ {
-			go func() {
+	wg := sync.WaitGroup{}
+	for i := 0; i < FLAGS_concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			for time.Since(start) < time.Duration(durationNs) {
 				res := invokeAppendFn(client, benchFnName, fnInput)
 				resultsMu.Lock()
 				appendResults = append(appendResults, res)
 				resCount += len(res.SeqNums)
 				resultsMu.Unlock()
-			}()
-		}
-		time.Sleep(time.Second)
+			}
+			wg.Done()
+		}()
 	}
+	wg.Wait()
 	actualDuration := time.Since(start).Seconds()
 
 	resultsMu.Lock()
