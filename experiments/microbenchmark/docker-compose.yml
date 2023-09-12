@@ -51,7 +51,7 @@ services:
       - --zookeeper_host=zookeeper:2181
       - --metalog_replicas=3
       - --userlog_replicas=3
-      - --index_replicas=8
+      - --index_replicas=1
       # - --v=1
     depends_on:
       - zookeeper-setup

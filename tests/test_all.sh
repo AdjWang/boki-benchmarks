@@ -282,10 +282,10 @@ function test_microbench {
     # curl -s -X POST -d '{"PayloadSize":1024,"BatchSize":1}' http://localhost:9000/function/benchAsyncLogRead | gunzip
 
     set -x
-    # $BENCH_SRC_DIR/bin/benchmark \
-    #     --faas_gateway=localhost:9000 --bench_case="write" \
-    #     --batch_size=1 --concurrency=10 \
-    #     --payload_size=1024 --duration=3
+    $BENCH_SRC_DIR/bin/benchmark \
+        --faas_gateway=localhost:9000 --bench_case="write" \
+        --batch_size=2 --concurrency=1 \
+        --payload_size=128 --duration=10
 
     # $BENCH_SRC_DIR/bin/benchmark \
     #     --faas_gateway=localhost:9000 --bench_case="read" \
@@ -559,17 +559,17 @@ debug)
 build)
     build_boki
     # build_testcases
-    # build_microbench
+    build_microbench
     # build_queue
-    build_retwis
+    # build_retwis
     # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
-    # docker push adjwang/boki-microbench:dev
+    docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
-    docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -578,9 +578,9 @@ clean)
 run)
     # test_sharedlog
 
-    # test_microbench
+    test_microbench
     # test_queue
-    test_retwis
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

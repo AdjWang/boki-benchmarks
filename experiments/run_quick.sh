@@ -4,10 +4,10 @@ set -uxo pipefail
 ROOT_DIR=`realpath $(dirname $0)/..`
 
 # Microbenchmarks
-RUN_MICROBENCH=
+RUN_MICROBENCH=y
 
 # Message queue workload for BokiQueue and Pulsar
-RUN_QUEUE_BOKI=
+RUN_QUEUE_BOKI=y
 RUN_QUEUE_PUSLAR=
 RUN_QUEUE_SQS=
 
@@ -31,18 +31,29 @@ BASE_DIR=$ROOT_DIR/experiments/microbenchmark
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh wc100b1 "write" 100 1
-$BASE_DIR/run_once.sh wc100b10 "write" 100 10
-$BASE_DIR/run_once.sh wc100b100 "write" 100 100
-$BASE_DIR/run_once.sh wc500b10 "write" 500 10
-$BASE_DIR/run_once.sh wc1000b10 "write" 1000 10
+# $BASE_DIR/run_once.sh wc1000b1 "write" 1000 1
+# $BASE_DIR/run_once.sh wc1000b2 "write" 1000 2
+# $BASE_DIR/run_once.sh wc1000b3 "write" 1000 3
+# $BASE_DIR/run_once.sh wc1000b4 "write" 1000 4
+# $BASE_DIR/run_once.sh wc1000b5 "write" 1000 5
+
+$BASE_DIR/run_once.sh wc1b1 "write" 1 1
+$BASE_DIR/run_once.sh wc1b2 "write" 1 2
+$BASE_DIR/run_once.sh wc1b3 "write" 1 3
+$BASE_DIR/run_once.sh wc1b4 "write" 1 4
+$BASE_DIR/run_once.sh wc1b5 "write" 1 5
+
+# $BASE_DIR/run_once.sh wc100b10 "write" 100 10
+# $BASE_DIR/run_once.sh wc100b100 "write" 100 100
+# $BASE_DIR/run_once.sh wc500b10 "write" 500 10
+# $BASE_DIR/run_once.sh wc1000b10 "write" 1000 10
 
 # $BASE_DIR/run_once.sh rc100b1 "read" 100 1
 # $BASE_DIR/run_once.sh rc100b10 "read" 100 10
 # $BASE_DIR/run_once.sh rc100b100 "read" 100 100
-$BASE_DIR/run_once.sh rcachedc100b1 "read_cached" 100 1
-$BASE_DIR/run_once.sh rcachedc100b10 "read_cached" 100 10
-$BASE_DIR/run_once.sh rcachedc100b100 "read_cached" 100 100
+# $BASE_DIR/run_once.sh rcachedc100b1 "read_cached" 100 1
+# $BASE_DIR/run_once.sh rcachedc100b10 "read_cached" 100 10
+# $BASE_DIR/run_once.sh rcachedc100b100 "read_cached" 100 100
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"
@@ -62,10 +73,10 @@ BASE_DIR=$ROOT_DIR/experiments/queue/boki
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
+# $BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
 # $BASE_DIR/run_once.sh p128c128b10 128 6 1 128 10
-# $BASE_DIR/run_once.sh p128c32  32  8 1 128
-# $BASE_DIR/run_once.sh p32c128  128 3 1 32
+$BASE_DIR/run_once.sh p128c32  32  8 1 128
+$BASE_DIR/run_once.sh p32c128  128 3 1 32
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"
