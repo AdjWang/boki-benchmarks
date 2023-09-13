@@ -559,9 +559,9 @@ debug)
 build)
     build_boki
     # build_testcases
-    # build_microbench
+    build_microbench
     # build_queue
-    build_retwis
+    # build_retwis
     # build_workflow
     ;;
 push)
@@ -578,9 +578,9 @@ clean)
 run)
     # test_sharedlog
 
-    # test_microbench
+    test_microbench
     # test_queue
-    test_retwis
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
