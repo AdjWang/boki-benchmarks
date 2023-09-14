@@ -160,7 +160,7 @@ func LibSyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uint
 	// sync until receives index
 	// If the async log is not propagated to a different engine, waiting for
 	// the seqnum is enough to guarantee read-your-write consistency.
-	err := future.Await(gSyncTimeout)
+	_, err := future.GetResult(gSyncTimeout)
 	CHECK(err)
 
 	// // But wait for index is fast enough so no need to do this optimization.

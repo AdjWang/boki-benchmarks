@@ -257,10 +257,7 @@ func asyncLogTestAppendRead(ctx context.Context, h *asyncLogOpHandler, output st
 			return output
 		} else {
 			output += fmt.Sprintf("[PASS] async shared log append localid: 0x%016X\n", future.GetLocalId())
-			if err := future.Await(time.Second); err != nil {
-				output += fmt.Sprintf("[FAIL] async shared log verify error: %v\n", err)
-				return output
-			} else if seqNum, err := future.GetResult(timeout); err == nil {
+			if seqNum, err := future.GetResult(timeout); err == nil {
 				output += fmt.Sprintf("[PASS] async shared log append seqNum: 0x%016X\n", seqNum)
 				seqNumAppended = seqNum
 			} else {
@@ -317,10 +314,7 @@ func asyncLogTestCondAppendRead(ctx context.Context, h *asyncLogOpHandler, outpu
 			return output
 		} else {
 			output += fmt.Sprintf("[PASS] async shared log append localid: 0x%016X\n", future.GetLocalId())
-			if err := future.Await(time.Second); err != nil {
-				output += fmt.Sprintf("[FAIL] async shared log verify error: %v\n", err)
-				return output
-			} else if seqNum, err := future.GetResult(timeout); err == nil {
+			if seqNum, err := future.GetResult(timeout); err == nil {
 				output += fmt.Sprintf("[PASS] async shared log append seqNum: 0x%016X\n", seqNum)
 				seqNumAppended = seqNum
 			} else {
