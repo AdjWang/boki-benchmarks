@@ -4,10 +4,10 @@ set -uxo pipefail
 ROOT_DIR=`realpath $(dirname $0)/..`
 
 # Microbenchmarks
-RUN_MICROBENCH=y
+RUN_MICROBENCH=
 
 # Message queue workload for BokiQueue and Pulsar
-RUN_QUEUE_BOKI=y
+RUN_QUEUE_BOKI=
 RUN_QUEUE_PUSLAR=
 RUN_QUEUE_SQS=
 
@@ -136,6 +136,7 @@ BASE_DIR=$ROOT_DIR/experiments/retwis/boki
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
+# $BASE_DIR/run_once.sh con64 64
 # $BASE_DIR/run_once.sh con128 128
 $BASE_DIR/run_once.sh con192 192
 

@@ -167,6 +167,7 @@ boki_engine_f = """\
       - --slog_engine_cache_cap_mb=64
       - --slog_engine_propagate_auxdata
       # - --func_worker_use_engine_socket=true
+      - --func_worker_ipc_output_channels=2
       - --v={verbose}
     depends_on:
       zookeeper-setup:
@@ -1103,7 +1104,7 @@ if __name__ == '__main__':
     METALOG_REPLICAS = args.metalog_reps
     USERLOG_REPLICAS = args.userlog_reps
     INDEX_REPLICAS = args.index_reps
-    VERBOSE = 0
+    VERBOSE = 1
     IO_URING_ENTRIES = 64
     IO_URING_FD_SLOTS = 1024
     FUNC_ENV = "- DBENV=LOCAL"

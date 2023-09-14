@@ -25,7 +25,7 @@ services:
       - --listen_iface=eth0
       - --root_path_for_ipc=/tmp/boki/ipc
       - --func_config_file=/tmp/boki/func_config.json
-      - --num_io_workers=4
+      - --num_io_workers=8
       - --instant_rps_p_norm=0.8
       - --io_uring_entries=2048
       - --io_uring_fd_slots=4096
@@ -33,6 +33,7 @@ services:
       - --slog_engine_enable_cache
       - --slog_engine_cache_cap_mb=1024
       - --slog_engine_propagate_auxdata
+      - --func_worker_ipc_output_channels=4
       # - --v=1
     depends_on:
       - zookeeper-setup

@@ -1,11 +1,11 @@
 [
     { "funcName": "RetwisInit", "funcId": 1, "minWorkers": 1, "maxWorkers": 1 },
     { "funcName": "RetwisRegister", "funcId": 2, "minWorkers": 24, "maxWorkers": 24 },
-    { "funcName": "RetwisLogin", "funcId": 3, "minWorkers": 24, "maxWorkers": 24 },
-    { "funcName": "RetwisProfile", "funcId": 4, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "RetwisLogin", "funcId": 3, "minWorkers": 12, "maxWorkers": 12 },
+    { "funcName": "RetwisProfile", "funcId": 4, "minWorkers": 12, "maxWorkers": 12 },
     { "funcName": "RetwisFollow", "funcId": 5, "minWorkers": 24, "maxWorkers": 24 },
-    { "funcName": "RetwisPost", "funcId": 6, "minWorkers": 24, "maxWorkers": 24 },
-    { "funcName": "RetwisPostList", "funcId": 7, "minWorkers": 24, "maxWorkers": 24 },
+    { "funcName": "RetwisPost", "funcId": 6, "minWorkers": 12, "maxWorkers": 12 },
+    { "funcName": "RetwisPostList", "funcId": 7, "minWorkers": 12, "maxWorkers": 12 },
     { "funcName": "MicrobenchSingleOpRead", "funcId": 8, "minWorkers": 24, "maxWorkers": 24 },
     { "funcName": "MicrobenchSingleOpWrite", "funcId": 9, "minWorkers": 24, "maxWorkers": 24 }
 ]
