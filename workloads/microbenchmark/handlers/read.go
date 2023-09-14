@@ -117,36 +117,28 @@ func asyncToForward(ctx context.Context, env types.Environment,
 	headSeqNum uint64, tailSeqNum uint64) (time.Duration, time.Duration, error) {
 
 	readStart := time.Now()
-	futures := make([]types.Future[*types.LogEntryWithMeta], 0, 100)
+	logEntries := make([]*types.LogEntryWithMeta, 0, 100)
 	tag := uint64(1)
 	seqNum := headSeqNum
 	if tailSeqNum < seqNum {
 		log.Fatalf("[FATAL] Current seqNum=%#016x, cannot sync to %#016x", seqNum, tailSeqNum)
 	}
 	for seqNum <= tailSeqNum {
-		logEntryFuture, err := env.AsyncSharedLogReadNext2(ctx, tag, seqNum)
+		logEntry, err := env.AsyncSharedLogReadNext(ctx, tag, seqNum)
 		if err != nil {
 			return -1, -1, err
 		}
-		if logEntryFuture == nil || logEntryFuture.GetSeqNum() >= tailSeqNum {
+		if logEntry == nil || logEntry.SeqNum >= tailSeqNum {
 			break
 		}
-		seqNum = logEntryFuture.GetSeqNum() + 1
-		futures = append(futures, logEntryFuture)
-	}
-	asyncElapsed := time.Since(readStart)
-	for _, logEntryFuture := range futures {
-		// logEntry, err := logEntryFuture.GetResult()
-		_, err := logEntryFuture.GetResult(common.Timeout)
-		if err != nil {
-			return -1, -1, err
-		}
+		seqNum = logEntry.SeqNum + 1
+		logEntries = append(logEntries, logEntry)
 		// bussiness logics:
 		// logContent := decodeLogEntry(logEntry)
 		// ...
 	}
 	elapsed := time.Since(readStart)
-	return asyncElapsed, elapsed, nil
+	return -1, elapsed, nil
 }
 func AsyncLogRead(ctx context.Context, env types.Environment, input *ReadInput) (*ReadOutput, error) {
 	output, err := AsyncLogAppend(ctx, env, &AppendInput{
@@ -166,7 +158,7 @@ func AsyncLogRead(ctx context.Context, env types.Environment, input *ReadInput) 
 		}, nil
 	}
 	seqNums := output.SeqNums
-	asyncElapsed, elapsed, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
+	_, elapsed, err := asyncToForward(ctx, env, seqNums[0], seqNums[len(seqNums)-1])
 	if err != nil {
 		return &ReadOutput{
 			Success: false,
@@ -175,7 +167,7 @@ func AsyncLogRead(ctx context.Context, env types.Environment, input *ReadInput) 
 	}
 	return &ReadOutput{
 		Success:       true,
-		Stage1Latency: int(asyncElapsed.Microseconds()),
+		Stage1Latency: -1,
 		Stage2Latency: int(elapsed.Microseconds()),
 		BatchSize:     input.BatchSize,
 		SeqNums:       seqNums,

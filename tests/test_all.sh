@@ -326,17 +326,17 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions --output - ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=64
-    INTERVAL1=6 # ms
-    INTERVAL2=1 # ms
-    NUM_PRODUCER=64
-    NUM_CONSUMER=64
+    # NUM_SHARDS=64
+    # INTERVAL1=6 # ms
+    # INTERVAL2=1 # ms
+    # NUM_PRODUCER=64
+    # NUM_CONSUMER=64
 
-    # NUM_SHARDS=4
-    # INTERVAL1=80 # ms
-    # INTERVAL2=10 # ms
-    # NUM_PRODUCER=2
-    # NUM_CONSUMER=4
+    NUM_SHARDS=4
+    INTERVAL1=80 # ms
+    INTERVAL2=10 # ms
+    NUM_PRODUCER=2
+    NUM_CONSUMER=4
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -559,9 +559,9 @@ debug)
 build)
     build_boki
     # build_testcases
-    build_microbench
+    # build_microbench
     # build_queue
-    # build_retwis
+    build_retwis
     # build_workflow
     ;;
 push)
@@ -578,9 +578,9 @@ clean)
 run)
     # test_sharedlog
 
-    test_microbench
+    # test_microbench
     # test_queue
-    # test_retwis
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
