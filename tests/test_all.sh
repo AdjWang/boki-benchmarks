@@ -345,7 +345,7 @@ function test_queue {
         --num_producer=$NUM_PRODUCER --num_consumer=$NUM_CONSUMER \
         --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
         --consumer_fix_shard=true \
-        --payload_size=40 --duration=10
+        --payload_size=40 --duration=30
 }
 
 function test_retwis {
@@ -560,8 +560,8 @@ build)
     build_boki
     # build_testcases
     # build_microbench
-    # build_queue
-    build_retwis
+    build_queue
+    # build_retwis
     # build_workflow
     ;;
 push)
@@ -579,8 +579,8 @@ run)
     # test_sharedlog
 
     # test_microbench
-    # test_queue
-    test_retwis
+    test_queue
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

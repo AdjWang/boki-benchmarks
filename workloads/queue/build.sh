@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-ASYNC_BENCH=1
+ASYNC_BENCH=0
 
 APP_DIR="$(realpath $(dirname "$0"))"
 PROJECT_DIR=$(realpath $APP_DIR/../../)
