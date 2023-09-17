@@ -4,10 +4,10 @@ set -uxo pipefail
 ROOT_DIR=`realpath $(dirname $0)/..`
 
 # Microbenchmarks
-RUN_MICROBENCH=y
+RUN_MICROBENCH=
 
 # Message queue workload for BokiQueue and Pulsar
-RUN_QUEUE_BOKI=y
+RUN_QUEUE_BOKI=
 RUN_QUEUE_PUSLAR=
 RUN_QUEUE_SQS=
 
