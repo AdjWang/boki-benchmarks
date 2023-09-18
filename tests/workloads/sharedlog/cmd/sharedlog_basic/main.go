@@ -183,6 +183,25 @@ func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, err
 			}
 		}
 	}
+	// Basic logic test. To test linearizable, use 2 different functions.
+	{
+		logEntry, err := h.env.SharedLogLinearizableCheckTail(ctx, readTag)
+		if err != nil {
+			output += fmt.Sprintf("[FAIL] shared log linearizable check tail error: %v\n", err)
+			return []byte(output), nil
+		} else {
+			res, passed := assertLogEntry("shared log linearizable check tail", logEntry, &types.LogEntry{
+				SeqNum:  seqNumAppended,
+				Tags:    tags,
+				Data:    data,
+				AuxData: []byte{7, 8, 9},
+			})
+			output += res
+			if !passed {
+				return []byte(output), nil
+			}
+		}
+	}
 
 	return []byte(output), nil
 }
