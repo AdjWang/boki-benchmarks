@@ -535,8 +535,8 @@ push)
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
-    # docker push adjwang/boki-retwisbench:dev
-    docker push adjwang/boki-beldibench:dev
+    docker push adjwang/boki-retwisbench:dev
+    # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup

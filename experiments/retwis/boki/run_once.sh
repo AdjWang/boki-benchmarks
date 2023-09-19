@@ -82,5 +82,5 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \
     --percentages=15,30,50,5 \
     --duration=180 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
 
-$HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+# $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
