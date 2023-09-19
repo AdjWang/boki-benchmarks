@@ -2,10 +2,15 @@
 set -euo pipefail
 
 ASYNC_BENCH=0
+
 # CONSISTENCY=SEQUENTIAL
 CONSISTENCY=STRONG
-# TXN_CHECK_METHOD=APPEND
-TXN_CHECK_METHOD=CHECKSEQ
+
+TXN_CHECK_METHOD=APPEND
+# TXN_CHECK_METHOD=CHECKSEQ
+
+SW_STAT=ON
+# SW_STAT=OFF
 
 APP_DIR="$(realpath $(dirname "$0"))"
 PROJECT_DIR=$(realpath $APP_DIR/../../)
@@ -26,7 +31,8 @@ go mod tidy
 
 export CGO_ENABLED=1
 go build -ldflags="-X cs.utexas.edu/zjia/faas/slib/common.CONSISTENCY=$CONSISTENCY \
-                   -X cs.utexas.edu/zjia/faas/slib/common.TXN_CHECK_METHOD=$TXN_CHECK_METHOD" \
+                   -X cs.utexas.edu/zjia/faas/slib/common.TXN_CHECK_METHOD=$TXN_CHECK_METHOD \
+                   -X cs.utexas.edu/zjia/faas/slib/common.SW_STAT=$SW_STAT" \
          -o bin/main main.go
 go build -o bin/create_users tools/create_users.go
 go build -o bin/benchmark tools/benchmark.go

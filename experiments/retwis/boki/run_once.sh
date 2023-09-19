@@ -80,7 +80,15 @@ ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
 ssh -q $CLIENT_HOST -- /tmp/benchmark \
     --faas_gateway=$ENTRY_HOST:8080 --num_users=$NUM_USERS \
     --percentages=15,30,50,5 \
-    --duration=180 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
+    --duration=60 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
 
-# $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
+$HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && mv $HOST $EXP_DIR/fn_output
+done
+cd -
