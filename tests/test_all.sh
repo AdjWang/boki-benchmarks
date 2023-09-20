@@ -339,12 +339,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=1 \
+        --index-reps=2 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 retwis
+    setup_env 3 3 2 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -524,17 +524,17 @@ debug)
 build)
     build_boki
     # build_testcases
-    build_microbench
+    # build_microbench
     # build_queue
-    # build_retwis
+    build_retwis
     # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
-    docker push adjwang/boki-microbench:dev
+    # docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
-    # docker push adjwang/boki-retwisbench:dev
+    docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -543,9 +543,9 @@ clean)
 run)
     # test_sharedlog
 
-    test_microbench
+    # test_microbench
     # test_queue
-    # test_retwis
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

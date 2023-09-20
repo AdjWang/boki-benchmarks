@@ -80,8 +80,8 @@ ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
 # --percentages=15,30,50,5 \
 ssh -q $CLIENT_HOST -- /tmp/benchmark \
     --faas_gateway=$ENTRY_HOST:8080 --num_users=$NUM_USERS \
-    --percentages=0,0,50,50 \
-    --duration=180 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
+    --percentages=15,30,50,5 \
+    --duration=60 --concurrency=$CONCURRENCY >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
