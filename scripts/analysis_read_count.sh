@@ -7,7 +7,9 @@ set -uo pipefail
 # SEARCH_DIR=/home/ubuntu/boki-benchmarks/experiments/retwis/boki/results/respcount/con192-sync-strong-respcount/fn_output
 # SEARCH_DIR=/home/ubuntu/boki-benchmarks/experiments/retwis/boki/results/respcount/con192-async-strong-respcount/fn_output
 # SEARCH_DIR=/home/ubuntu/boki-benchmarks/experiments/retwis/boki/results/respcount/con193-sync-strong-respcount-txn9010/fn_output
-SEARCH_DIR=/home/ubuntu/boki-benchmarks/experiments/retwis/boki/results/respcount/con192-async-strong-respcount-txn9010/fn_output
+# SEARCH_DIR=/home/ubuntu/boki-benchmarks/experiments/retwis/boki/results/respcount/con192-async-strong-respcount-txn9010/fn_output
+# SEARCH_DIR=/home/ubuntu/boki-benchmarks/experiments/retwis/boki/results/con192/fn_output
+SEARCH_DIR=/home/ubuntu/boki-benchmarks/experiments/retwis/boki/results/con2048/fn_output
 
 echo "Append"
 find $SEARCH_DIR -name *.stderr | xargs grep "STAT" | grep "Append" | egrep "[0-9]+ samples" -o | awk '{print $1}' | paste -sd+ | bc
