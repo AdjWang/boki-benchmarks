@@ -352,6 +352,20 @@ bench_funcs_f = """\
       - boki-engine-{node_id}
     # restart: always
 
+  ipcbench-fn-{node_id}:
+    image: adjwang/boki-microbench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/log_rw", "5"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
 """
 
 queue_funcs_f = """\

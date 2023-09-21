@@ -2,5 +2,6 @@
     { "funcName": "benchBokiLogAppend", "funcId": 1, "minWorkers": 32, "maxWorkers": 32 },
     { "funcName": "benchAsyncLogAppend", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 },
     { "funcName": "benchBokiLogRead", "funcId": 3, "minWorkers": 32, "maxWorkers": 32 },
-    { "funcName": "benchAsyncLogRead", "funcId": 4, "minWorkers": 32, "maxWorkers": 32 }
+    { "funcName": "benchAsyncLogRead", "funcId": 4, "minWorkers": 32, "maxWorkers": 32 },
+    { "funcName": "ipcBench", "funcId": 5, "minWorkers": 32, "maxWorkers": 32 }
 ]

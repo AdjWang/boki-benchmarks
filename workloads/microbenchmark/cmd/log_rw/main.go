@@ -10,6 +10,7 @@ import (
 	"cs.utexas.edu/zjia/faas"
 	"cs.utexas.edu/zjia/faas/types"
 	"cs.utexas.edu/zjia/microbenchmark/common"
+	ipcbench "cs.utexas.edu/zjia/microbenchmark/internal/ipc_bench"
 	"cs.utexas.edu/zjia/microbenchmark/utils"
 )
 
@@ -29,6 +30,10 @@ type asyncLogReadHandler struct {
 	env types.Environment
 }
 
+type ipcBenchHandler struct {
+	env types.Environment
+}
+
 type funcHandlerFactory struct {
 }
 
@@ -41,6 +46,8 @@ func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.
 		return &bokiLogReadHandler{env: env}, nil
 	} else if funcName == "benchAsyncLogRead" {
 		return &asyncLogReadHandler{env: env}, nil
+	} else if funcName == "ipcBench" {
+		return &ipcBenchHandler{env: env}, nil
 	} else {
 		return nil, nil
 	}
@@ -337,6 +344,23 @@ func asyncLogRead(ctx context.Context, env types.Environment, input *common.FnIn
 		BatchSize:    input.BatchSize,
 		SeqNums:      seqNums,
 	}, nil
+}
+
+func (h *ipcBenchHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	parsedInput := &common.FnInput{}
+	err := json.Unmarshal(input, parsedInput)
+	if err != nil {
+		return nil, err
+	}
+	output, err := ipcbench.IPCBench(ctx, h.env, parsedInput)
+	if err != nil {
+		return nil, err
+	}
+	encodedOutput, err := json.Marshal(output)
+	if err != nil {
+		panic(err)
+	}
+	return common.CompressData(encodedOutput), nil
 }
 
 func main() {

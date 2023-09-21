@@ -30,8 +30,8 @@ func init() {
 	flag.IntVar(&FLAGS_batch_size, "batch_size", 1, "")
 	flag.IntVar(&FLAGS_concurrency, "concurrency", 100, "")
 	flag.IntVar(&FLAGS_rand_seed, "rand_seed", 23333, "")
-	flag.StringVar(&FLAGS_bench_case, "bench_case", "write", "write|read|read_cached")
-	if FLAGS_bench_case != "write" && FLAGS_bench_case != "read" && FLAGS_bench_case != "read_cached" {
+	flag.StringVar(&FLAGS_bench_case, "bench_case", "write", "write|read|read_cached|ipcbench")
+	if FLAGS_bench_case != "write" && FLAGS_bench_case != "read" && FLAGS_bench_case != "read_cached" && FLAGS_bench_case != "ipcbench" {
 		panic(fmt.Sprintf("unknown benchmark case: %s", FLAGS_bench_case))
 	}
 
@@ -190,6 +190,15 @@ func main() {
 		{
 			benchFnName := "benchAsyncLogRead"
 			benchCase := "AsyncLogReadCached"
+			runBench(client, benchCase, benchFnName, input)
+		}
+	} else if FLAGS_bench_case == "ipcbench" {
+		input := &common.FnInput{
+			BatchSize: FLAGS_batch_size,
+		}
+		{
+			benchFnName := "ipcBench"
+			benchCase := "IPCBench"
 			runBench(client, benchCase, benchFnName, input)
 		}
 	} else {

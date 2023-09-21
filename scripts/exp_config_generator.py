@@ -238,6 +238,18 @@ microbench_docker_compose_f = """\
       - boki-engine
     restart: always
 
+  ipcbench-fn:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "/microbench-bin/log_rw", "5"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=2
+      - GOGC=200
+    depends_on:
+      - boki-engine
+    restart: always
+
 """
 
 microbench_nightcore_config = """\
@@ -245,7 +257,8 @@ microbench_nightcore_config = """\
     { "funcName": "benchBokiLogAppend", "funcId": 1, "minWorkers": 32, "maxWorkers": 32 },
     { "funcName": "benchAsyncLogAppend", "funcId": 2, "minWorkers": 32, "maxWorkers": 32 },
     { "funcName": "benchBokiLogRead", "funcId": 3, "minWorkers": 32, "maxWorkers": 32 },
-    { "funcName": "benchAsyncLogRead", "funcId": 4, "minWorkers": 32, "maxWorkers": 32 }
+    { "funcName": "benchAsyncLogRead", "funcId": 4, "minWorkers": 32, "maxWorkers": 32 },
+    { "funcName": "ipcBench", "funcId": 5, "minWorkers": 32, "maxWorkers": 32 }
 ]
 """
 

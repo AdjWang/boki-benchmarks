@@ -21,6 +21,7 @@
         "bokilogappend-fn": { "placement_label": "engine_node", "replicas": 1 },
         "asynclogappend-fn": { "placement_label": "engine_node", "replicas": 1 },
         "bokilogread-fn": { "placement_label": "engine_node", "replicas": 1 },
-        "asynclogread-fn": { "placement_label": "engine_node", "replicas": 1 }
+        "asynclogread-fn": { "placement_label": "engine_node", "replicas": 1 },
+        "ipcbench-fn": { "placement_label": "engine_node", "replicas": 1 }
     }
 }
