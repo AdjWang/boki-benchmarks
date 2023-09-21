@@ -356,7 +356,7 @@ function test_retwis {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    CONCURRENCY=64 # 64, 96, 128, 192
+    CONCURRENCY=192 # 64, 96, 128, 192
     # NUM_USERS=10000
     NUM_USERS=100
 

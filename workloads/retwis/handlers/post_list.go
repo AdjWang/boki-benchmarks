@@ -85,9 +85,7 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 		return output, nil
 	}
 	postList = postList[0 : len(postList)-input.Skip]
-	lastIdx := len(postList) - 1
 	for i := len(postList) - 1; i >= 0; i-- {
-		lastIdx = i
 		postId := postList[i].(string)
 		postObj := txn.Object(fmt.Sprintf("post:%s", postId))
 		post := make(map[string]string)

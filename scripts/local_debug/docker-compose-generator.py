@@ -162,6 +162,7 @@ boki_engine_f = """\
       - --slog_engine_enable_cache
       - --slog_engine_cache_cap_mb=512
       - --slog_engine_propagate_auxdata
+      - --func_worker_pipe_enable_batch
       - --v={verbose}
     depends_on:
       zookeeper-setup:
