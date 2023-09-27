@@ -11,19 +11,20 @@ import (
 
 func IPCBench(ctx context.Context, env types.Environment, input *common.FnInput) (*common.FnOutput, error) {
 	startTs := time.Now()
-	err := env.SharedLogIPCBench(ctx, uint64(input.BatchSize))
-	elapsed := time.Since(startTs)
-	if err != nil {
-		return &common.FnOutput{
-			Success: false,
-			Message: fmt.Sprint(err),
-		}, nil
-	} else {
-		return &common.FnOutput{
-			Success:      true,
-			AsyncLatency: -1,
-			Latency:      int(elapsed.Microseconds()),
-			BatchSize:    input.BatchSize,
-		}, nil
+	for i := 0; i < input.PayloadSize; i++ {
+		err := env.SharedLogIPCBench(ctx, uint64(input.BatchSize))
+		if err != nil {
+			return &common.FnOutput{
+				Success: false,
+				Message: fmt.Sprint(err),
+			}, nil
+		}
 	}
+	elapsed := time.Since(startTs)
+	return &common.FnOutput{
+		Success:      true,
+		AsyncLatency: -1,
+		Latency:      int(elapsed.Microseconds()),
+		BatchSize:    input.BatchSize,
+	}, nil
 }

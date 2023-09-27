@@ -194,7 +194,8 @@ func main() {
 		}
 	} else if FLAGS_bench_case == "ipcbench" {
 		input := &common.FnInput{
-			BatchSize: FLAGS_batch_size,
+			PayloadSize: FLAGS_payload_size,
+			BatchSize:   FLAGS_batch_size,
 		}
 		{
 			benchFnName := "ipcBench"
