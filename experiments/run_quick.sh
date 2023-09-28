@@ -137,7 +137,7 @@ BASE_DIR=$ROOT_DIR/experiments/retwis/boki
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
 # $BASE_DIR/run_once.sh con128 128
-$BASE_DIR/run_once.sh con192 192
+# $BASE_DIR/run_once.sh con192 192
 $BASE_DIR/run_once.sh con2048 2048
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR

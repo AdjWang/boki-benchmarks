@@ -15,9 +15,10 @@ require (
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 	github.com/lithammer/shortuuid v3.0.0+incompatible // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 )
 
-replace cs.utexas.edu/zjia/faas => /home/adjwang/dev/boki-benchmarks/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /home/ubuntu/boki-benchmarks/boki/worker/golang
 
-replace github.com/eniac/Beldi => /home/adjwang/dev/boki-benchmarks/workloads/workflow/asynclog
+replace github.com/eniac/Beldi => /home/ubuntu/boki-benchmarks/workloads/workflow/asynclog
