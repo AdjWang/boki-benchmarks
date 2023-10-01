@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
