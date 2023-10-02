@@ -374,7 +374,7 @@ function test_retwis {
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
         --percentages=15,30,50,5 \
-        --duration=3 --concurrency=$CONCURRENCY
+        --duration=30 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
