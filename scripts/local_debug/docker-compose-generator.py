@@ -176,6 +176,7 @@ boki_engine_f = """\
       - FAAS_CGROUP_FS_ROOT=/tmp/root_cgroupfs
     ulimits:
       memlock: -1
+    shm_size: '1gb'
     # restart: always
 
 """
