@@ -344,12 +344,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=1 \
+        --index-reps=3 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 retwis
+    setup_env 3 3 3 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
