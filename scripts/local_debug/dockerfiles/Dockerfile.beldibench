@@ -6,3 +6,4 @@ COPY ./boki/bin         /bokiflow-bin
 COPY ./boki/internal/media/data /bokiflow/data
 COPY ./asynclog/bin     /asynclog-bin
 COPY --from=boki     /boki/launcher       /boki/launcher
+COPY --from=boki     /boki/libindex.so    /boki/libindex.so

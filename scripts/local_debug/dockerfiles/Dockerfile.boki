@@ -20,6 +20,7 @@ COPY ./worker /src/boki/worker
 COPY ./slib /src/boki/slib
 
 # COPY ./bin/release/libprofiler.so /boki/libprofiler.so
+COPY ./bin/release/libindex.so /boki/libindex.so
 COPY ./bin/release/gateway    /boki/gateway
 COPY ./bin/release/engine     /boki/engine
 COPY ./bin/release/launcher   /boki/launcher

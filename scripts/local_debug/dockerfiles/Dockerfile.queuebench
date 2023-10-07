@@ -3,3 +3,4 @@ FROM ubuntu:focal
 
 COPY ./bin        /queuebench-bin
 COPY --from=boki     /boki/launcher       /boki/launcher
+COPY --from=boki     /boki/libindex.so    /boki/libindex.so

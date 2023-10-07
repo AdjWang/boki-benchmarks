@@ -471,7 +471,7 @@ sharedlog_funcs_f = """\
       - boki-engine-{node_id}
     # restart: always
 
-  sharedlog-Bench-{node_id}:
+  sharedlog-SharedIndex-{node_id}:
     image: adjwang/boki-tests:dev
     networks:
       - boki-net

@@ -7,3 +7,4 @@ RUN apt update && \
 
 COPY ./sharedlog/bin    /test-bin/sharedlog
 COPY --from=boki        /boki/launcher  /boki/launcher
+COPY --from=boki        /boki/libindex.so    /boki/libindex.so

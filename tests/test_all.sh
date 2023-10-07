@@ -89,7 +89,8 @@ function setup_env {
 
 function build_testcases {
     echo "========== build sharedlog =========="
-    $TEST_DIR/workloads/sharedlog/build.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/tests/workloads/sharedlog/build.sh
 
     # build test docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
@@ -98,7 +99,8 @@ function build_testcases {
 }
 function build_microbench {
     echo "========== build bench =========="
-    $BENCH_SRC_DIR/build.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/workloads/microbenchmark/build.sh
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-microbench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.microbench \
@@ -106,7 +108,6 @@ function build_microbench {
 }
 function build_queue {
     echo "========== build queue =========="
-    # $QUEUE_SRC_DIR/build.sh
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
         /boki-benchmark/workloads/queue/build.sh
 
@@ -116,7 +117,6 @@ function build_queue {
 }
 function build_retwis {
     echo "========== build retwis =========="
-    # $RETWIS_SRC_DIR/build.sh
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
         /boki-benchmark/workloads/retwis/build.sh
 
@@ -126,7 +126,6 @@ function build_retwis {
 }
 function build_workflow {
     echo "========== build workloads =========="
-    # $WORKFLOW_SRC_DIR/build_all.sh
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
         /boki-benchmark/workloads/workflow/build_all.sh
 
@@ -238,8 +237,8 @@ function test_sharedlog {
     timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
         assert_should_success $LINENO
 
-    echo "run bench"
-    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/Bench ||
+    echo "test shared index"
+    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/SharedIndex ||
         assert_should_success $LINENO
 
     echo "check docker status"
@@ -528,10 +527,10 @@ debug)
     ;;
 build)
     build_boki
-    # build_testcases
+    build_testcases
     # build_microbench
     # build_queue
-    build_retwis
+    # build_retwis
     # build_workflow
     ;;
 push)
@@ -546,11 +545,11 @@ clean)
     cleanup
     ;;
 run)
-    # test_sharedlog
+    test_sharedlog
 
     # test_microbench
     # test_queue
-    test_retwis
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline

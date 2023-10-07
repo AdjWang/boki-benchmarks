@@ -6,7 +6,7 @@ BOKI_DIR=$(realpath $PROJECT_DIR/boki)
 TESTCASE_DIR=$(realpath $PROJECT_DIR/tests/workloads/sharedlog)
 WORKFLOW_DIR=$(realpath $PROJECT_DIR/workloads/workflow)
 
-export CGO_ENABLED=0
+export CGO_ENABLED=1
 
 cd $TESTCASE_DIR
 go mod edit -replace=cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
