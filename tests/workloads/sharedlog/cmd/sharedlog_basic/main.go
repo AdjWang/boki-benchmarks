@@ -11,6 +11,7 @@ import (
 
 	"cs.utexas.edu/zjia/faas"
 	"cs.utexas.edu/zjia/faas/types"
+	sharedindex "cs.utexas.edu/zjia/nightcore-example/internal/shared_index"
 	"github.com/eniac/Beldi/pkg/cayonlib"
 )
 
@@ -397,8 +398,12 @@ func (h *sharedIndexHandler) Call(ctx context.Context, input []byte) ([]byte, er
 	}()
 
 	output += fmt.Sprint("test binding")
-	h.env.SharedLogTestBinding()
+	sharedindex.TestBasicBinding(ctx, h.env)
 
+	output += fmt.Sprint("test alloc and dealloc")
+	sharedindex.TestBasicAlloc(ctx, h.env)
+
+	output += fmt.Sprint("test ok")
 	return []byte(output), nil
 }
 
