@@ -18,6 +18,10 @@ WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
 WORK_DIR=/tmp/boki-test
 
+LIB_DEBUG_BUILD=""
+if [ $DEBUG_BUILD -eq 1 ]; then
+    LIB_DEBUG_BUILD="--debug"
+fi
 DOCKER_BUILDER="docker buildx"
 NO_CACHE=""
 
@@ -90,7 +94,7 @@ function setup_env {
 function build_testcases {
     echo "========== build sharedlog =========="
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
-        /boki-benchmark/tests/workloads/sharedlog/build.sh
+        /boki-benchmark/tests/workloads/sharedlog/build.sh $LIB_DEBUG_BUILD
 
     # build test docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-tests:dev \
@@ -100,7 +104,7 @@ function build_testcases {
 function build_microbench {
     echo "========== build bench =========="
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
-        /boki-benchmark/workloads/microbenchmark/build.sh
+        /boki-benchmark/workloads/microbenchmark/build.sh $LIB_DEBUG_BUILD
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-microbench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.microbench \
@@ -109,7 +113,7 @@ function build_microbench {
 function build_queue {
     echo "========== build queue =========="
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
-        /boki-benchmark/workloads/queue/build.sh
+        /boki-benchmark/workloads/queue/build.sh $LIB_DEBUG_BUILD
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-queuebench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.queuebench \
@@ -118,7 +122,7 @@ function build_queue {
 function build_retwis {
     echo "========== build retwis =========="
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
-        /boki-benchmark/workloads/retwis/build.sh
+        /boki-benchmark/workloads/retwis/build.sh $LIB_DEBUG_BUILD
 
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-retwisbench:dev \
         -f $DOCKERFILE_DIR/Dockerfile.retwisbench \
@@ -127,7 +131,7 @@ function build_retwis {
 function build_workflow {
     echo "========== build workloads =========="
     docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
-        /boki-benchmark/workloads/workflow/build_all.sh
+        /boki-benchmark/workloads/workflow/build_all.sh $LIB_DEBUG_BUILD
 
     # build app docker image
     $DOCKER_BUILDER build $NO_CACHE -t adjwang/boki-beldibench:dev \
