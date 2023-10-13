@@ -347,12 +347,12 @@ function test_retwis {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=3 \
+        --index-reps=1 \
         --test-case=retwis \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 3 retwis
+    setup_env 3 3 1 retwis
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -377,7 +377,7 @@ function test_retwis {
     $RETWIS_SRC_DIR/bin/benchmark \
         --faas_gateway=localhost:9000 --num_users=$NUM_USERS \
         --percentages=15,30,50,5 \
-        --duration=30 --concurrency=$CONCURRENCY
+        --duration=10 --concurrency=$CONCURRENCY
 }
 
 # wrk -t 1 -c 1 -d 5 -s ./workloads/bokiflow/benchmark/hotel/workload.lua http://localhost:9000 -R 1
@@ -531,10 +531,10 @@ debug)
     ;;
 build)
     build_boki
-    build_testcases
+    # build_testcases
     # build_microbench
     # build_queue
-    # build_retwis
+    build_retwis
     # build_workflow
     ;;
 push)
@@ -549,11 +549,11 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
 
     # test_microbench
     # test_queue
-    # test_retwis
+    test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
