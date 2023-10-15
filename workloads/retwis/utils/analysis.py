@@ -50,7 +50,7 @@ def extract_info(logs, pattern, extractor):
 if __name__ == '__main__':
     logs = []
     count = -1
-    with open('/tmp/retwis_txn.log', 'r') as f:
+    with open('/tmp/retwis.log', 'r') as f:
         if count == -1:
             logs = f.readlines()
         else:
