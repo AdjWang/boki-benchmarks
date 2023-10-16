@@ -6,7 +6,7 @@ from multiprocessing import Pool
 from functools import partial
 from tqdm import tqdm
 
-PARALLEL = 8
+PARALLEL = 2
 
 def percentile(datas):
     def __percentile(data_list, p):
