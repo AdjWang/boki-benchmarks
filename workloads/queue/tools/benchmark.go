@@ -133,6 +133,7 @@ func printSummary(title string, results []common.FnOutput) {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	flag.Parse()
 
 	if FLAGS_num_producer%FLAGS_num_queues != 0 {

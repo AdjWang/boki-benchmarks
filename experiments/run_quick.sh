@@ -7,16 +7,16 @@ ROOT_DIR=`realpath $(dirname $0)/..`
 RUN_MICROBENCH=
 
 # Message queue workload for BokiQueue and Pulsar
-RUN_QUEUE_BOKI=
+RUN_QUEUE_BOKI=y
 RUN_QUEUE_PUSLAR=
 RUN_QUEUE_SQS=
 
 # Retwis workload for BokiStore and MongoDB
-RUN_STORE_BOKI=y
+RUN_STORE_BOKI=
 RUN_STORE_MONGO=
 
 # Workflow workload for BokiFlow and Beldi
-RUN_WORKFLOW_BOKI=y
+RUN_WORKFLOW_BOKI=
 RUN_WORKFLOW_BELDI=
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
@@ -73,11 +73,12 @@ BASE_DIR=$ROOT_DIR/experiments/queue/boki
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# $BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
+$BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
 # $BASE_DIR/run_once.sh p128c128b10 128 6 1 128 10
-$BASE_DIR/run_once.sh p128c32  32  8 1 128
-$BASE_DIR/run_once.sh p32c128  128 3 1 32
+# $BASE_DIR/run_once.sh p128c32  32  8 1 128
+# $BASE_DIR/run_once.sh p32c128  128 3 1 32
 
+# sleep 10
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"
 exit 0
@@ -173,30 +174,31 @@ echo ""
 if [[ ! -z $RUN_WORKFLOW_BOKI ]] && [[ $RUN_WORKFLOW_BOKI == "y" ]]; then
 echo "====== Start running BokiFlow experiments ======"
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-baseline
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-baseline
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps100 100
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-asynclog
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-asynclog
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps100 100
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
 
 BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-baseline
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps200 200
+$BASE_DIR/run_once.sh qps500 500
 
 $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] exit early"

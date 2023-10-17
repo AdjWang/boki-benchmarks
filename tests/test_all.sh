@@ -309,12 +309,12 @@ function test_queue {
     python3 $SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
-        --index-reps=2 \
+        --index-reps=3 \
         --test-case=queue \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 queue
+    setup_env 3 3 3 queue
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -326,11 +326,11 @@ function test_queue {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    NUM_SHARDS=16
-    INTERVAL1=10 # ms
-    INTERVAL2=2 # ms
-    NUM_PRODUCER=16
-    NUM_CONSUMER=16
+    NUM_SHARDS=64
+    INTERVAL1=20 # ms
+    INTERVAL2=6 # ms
+    NUM_PRODUCER=32
+    NUM_CONSUMER=64
 
     set -x
     $QUEUE_SRC_DIR/bin/benchmark \
@@ -533,16 +533,16 @@ build)
     build_boki
     # build_testcases
     # build_microbench
-    # build_queue
+    build_queue
     # build_retwis
-    build_workflow
+    # build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
-    # docker push adjwang/boki-queuebench:dev
-    docker push adjwang/boki-retwisbench:dev
+    docker push adjwang/boki-queuebench:dev
+    # docker push adjwang/boki-retwisbench:dev
     # docker push adjwang/boki-beldibench:dev
     ;;
 clean)
@@ -552,12 +552,12 @@ run)
     # test_sharedlog
 
     # test_microbench
-    # test_queue
+    test_queue
     # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    test_workflow boki-hotel-baseline
+    # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog

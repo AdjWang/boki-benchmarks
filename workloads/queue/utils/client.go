@@ -28,7 +28,8 @@ func JsonPostRequest(client *http.Client, url string, request interface{}, respo
 		return err
 	}
 	if err := json.NewDecoder(reader).Decode(response); err != nil {
-		log.Fatalf("[FATAL] Failed to decode JSON response: %v", err)
+		log.Fatalf("[FATAL] Failed to decode JSON response: %v (url=%v request=%+v response=%+v)",
+			err, url, request, response)
 	}
 	return nil
 }

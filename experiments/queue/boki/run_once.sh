@@ -85,7 +85,7 @@ ssh -q $CLIENT_HOST -- /tmp/benchmark \
     --producer_interval=$INTERVAL1 --consumer_interval=$INTERVAL2 \
     --producer_bsize=$NUM_PBATCHSIZE \
     --consumer_fix_shard=true \
-    --payload_size=1024 --duration=180 >$EXP_DIR/results.log
+    --payload_size=1024 --duration=10 >$EXP_DIR/results.log
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
