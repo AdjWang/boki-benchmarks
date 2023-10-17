@@ -140,7 +140,7 @@ $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MAC
 $BASE_DIR/run_once.sh con192 192
 $BASE_DIR/run_once.sh con2048 2048
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"
 exit 0
 
