@@ -534,8 +534,8 @@ build)
     # build_testcases
     # build_microbench
     # build_queue
-    build_retwis
-    # build_workflow
+    # build_retwis
+    build_workflow
     ;;
 push)
     echo "========== push docker images =========="
@@ -553,11 +553,11 @@ run)
 
     # test_microbench
     # test_queue
-    test_retwis
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    # test_workflow boki-hotel-baseline
+    test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
