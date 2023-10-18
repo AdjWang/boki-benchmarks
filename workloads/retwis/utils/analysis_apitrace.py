@@ -7,7 +7,7 @@ from functools import partial
 from tqdm import tqdm
 from dataclasses import dataclass
 
-PARALLEL = 8
+PARALLEL = 1
 
 def percentile(datas):
     def __percentile(data_list, p):
