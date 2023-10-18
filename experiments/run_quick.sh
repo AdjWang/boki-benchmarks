@@ -7,12 +7,12 @@ ROOT_DIR=`realpath $(dirname $0)/..`
 RUN_MICROBENCH=
 
 # Message queue workload for BokiQueue and Pulsar
-RUN_QUEUE_BOKI=y
+RUN_QUEUE_BOKI=
 RUN_QUEUE_PUSLAR=
 RUN_QUEUE_SQS=
 
 # Retwis workload for BokiStore and MongoDB
-RUN_STORE_BOKI=
+RUN_STORE_BOKI=y
 RUN_STORE_MONGO=
 
 # Workflow workload for BokiFlow and Beldi
@@ -78,8 +78,8 @@ $BASE_DIR/run_once.sh p128c128b1 128 6 1 128 1
 # $BASE_DIR/run_once.sh p128c32  32  8 1 128
 # $BASE_DIR/run_once.sh p32c128  128 3 1 32
 
-# sleep 10
-# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+sleep 10
+$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] early exit"
 exit 0
 
