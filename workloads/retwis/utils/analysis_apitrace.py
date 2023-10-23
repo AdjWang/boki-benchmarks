@@ -74,7 +74,7 @@ class InvocationInfo:
             else:
                 assert info.func_name in LOG_FN_SET
                 self.sub_invocations[info.func_name] = info
-    
+
     def ratio_of(self, fn_name):
         if isinstance(fn_name, list):
             return sum([self.ratio_of(single_op_name) for single_op_name in fn_name])
@@ -111,6 +111,10 @@ if __name__ == '__main__':
         record_line = res1[0]
         entries = re.findall(r'(\w+):(\d+)\(n=(\d+) max=(\d+) min=(\d+)\)', record_line)
         line = InvocationInfo(entries)
+        # DEBUG
+        if line.ratio_of(['ReadPrev', 'ReadNext']) > 1.0:
+            # print(entry)
+            return None
         return (line.latency, line.ratio_of_slog(), line.ratio_of('Append'), line.ratio_of(['ReadPrev', 'ReadNext']), line.ratio_of('SetAuxData'))
     keys = ('latency', 'slog ratio', 'Append ratio', 'Read ratio', 'SetAuxData ratio')
     query_stat = gather_info(logs, __extract_get_query_ratio)
