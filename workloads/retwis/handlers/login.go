@@ -48,7 +48,7 @@ func NewMongoLoginHandler(env types.Environment) types.FuncHandler {
 }
 
 func loginSlib(ctx context.Context, env types.Environment, input *LoginInput) (*LoginOutput, error) {
-	ctx = context.WithValue(ctx, "PROF", "ON")
+	// ctx = context.WithValue(ctx, "PROF", "ON")
 	txn, err := statestore.CreateReadOnlyTxnEnv(ctx, env)
 	if err != nil {
 		return nil, err

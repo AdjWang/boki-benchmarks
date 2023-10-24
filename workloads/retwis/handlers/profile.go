@@ -49,7 +49,7 @@ func NewMongoProfileHandler(env types.Environment) types.FuncHandler {
 }
 
 func profileSlib(ctx context.Context, env types.Environment, input *ProfileInput) (*ProfileOutput, error) {
-	ctx = context.WithValue(ctx, "PROF", "ON")
+	// ctx = context.WithValue(ctx, "PROF", "ON")
 	output := &ProfileOutput{Success: true}
 
 	store := statestore.CreateEnv(ctx, env)

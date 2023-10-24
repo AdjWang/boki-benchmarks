@@ -53,7 +53,7 @@ const kUserPostListLimit = 24
 const kTimeLinePostListLimit = 96
 
 func postSlib(ctx context.Context, env types.Environment, input *PostInput) (*PostOutput, error) {
-	ctx = context.WithValue(ctx, "PROF", "ON")
+	// ctx = context.WithValue(ctx, "PROF", "ON")
 	txn, err := statestore.CreateTxnEnv(ctx, env)
 	if err != nil {
 		return nil, err
