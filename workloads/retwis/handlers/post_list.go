@@ -73,6 +73,7 @@ func (c *reversedIdCounter) getNextN(n int) (int, int) {
 	return from, to
 }
 
+// Used to sort
 type outputPost struct {
 	index int
 	post  interface{}
@@ -122,8 +123,8 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 	if input.Skip >= len(postList) {
 		return output, nil
 	}
-	postList = postList[0 : len(postList)-input.Skip]
 
+	// postList = postList[0 : len(postList)-input.Skip]
 	// for i := len(postList) - 1; i >= 0; i-- {
 	// 	postId := postList[i].(string)
 	// 	postObj := txn.Object(fmt.Sprintf("post:%s", postId))
@@ -187,7 +188,6 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 	for _, post := range outputPosts {
 		output.Posts = append(output.Posts, post)
 	}
-
 	return output, nil
 }
 
