@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
+	"cs.utexas.edu/zjia/faas/slib/common"
 	"cs.utexas.edu/zjia/faas/slib/statestore"
 	"cs.utexas.edu/zjia/faas/types"
 
@@ -48,7 +50,15 @@ func NewMongoLoginHandler(env types.Environment) types.FuncHandler {
 }
 
 func loginSlib(ctx context.Context, env types.Environment, input *LoginInput) (*LoginOutput, error) {
-	ctx = context.WithValue(ctx, "PROF", "ON")
+	// ctx = context.WithValue(ctx, "PROF", "ON")
+	ctx = common.ContextWithTracer(ctx)
+	ts := time.Now()
+	defer func() {
+		latency := time.Since(ts).Microseconds()
+		common.AppendTrace(ctx, "Login", latency)
+		common.PrintTrace(ctx, "APITRACE")
+	}()
+
 	txn, err := statestore.CreateReadOnlyTxnEnv(ctx, env)
 	if err != nil {
 		return nil, err

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"time"
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
+	"cs.utexas.edu/zjia/faas/slib/common"
 	"cs.utexas.edu/zjia/faas/slib/statestore"
 	"cs.utexas.edu/zjia/faas/types"
 
@@ -53,7 +55,15 @@ const kUserPostListLimit = 24
 const kTimeLinePostListLimit = 96
 
 func postSlib(ctx context.Context, env types.Environment, input *PostInput) (*PostOutput, error) {
-	ctx = context.WithValue(ctx, "PROF", "ON")
+	// ctx = context.WithValue(ctx, "PROF", "ON")
+	ctx = common.ContextWithTracer(ctx)
+	ts := time.Now()
+	defer func() {
+		latency := time.Since(ts).Microseconds()
+		common.AppendTrace(ctx, "Post", latency)
+		common.PrintTrace(ctx, "APITRACE")
+	}()
+
 	txn, err := statestore.CreateTxnEnv(ctx, env)
 	if err != nil {
 		return nil, err

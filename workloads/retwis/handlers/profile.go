@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
 
+	"cs.utexas.edu/zjia/faas/slib/common"
 	"cs.utexas.edu/zjia/faas/slib/statestore"
 	"cs.utexas.edu/zjia/faas/types"
 
@@ -49,7 +51,15 @@ func NewMongoProfileHandler(env types.Environment) types.FuncHandler {
 }
 
 func profileSlib(ctx context.Context, env types.Environment, input *ProfileInput) (*ProfileOutput, error) {
-	ctx = context.WithValue(ctx, "PROF", "ON")
+	// ctx = context.WithValue(ctx, "PROF", "ON")
+	ctx = common.ContextWithTracer(ctx)
+	ts := time.Now()
+	defer func() {
+		latency := time.Since(ts).Microseconds()
+		common.AppendTrace(ctx, "Profile", latency)
+		common.PrintTrace(ctx, "APITRACE")
+	}()
+
 	output := &ProfileOutput{Success: true}
 
 	store := statestore.CreateEnv(ctx, env)
