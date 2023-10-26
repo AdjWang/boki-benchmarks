@@ -58,7 +58,7 @@ class SingleInvocationInfo:
 
 
 FN_SET = ('Post', 'PostList', 'Login', 'Profile')
-LOG_FN_SET = ('Append', 'ReadPrev', 'ReadNext', 'ReadNextB', 'SetAuxData')
+LOG_FN_SET = ('Append', 'ReadPrev-CacheHit', 'ReadPrev-CacheMiss', 'ReadNext-CacheHit', 'ReadNext-CacheMiss', 'ReadNextB', 'SetAuxData')
 
 class InvocationInfo:
     def __init__(self, entries):
@@ -66,6 +66,7 @@ class InvocationInfo:
         for entry in entries:
             info = SingleInvocationInfo(*entry)
             if info.func_name in FN_SET:
+                # func_name in FN_SET would occurrent only once
                 self.func_name = info.func_name
                 self.latency = info.latency
                 self.n_ops = info.n_ops
@@ -74,6 +75,17 @@ class InvocationInfo:
             else:
                 assert info.func_name in LOG_FN_SET
                 self.sub_invocations[info.func_name] = info
+
+    def latency_of(self, fn_name):
+        if isinstance(fn_name, list):
+            return sum([self.latency_of(single_op_name) for single_op_name in fn_name])
+        else:
+            assert fn_name not in FN_SET
+            assert fn_name in LOG_FN_SET
+            if fn_name in self.sub_invocations:
+                return self.sub_invocations[fn_name].latency
+            else:
+                return 0
 
     def ratio_of(self, fn_name):
         if isinstance(fn_name, list):
@@ -109,21 +121,36 @@ if __name__ == '__main__':
             return None
         assert len(res1) == 1
         record_line = res1[0]
-        entries = re.findall(r'(\w+):(\d+)\(n=(\d+) max=(\d+) min=(\d+)\)', record_line)
+        entries = re.findall(r'([a-zA-Z0-9-]+):(\d+)\(n=(\d+) max=(\d+) min=(\d+)\)', record_line)
         line = InvocationInfo(entries)
+        cache_hit_latency = line.latency_of(['ReadPrev-CacheHit', 'ReadNext-CacheHit'])
+        cache_miss_latency = line.latency_of(['ReadPrev-CacheMiss', 'ReadNext-CacheMiss'])
+        cache_hit_ratio = line.ratio_of(['ReadPrev-CacheHit', 'ReadNext-CacheHit'])
+        cache_miss_ratio = line.ratio_of(['ReadPrev-CacheMiss', 'ReadNext-CacheMiss'])
         # DEBUG
-        if line.ratio_of(['ReadPrev', 'ReadNext']) > 1.0:
-            # print(entry)
-            return None
-        return (line.latency, line.ratio_of_slog(), line.ratio_of('Append'), line.ratio_of(['ReadPrev', 'ReadNext']), line.ratio_of('SetAuxData'))
-    keys = ('latency', 'slog ratio', 'Append ratio', 'Read ratio', 'SetAuxData ratio')
+        # if cache_miss_ratio == 0.0:     # float comparation seems work in python
+        #     # print(entry)
+        #     return None
+        return (line.latency, line.ratio_of_slog(), line.ratio_of('Append'),
+                cache_hit_latency, cache_miss_latency,
+                cache_hit_ratio, cache_miss_ratio,
+                cache_hit_ratio + cache_miss_ratio,
+                line.ratio_of('SetAuxData'),
+                1 if cache_miss_ratio > 0 else 0)
+    keys = ('latency', 'slog ratio', 'Append ratio',
+            'ReadCacheHit latency', 'ReadCacheMiss latency',
+            'ReadCacheHit ratio', 'ReadCacheMiss ratio',
+            'Read ratio', 'SetAuxData ratio', 'ContainsMiss')
     query_stat = gather_info(logs, __extract_get_query_ratio)
     query_stat = list(zip(*query_stat))     # transpose
     if len(query_stat) > 0:
         assert len(keys) == len(query_stat)
         print('LogAPIStat')
-        for idx, v in enumerate(query_stat):
+        for idx, v in enumerate(query_stat[:-1]):
             print_percentile(keys[idx], v)
+
+        contains_miss_summary = query_stat[-1]
+        print(f'CacheMissed ratio: {sum(contains_miss_summary)/len(contains_miss_summary):.3f}')
         print('')
 
     # plt.figure()
