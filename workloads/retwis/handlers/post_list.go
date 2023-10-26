@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sort"
-	"sync"
 	"time"
 
 	"cs.utexas.edu/zjia/faas-retwis/utils"
@@ -124,70 +122,71 @@ func postListSlib(ctx context.Context, env types.Environment, input *PostListInp
 		return output, nil
 	}
 
+	postList = postList[0 : len(postList)-input.Skip]
+	for i := len(postList) - 1; i >= 0; i-- {
+		postId := postList[i].(string)
+		postObj := txn.Object(fmt.Sprintf("post:%s", postId))
+		post := make(map[string]string)
+		if value, _ := postObj.Get("body"); !value.IsNull() {
+			post["body"] = value.AsString()
+		}
+		if value, _ := postObj.Get("userName"); !value.IsNull() {
+			post["user"] = value.AsString()
+		}
+		if len(post) > 0 {
+			output.Posts = append(output.Posts, post)
+			if len(output.Posts) == kMaxReturnPosts {
+				break
+			}
+		}
+	}
+
+	// // output buffer
+	// postListMu := sync.Mutex{}
+	// outputPosts := make([]outputPost, 0, kMaxReturnPosts)
+	// // available posts
 	// postList = postList[0 : len(postList)-input.Skip]
-	// for i := len(postList) - 1; i >= 0; i-- {
-	// 	postId := postList[i].(string)
-	// 	postObj := txn.Object(fmt.Sprintf("post:%s", postId))
-	// 	post := make(map[string]string)
-	// 	if value, _ := postObj.Get("body"); !value.IsNull() {
-	// 		post["body"] = value.AsString()
+	// // batch size counter
+	// idCounter := reversedIdCounter{count: len(postList) - 1}
+	// for {
+	// 	from, to := idCounter.getNextN(kMaxReturnPosts)
+	// 	if from < 0 {
+	// 		break
 	// 	}
-	// 	if value, _ := postObj.Get("userName"); !value.IsNull() {
-	// 		post["user"] = value.AsString()
+	// 	wg := sync.WaitGroup{}
+	// 	for i := from; i >= to; i-- {
+	// 		postId := postList[i].(string)
+	// 		wg.Add(1)
+	// 		go func(i int, postId string) {
+	// 			defer wg.Done()
+	// 			postObj := txn.Object(fmt.Sprintf("post:%s", postId))
+	// 			post := make(map[string]string)
+	// 			if value, _ := postObj.Get("body"); !value.IsNull() {
+	// 				post["body"] = value.AsString()
+	// 			}
+	// 			if value, _ := postObj.Get("userName"); !value.IsNull() {
+	// 				post["user"] = value.AsString()
+	// 			}
+	// 			if len(post) > 0 {
+	// 				postListMu.Lock()
+	// 				outputPosts = append(outputPosts, outputPost{i, post})
+	// 				postListMu.Unlock()
+	// 			}
+	// 		}(i, postId)
 	// 	}
-	// 	if len(post) > 0 {
-	// 		output.Posts = append(output.Posts, post)
-	// 		if len(output.Posts) == kMaxReturnPosts {
-	// 			break
-	// 		}
+	// 	wg.Wait()
+	// 	if len(outputPosts) >= kMaxReturnPosts {
+	// 		break
 	// 	}
 	// }
 
-	// output buffer
-	postListMu := sync.Mutex{}
-	outputPosts := make([]outputPost, 0, kMaxReturnPosts)
-	// available posts
-	postList = postList[0 : len(postList)-input.Skip]
-	// batch size counter
-	idCounter := reversedIdCounter{count: len(postList) - 1}
-	for {
-		from, to := idCounter.getNextN(kMaxReturnPosts)
-		if from < 0 {
-			break
-		}
-		wg := sync.WaitGroup{}
-		for i := from; i >= to; i-- {
-			postId := postList[i].(string)
-			wg.Add(1)
-			go func(i int, postId string) {
-				defer wg.Done()
-				postObj := txn.Object(fmt.Sprintf("post:%s", postId))
-				post := make(map[string]string)
-				if value, _ := postObj.Get("body"); !value.IsNull() {
-					post["body"] = value.AsString()
-				}
-				if value, _ := postObj.Get("userName"); !value.IsNull() {
-					post["user"] = value.AsString()
-				}
-				if len(post) > 0 {
-					postListMu.Lock()
-					outputPosts = append(outputPosts, outputPost{i, post})
-					postListMu.Unlock()
-				}
-			}(i, postId)
-		}
-		wg.Wait()
-		if len(outputPosts) >= kMaxReturnPosts {
-			break
-		}
-	}
+	// sort.Slice(outputPosts, func(i, j int) bool {
+	// 	return outputPosts[i].index > outputPosts[j].index
+	// })
+	// for _, post := range outputPosts {
+	// 	output.Posts = append(output.Posts, post)
+	// }
 
-	sort.Slice(outputPosts, func(i, j int) bool {
-		return outputPosts[i].index > outputPosts[j].index
-	})
-	for _, post := range outputPosts {
-		output.Posts = append(output.Posts, post)
-	}
 	return output, nil
 }
 
