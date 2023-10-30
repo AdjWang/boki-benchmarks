@@ -12,7 +12,7 @@ RUN_QUEUE_PUSLAR=
 RUN_QUEUE_SQS=
 
 # Retwis workload for BokiStore and MongoDB
-RUN_STORE_BOKI=y
+RUN_STORE_BOKI=
 RUN_STORE_MONGO=
 
 # Workflow workload for BokiFlow and Beldi
@@ -173,44 +173,48 @@ echo ""
 if [[ ! -z $RUN_WORKFLOW_BOKI ]] && [[ $RUN_WORKFLOW_BOKI == "y" ]]; then
 echo "====== Start running BokiFlow experiments ======"
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-baseline
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-baseline
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps100 100
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
-
-
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-asynclog
-
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
-
-$BASE_DIR/run_once.sh qps100 100
-
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-baseline
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-singleop-asynclog
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
-# $BASE_DIR/run_once.sh qps200 200
+# $BASE_DIR/run_once.sh qps100 100
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
-echo "[DEBUG] exit early"
-exit 0
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+
+
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-baseline
+
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+# # $BASE_DIR/run_once.sh qps100 100
+# # $BASE_DIR/run_once.sh qps200 200
+# $BASE_DIR/run_once.sh qps500 500
+
+# # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# echo "[DEBUG] exit early"
+# exit 0
 
 
 BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-baseline
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
-$BASE_DIR/run_once.sh qps150 150
+# $BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps150 150
+$BASE_DIR/run_once.sh qps200 200
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+echo "[DEBUG] exit early"
+exit 0
 
 
 BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-asynclog

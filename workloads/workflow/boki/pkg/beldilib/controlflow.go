@@ -3,15 +3,18 @@ package beldilib
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"fmt"
+	"log"
+
 	// "github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+
 	// lambdaSdk "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/lithammer/shortuuid"
 	"github.com/mitchellh/mapstructure"
 
+	"cs.utexas.edu/zjia/faas/slib/common"
 	"cs.utexas.edu/zjia/faas/types"
 
 	"context"
@@ -164,7 +167,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 		}
 		if val, exist := item["RET"]; exist {
 			env.StepNumber += 1
-			log.Printf("[INFO] SyncInvoke: found execution in log: InstanceId=%s", iw.InstanceId);
+			log.Printf("[INFO] SyncInvoke: found execution in log: InstanceId=%s", iw.InstanceId)
 			return val, iw.InstanceId
 		}
 	}
@@ -216,7 +219,7 @@ func AssignedSyncInvoke(env *Env, callee string, input interface{}, stepNumber i
 			panic("error")
 		}
 		if val, exist := item["RET"]; exist {
-			log.Printf("[INFO] AssignedSyncInvoke: found execution in log: InstanceId=%s", iw.InstanceId);
+			log.Printf("[INFO] AssignedSyncInvoke: found execution in log: InstanceId=%s", iw.InstanceId)
 			return val, iw.InstanceId
 		}
 	}
@@ -282,7 +285,7 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 		}
 		if _, exist := item["RET"]; exist {
 			env.StepNumber += 1
-			log.Printf("[INFO] AsyncInvoke: found execution in log: InstanceId=%s", iw.InstanceId);
+			log.Printf("[INFO] AsyncInvoke: found execution in log: InstanceId=%s", iw.InstanceId)
 			return iw.InstanceId
 		}
 	}
@@ -443,6 +446,14 @@ type funcHandlerWrapper struct {
 }
 
 func (w *funcHandlerWrapper) Call(ctx context.Context, input []byte) ([]byte, error) {
+	ctx = common.ContextWithTracer(ctx)
+	ts := time.Now()
+	defer func() {
+		latency := time.Since(ts).Microseconds()
+		common.AppendTrace(ctx, fmt.Sprintf("Fn_%s", w.fnName), latency)
+		common.PrintTrace(ctx, "APITRACE")
+	}()
+
 	var jsonInput map[string]interface{}
 	err := json.Unmarshal(input, &jsonInput)
 	if err != nil {

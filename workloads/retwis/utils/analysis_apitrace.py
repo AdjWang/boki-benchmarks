@@ -57,15 +57,22 @@ class SingleInvocationInfo:
         self.min_latency = int(self.min_latency)
 
 
-FN_SET = ('Post', 'PostList', 'Login', 'Profile')
 LOG_FN_SET = ('Append', 'ReadPrev-CacheHit', 'ReadPrev-CacheMiss', 'ReadNext-CacheHit', 'ReadNext-CacheMiss', 'ReadNextB', 'SetAuxData')
+
+def is_user_fn(fn_name):
+    # retwis
+    # FN_SET = ('Post', 'PostList', 'Login', 'Profile')
+    # return fn_name in FN_SET
+
+    # workflow
+    return fn_name.startswith('Fn_')
 
 class InvocationInfo:
     def __init__(self, entries):
         self.sub_invocations = dict()
         for entry in entries:
             info = SingleInvocationInfo(*entry)
-            if info.func_name in FN_SET:
+            if is_user_fn(info.func_name):
                 # func_name in FN_SET would occurrent only once
                 self.func_name = info.func_name
                 self.latency = info.latency
@@ -80,7 +87,7 @@ class InvocationInfo:
         if isinstance(fn_name, list):
             return sum([self.latency_of(single_op_name) for single_op_name in fn_name])
         else:
-            assert fn_name not in FN_SET
+            assert not is_user_fn(fn_name)
             assert fn_name in LOG_FN_SET
             if fn_name in self.sub_invocations:
                 return self.sub_invocations[fn_name].latency
@@ -91,7 +98,7 @@ class InvocationInfo:
         if isinstance(fn_name, list):
             return sum([self.ratio_of(single_op_name) for single_op_name in fn_name])
         else:
-            assert fn_name not in FN_SET
+            assert not is_user_fn(fn_name)
             assert fn_name in LOG_FN_SET
             if fn_name in self.sub_invocations:
                 return self.sub_invocations[fn_name].latency / self.latency
@@ -105,7 +112,7 @@ class InvocationInfo:
 if __name__ == '__main__':
     logs = []
     count = -1
-    with open('/tmp/retwis.log', 'r') as f:
+    with open('/tmp/apitrace.log', 'r') as f:
         if count == -1:
             logs = f.readlines()
         else:
@@ -121,7 +128,7 @@ if __name__ == '__main__':
             return None
         assert len(res1) == 1
         record_line = res1[0]
-        entries = re.findall(r'([a-zA-Z0-9-]+):(\d+)\(n=(\d+) max=(\d+) min=(\d+)\)', record_line)
+        entries = re.findall(r'([a-zA-Z0-9-_]+):(\d+)\(n=(\d+) max=(\d+) min=(\d+)\)', record_line)
         line = InvocationInfo(entries)
         cache_hit_latency = line.latency_of(['ReadPrev-CacheHit', 'ReadNext-CacheHit'])
         cache_miss_latency = line.latency_of(['ReadPrev-CacheMiss', 'ReadNext-CacheMiss'])

@@ -531,16 +531,16 @@ build)
     # build_testcases
     # build_microbench
     # build_queue
-    build_retwis
-    # build_workflow
+    # build_retwis
+    build_workflow
     ;;
 push)
     echo "========== push docker images =========="
     docker push adjwang/boki:dev
     # docker push adjwang/boki-microbench:dev
     # docker push adjwang/boki-queuebench:dev
-    docker push adjwang/boki-retwisbench:dev
-    # docker push adjwang/boki-beldibench:dev
+    # docker push adjwang/boki-retwisbench:dev
+    docker push adjwang/boki-beldibench:dev
     ;;
 clean)
     cleanup
@@ -550,12 +550,12 @@ run)
 
     # test_microbench
     # test_queue
-    test_retwis
+    # test_retwis
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
-    # test_workflow boki-movie-baseline
+    test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline

@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	cs.utexas.edu/zjia/faas v0.0.0
+	cs.utexas.edu/zjia/faas/slib v0.0.0-00010101000000-000000000000
 	github.com/aws/aws-lambda-go v1.19.1
 	github.com/aws/aws-sdk-go v1.34.6
 	github.com/cespare/xxhash/v2 v2.1.1
@@ -18,6 +19,9 @@ require (
 require (
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
+	github.com/montanaflynn/stats v0.7.1 // indirect
 )
 
 replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang
+
+replace cs.utexas.edu/zjia/faas/slib => /boki-benchmark/boki/slib
