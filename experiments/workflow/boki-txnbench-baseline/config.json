@@ -20,8 +20,9 @@
         "boki-storage": { "placement_label": "storage_node", "replicas": 3 },
         "boki-sequencer": { "placement_label": "sequencer_node", "replicas": 3 },
         "boki-engine": { "placement_label": "engine_node", "replicas": 3 },
-        "singleop-service": { "placement_label": "engine_node", "replicas": 1, "need_aws_env": true, "mount_certs": true },
-        "nop-service": { "placement_label": "engine_node", "replicas": 1, "need_aws_env": true, "mount_certs": true }
+        "dbops-service": { "placement_label": "engine_node", "replicas": 3, "need_aws_env": true, "mount_certs": true },
+        "readonly-service": { "placement_label": "engine_node", "replicas": 3, "need_aws_env": true, "mount_certs": true },
+        "writeonly-service": { "placement_label": "engine_node", "replicas": 3, "need_aws_env": true, "mount_certs": true }
     },
     "aws_region": "us-east-2"
 }

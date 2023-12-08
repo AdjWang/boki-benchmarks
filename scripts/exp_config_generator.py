@@ -1413,6 +1413,7 @@ def boki_singleop_baseline():
 def boki_singleop_asynclog():
     return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/asynclog-bin/singleop", db_init_mode="cayon", enable_sharedlog=True)
 
+
 def boki_txnbench_baseline():
     return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/bokiflow-bin/txnbench", db_init_mode="cayon", enable_sharedlog=True)
 

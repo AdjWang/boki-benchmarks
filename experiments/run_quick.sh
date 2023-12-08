@@ -199,42 +199,50 @@ echo "====== Start running BokiFlow experiments ======"
 # # $BASE_DIR/run_once.sh qps200 200
 # $BASE_DIR/run_once.sh qps500 500
 
-# # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
-# echo "[DEBUG] exit early"
-# exit 0
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
-
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-baseline
+BASE_DIR=$ROOT_DIR/experiments/workflow/boki-txnbench-baseline
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# $BASE_DIR/run_once.sh qps100 100
-# $BASE_DIR/run_once.sh qps150 150
-$BASE_DIR/run_once.sh qps200 200
+$BASE_DIR/run_once.sh qps100 100
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] exit early"
 exit 0
 
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-asynclog
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-baseline
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
-$BASE_DIR/run_once.sh qps200 200
+# # $BASE_DIR/run_once.sh qps100 100
+# # $BASE_DIR/run_once.sh qps150 150
+# $BASE_DIR/run_once.sh qps200 200
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# echo "[DEBUG] exit early"
+# exit 0
 
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-asynclog
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-asynclog
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps100 100
-$BASE_DIR/run_once.sh qps150 150
+# $BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps200 200
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+
+
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-asynclog
+
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+# $BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps150 150
+
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
 echo "====== Finish running BokiFlow experiments ======"
 else

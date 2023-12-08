@@ -44,19 +44,13 @@ func deleteTables(baseline bool) {
 }
 
 func readonly(baseline bool) {
-	data := []byte{}
-	for i := 0; i < common.DataSize; i++ {
-		data = append(data, byte(i))
-	}
-	cayonlib.Populate("readonly", defaultKey, common.ReadOnlyData{ByteStream: string(data)}, baseline)
+	data := common.RandomString(common.DataSize)
+	cayonlib.Populate("readonly", defaultKey, common.ReadOnlyData{ByteStream: data}, baseline)
 }
 
 func writeonly(baseline bool) {
-	data := []byte{}
-	for i := 0; i < common.DataSize; i++ {
-		data = append(data, byte(i))
-	}
-	cayonlib.Populate("writeonly", defaultKey, common.WriteOnlyData{ByteStream: string(data)}, baseline)
+	data := common.RandomString(common.DataSize)
+	cayonlib.Populate("writeonly", defaultKey, common.WriteOnlyData{ByteStream: data}, baseline)
 }
 
 func populate(baseline bool) {

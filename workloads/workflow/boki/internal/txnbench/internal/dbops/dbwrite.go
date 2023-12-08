@@ -7,11 +7,8 @@ import (
 )
 
 func DBWrite(env *cayonlib.Env, table string, key string) bool {
-	data := []byte{}
-	for i := 0; i < common.DataSize; i++ {
-		data = append(data, byte(i))
-	}
+	data := common.RandomString(common.DataSize)
 	ok := cayonlib.TPLWrite(env, table, key,
-		aws.JSONValue{"V.ByteStream": string(data)})
+		aws.JSONValue{"V.ByteStream": data})
 	return ok
 }
