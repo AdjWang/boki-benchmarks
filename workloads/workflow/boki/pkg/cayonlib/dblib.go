@@ -4,6 +4,7 @@ import (
 	"log"
 	// "fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/pkg/errors"
 	// "github.com/mitchellh/mapstructure"
 	// "strings"
 
@@ -187,7 +188,7 @@ func CondWrite(env *Env, tablename string, key string,
 		UpdateExpression:          expr.Update(),
 	})
 	if err != nil {
-		AssertConditionFailure(err)
+		AssertConditionFailure(errors.Wrapf(err, "table=%s key=%s", kTablePrefix+tablename, Key))
 	}
 
 	LogStepResult(env, env.InstanceId, preWriteLog.StepNumber, aws.JSONValue{

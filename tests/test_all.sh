@@ -427,13 +427,18 @@ function test_workflow {
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
         BELDI_BASELINE="0"
         ;;
+    boki-txnbench-baseline)
+        APP_NAME="txnbench"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"boki"
+        BELDI_BASELINE="0"
+        ;;
     *)
         echo "[ERROR] TEST_CASE should be either beldi-hotel|movie-baseline or boki-hotel|movie-baseline|asynclog, given $TEST_CASE"
         exit 1
         ;;
     esac
 
-    if [[ $APP_NAME == "hotel" || $APP_NAME == "singleop" ]]; then
+    if [[ $APP_NAME == "hotel" || $APP_NAME == "singleop" || $APP_NAME == "txnbench" ]]; then
         DB_DATA=""
     else
         DB_DATA=$APP_SRC_DIR/internal/media/data/compressed.json
@@ -502,10 +507,22 @@ function test_workflow {
             http://localhost:9000/function/gateway ||
             assert_should_success $LINENO
         echo ""
-    else # $APP_NAME == "media"
+    elif [[ $APP_NAME == "media" ]]; then
         echo "test basic"
         curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
             http://localhost:9000/function/Frontend ||
+            assert_should_success $LINENO
+        echo ""
+    else # [[ $APP_NAME == "txnbench" ]]; then
+        echo "test readonly txn"
+        curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"readonly","Input":{"table":"readonly","key":"ByteStream"}}}' \
+            http://localhost:9000/function/readonly ||
+            assert_should_success $LINENO
+        echo ""
+
+        echo "test writeonly txn"
+        curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"writeonly","Input":{"table":"writeonly","key":"ByteStream"}}}' \
+            http://localhost:9000/function/writeonly ||
             assert_should_success $LINENO
         echo ""
     fi
@@ -513,6 +530,7 @@ function test_workflow {
     echo "test more requests"
     WRKBENCHDIR=$SCRIPT_DIR
     # WRKBENCHDIR=$APP_SRC_DIR
+    echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
     $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
@@ -555,12 +573,13 @@ run)
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
-    test_workflow boki-movie-baseline
+    # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
     # test_workflow boki-singleop-asynclog
+    test_workflow boki-txnbench-baseline
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

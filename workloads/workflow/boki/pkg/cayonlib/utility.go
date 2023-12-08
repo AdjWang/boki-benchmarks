@@ -2,15 +2,16 @@ package cayonlib
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	"time"
 )
 
-func CreateMainTable(lambdaId string) {
-	_, _ = DBClient.CreateTable(&dynamodb.CreateTableInput{
+func CreateMainTable(lambdaId string) error {
+	_, err := DBClient.CreateTable(&dynamodb.CreateTableInput{
 		BillingMode: aws.String("PAY_PER_REQUEST"),
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
@@ -26,6 +27,7 @@ func CreateMainTable(lambdaId string) {
 		},
 		TableName: aws.String(kTablePrefix + lambdaId),
 	})
+	return err
 }
 
 func CreateLogTable(lambdaId string) {
@@ -40,8 +42,8 @@ func CreateBaselineTable(lambdaId string) {
 	panic("Not implemented")
 }
 
-func CreateLambdaTables(lambdaId string) {
-	CreateMainTable(lambdaId)
+func CreateLambdaTables(lambdaId string) error {
+	return CreateMainTable(lambdaId)
 	// CreateLogTable(lambdaId)
 	// CreateCollectorTable(lambdaId)
 }
@@ -63,7 +65,7 @@ func DeleteLambdaTables(lambdaId string) {
 }
 
 func WaitUntilDeleted(tablename string) {
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(kTablePrefix + tablename)})
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
@@ -87,7 +89,7 @@ func WaitUntilAllDeleted(tablenames []string) {
 
 func WaitUntilActive(tablename string) bool {
 	counter := 0
-	for ; ; {
+	for {
 		res, err := DBClient.DescribeTable(&dynamodb.DescribeTableInput{TableName: aws.String(kTablePrefix + tablename)})
 		if err != nil {
 			counter += 1

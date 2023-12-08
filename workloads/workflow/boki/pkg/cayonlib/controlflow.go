@@ -2,7 +2,6 @@ package cayonlib
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/lithammer/shortuuid"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 
 	"cs.utexas.edu/zjia/faas/slib/common"
 	"cs.utexas.edu/zjia/faas/types"
@@ -291,18 +291,25 @@ func TPLCommit(env *Env) {
 		if txnLog.Callee != "" {
 			continue
 		}
-		tablename := txnLog.WriteOp["tablename"].(string)
-		key := txnLog.WriteOp["key"].(string)
-		update := map[expression.NameBuilder]expression.OperandBuilder{}
-		for kk, vv := range txnLog.WriteOp["value"].(map[string]interface{}) {
-			update[expression.Name(kk)] = expression.Value(vv)
+		if len(txnLog.WriteOp) != 0 {
+			tablename := txnLog.WriteOp["tablename"].(string)
+			key := txnLog.WriteOp["key"].(string)
+			update := map[expression.NameBuilder]expression.OperandBuilder{}
+			for kk, vv := range txnLog.WriteOp["value"].(map[string]interface{}) {
+				update[expression.Name(kk)] = expression.Value(vv)
+			}
+			Write(env, tablename, key, update)
+			Unlock(env, tablename, key)
 		}
-		Write(env, tablename, key, update)
-		Unlock(env, tablename, key)
+		if len(txnLog.ReadOp) != 0 {
+			tablename := txnLog.ReadOp["tablename"].(string)
+			key := txnLog.ReadOp["key"].(string)
+			Unlock(env, tablename, key)
+		}
 	}
 	for _, txnLog := range txnLogs {
 		if txnLog.Callee != "" {
-			log.Printf("[INFO] Commit transaction %s for callee %s", env.TxnId, txnLog.Callee)
+			// log.Printf("[INFO] Commit transaction %s for callee %s", env.TxnId, txnLog.Callee)
 			SyncInvoke(env, txnLog.Callee, aws.JSONValue{})
 		}
 	}
@@ -405,7 +412,7 @@ func (w *funcHandlerWrapper) Call(ctx context.Context, input []byte) ([]byte, er
 	var jsonInput map[string]interface{}
 	err := json.Unmarshal(input, &jsonInput)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Failed to unmarshal input=%s", string(input))
 	}
 	iw := ParseInput(jsonInput)
 	env := PrepareEnv(iw, w.fnName)

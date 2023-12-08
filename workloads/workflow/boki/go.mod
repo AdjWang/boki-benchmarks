@@ -15,6 +15,7 @@ require (
 	github.com/lithammer/shortuuid v3.0.0+incompatible
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/montanaflynn/stats v0.7.1 // indirect
+	github.com/pkg/errors v0.9.1
 )
 
 replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang

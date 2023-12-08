@@ -1046,6 +1046,48 @@ workflow_singleop_docker_compose_f = """\
 
 """
 
+workflow_txnbench_docker_compose_f = """\
+  dbops-service:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "{bin_path}/dbops", "1"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX=${{TABLE_PREFIX:?}}
+    depends_on:
+      - boki-engine
+    restart: always
+
+  readonly-service:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "{bin_path}/readonly", "2"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX=${{TABLE_PREFIX:?}}
+    depends_on:
+      - boki-engine
+    restart: always
+
+  writeonly-service:
+    image: {image_app}
+    entrypoint: ["/tmp/boki/run_launcher", "{bin_path}/writeonly", "3"]
+    volumes:
+      - /mnt/inmem/boki:/tmp/boki
+    environment:
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX=${{TABLE_PREFIX:?}}
+    depends_on:
+      - boki-engine
+    restart: always
+
+"""
+
 hotel_nightcore_config_f = """\
 [
     {{ "funcName": "{baseline_prefix}geo", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 }},
@@ -1085,6 +1127,14 @@ singleop_nightcore_config_f = """\
 [
     {{ "funcName": "{baseline_prefix}singleop", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 }},
     {{ "funcName": "{baseline_prefix}nop", "funcId": 2, "minWorkers": 8, "maxWorkers": 8 }}
+]
+"""
+
+txnbench_nightcore_config_f = """\
+[
+    {{ "funcName": "{baseline_prefix}dbops", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 }},
+    {{ "funcName": "{baseline_prefix}readonly", "funcId": 2, "minWorkers": 8, "maxWorkers": 8 }},
+    {{ "funcName": "{baseline_prefix}writeonly", "funcId": 3, "minWorkers": 8, "maxWorkers": 8 }}
 ]
 """
 
@@ -1285,6 +1335,10 @@ def workflow_config(image_faas, image_app, bin_path, db_init_mode, enable_shared
         docker_compose_app_f = workflow_singleop_docker_compose_f
         config_json_f = singleop_nightcore_config_f
         n_index_replicas = 1
+    elif bench_name == 'txnbench':
+        docker_compose_app_f = workflow_txnbench_docker_compose_f
+        config_json_f = txnbench_nightcore_config_f
+        n_index_replicas = 3
     else:
         raise Exception(f'unreachable bench name: {bench_name}')
 
@@ -1359,6 +1413,9 @@ def boki_singleop_baseline():
 def boki_singleop_asynclog():
     return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/asynclog-bin/singleop", db_init_mode="cayon", enable_sharedlog=True)
 
+def boki_txnbench_baseline():
+    return workflow_config(IMAGE_FAAS, WORKFLOW_IMAGE_APP, bin_path="/bokiflow-bin/txnbench", db_init_mode="cayon", enable_sharedlog=True)
+
 
 IMAGE_FAAS = "adjwang/boki:dev"
 BENCH_IMAGE_APP = "adjwang/boki-microbench:dev"
@@ -1400,6 +1457,8 @@ if __name__ == '__main__':
         dump_configs(workflow_dir / "boki-movie-baseline", boki_movie_baseline)
         dump_configs(workflow_dir / "boki-singleop-baseline",
                      boki_singleop_baseline)
+        dump_configs(workflow_dir / "boki-txnbench-baseline",
+                     boki_txnbench_baseline)
         dump_configs(workflow_dir / "boki-hotel-asynclog", boki_hotel_asynclog)
         dump_configs(workflow_dir / "boki-movie-asynclog", boki_movie_asynclog)
         dump_configs(workflow_dir / "boki-singleop-asynclog",

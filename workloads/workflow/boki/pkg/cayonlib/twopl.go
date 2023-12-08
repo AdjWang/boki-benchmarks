@@ -1,21 +1,22 @@
 package cayonlib
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"encoding/json"
 	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/snappy"
 	// "github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
 type LockLogEntry struct {
-	SeqNum     uint64  `json:"-"`
-	LockId     string  `json:"lockId"`
-	StepNumber int32   `json:"step"`
-	UnlockOp   bool    `json:"unlockOp"`
-	Holder     string  `json:"holder"`
+	SeqNum     uint64 `json:"-"`
+	LockId     string `json:"lockId"`
+	StepNumber int32  `json:"step"`
+	UnlockOp   bool   `json:"unlockOp"`
+	Holder     string `json:"holder"`
 }
 
 type LockFsm struct {
@@ -25,7 +26,7 @@ type LockFsm struct {
 	tail       *LockLogEntry
 }
 
-var lockFsms      = map[string]LockFsm{}
+var lockFsms = map[string]LockFsm{}
 var lockFsmsMutex = sync.RWMutex{}
 
 func getOrCreateLockFsm(lockId string) LockFsm {
@@ -133,6 +134,9 @@ func Lock(env *Env, tablename string, key string) bool {
 	if !success {
 		log.Printf("[WARN] Failed to lock %s with txn %s", lockId, env.TxnId)
 	}
+	// else {
+	// 	log.Printf("[INFO] Succeed to lock %s with txn %s", lockId, env.TxnId)
+	// }
 	return success
 }
 
@@ -143,20 +147,31 @@ func Unlock(env *Env, tablename string, key string) {
 	storeBackLockFsm(fsm)
 }
 
-func TPLRead(env *Env, tablename string, key string) (bool, interface{}) {
-	if Lock(env, tablename, key) {
-		return true, Read(env, tablename, key)
-	} else {
-		return false, nil
-	}
-}
-
 type TxnLogEntry struct {
 	SeqNum   uint64        `json:"-"`
 	LambdaId string        `json:"lambdaId"`
 	TxnId    string        `json:"txnId"`
 	Callee   string        `json:"callee"`
 	WriteOp  aws.JSONValue `json:"write"`
+	ReadOp   aws.JSONValue `json:"read"`
+}
+
+func TPLRead(env *Env, tablename string, key string) (bool, interface{}) {
+	if Lock(env, tablename, key) {
+		tag := TransactionStreamTag(env.LambdaId, env.TxnId)
+		LibAppendLog(env, tag, &TxnLogEntry{
+			LambdaId: env.LambdaId,
+			TxnId:    env.TxnId,
+			Callee:   "",
+			ReadOp: aws.JSONValue{
+				"tablename": tablename,
+				"key":       key,
+			},
+		})
+		return true, Read(env, tablename, key)
+	} else {
+		return false, nil
+	}
 }
 
 func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool {
@@ -166,7 +181,7 @@ func TPLWrite(env *Env, tablename string, key string, value aws.JSONValue) bool 
 			LambdaId: env.LambdaId,
 			TxnId:    env.TxnId,
 			Callee:   "",
-			WriteOp:  aws.JSONValue{
+			WriteOp: aws.JSONValue{
 				"tablename": tablename,
 				"key":       key,
 				"value":     value,
@@ -184,7 +199,7 @@ func BeginTxn(env *Env) {
 }
 
 func CommitTxn(env *Env) {
-	log.Printf("[INFO] Commit transaction %s", env.TxnId)
+	// log.Printf("[INFO] Commit transaction %s", env.TxnId)
 	env.Instruction = "COMMIT"
 	TPLCommit(env)
 	env.TxnId = ""

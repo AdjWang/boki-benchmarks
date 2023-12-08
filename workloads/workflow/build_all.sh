@@ -25,6 +25,7 @@ function build_boki {
     make hotel
     make media
     make singleop
+    make txnbench
 }
 
 function build_asynclog {

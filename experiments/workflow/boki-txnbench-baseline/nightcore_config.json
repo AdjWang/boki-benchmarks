@@ -1,0 +1,5 @@
+[
+    { "funcName": "dbops", "funcId": 1, "minWorkers": 8, "maxWorkers": 8 },
+    { "funcName": "readonly", "funcId": 2, "minWorkers": 8, "maxWorkers": 8 },
+    { "funcName": "writeonly", "funcId": 3, "minWorkers": 8, "maxWorkers": 8 }
+]

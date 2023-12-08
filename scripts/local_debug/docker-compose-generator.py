@@ -101,6 +101,31 @@ dynamodb_setup_singleop_f = """\
 
 """
 
+dynamodb_setup_txnbench_f = """\
+  db-setup:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    command: bash -c "
+        {workflow_bin_dir}/{baseline_prefix}txnbench/init clean {benchmark_mode} &&
+        {workflow_bin_dir}/{baseline_prefix}txnbench/init create {benchmark_mode} &&
+        {workflow_bin_dir}/{baseline_prefix}txnbench/init populate {benchmark_mode} &&
+        sleep infinity
+      "
+    environment:
+      {func_env}
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+       - db
+    healthcheck:
+      test: ["CMD-SHELL", "{workflow_bin_dir}/{baseline_prefix}txnbench/init health_check {benchmark_mode}"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 60s
+
+"""
+
 # zookeeper
 zookeeper = """\
   zookeeper:
@@ -1028,6 +1053,57 @@ bokiflow_singleop_funcs_f = """\
 
 """
 
+bokiflow_txnbench_funcs_f = """\
+  dbops-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/{baseline_prefix}txnbench/dbops", "1"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      {func_env}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  readonly-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/{baseline_prefix}txnbench/readonly", "2"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      {func_env}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+  writeonly-service-{node_id}:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    entrypoint: ["/tmp/boki/run_launcher", "{workflow_bin_dir}/{baseline_prefix}txnbench/writeonly", "3"]
+    volumes:
+      - {workdir}/mnt/inmem{node_id}/boki:/tmp/boki
+    environment:
+      {func_env}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+      - boki-engine-{node_id}
+    # restart: always
+
+"""
+
 network_config = """\
 networks:
   boki-net:
@@ -1076,6 +1152,7 @@ if __name__ == '__main__':
         'beldi-singleop-baseline': bokiflow_singleop_funcs_f,
         'boki-singleop-baseline': bokiflow_singleop_funcs_f,
         'boki-singleop-asynclog': bokiflow_singleop_funcs_f,
+        'boki-txnbench-baseline': bokiflow_txnbench_funcs_f,
     }
 
     # argument assertations
@@ -1137,6 +1214,11 @@ if __name__ == '__main__':
             workflow_bin_dir = "/bokiflow-bin"
         else:
             workflow_bin_dir = "/asynclog-bin"
+    elif args.test_case == 'boki-txnbench-baseline':
+        db = dynamodb
+        db_setup_f = dynamodb_setup_txnbench_f
+        baseline = False
+        workflow_bin_dir = "/bokiflow-bin"
     elif args.test_case == 'sharedlog':
         db = db_setup_f = ""
         baseline = False

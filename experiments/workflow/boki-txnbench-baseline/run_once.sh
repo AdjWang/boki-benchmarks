@@ -29,14 +29,14 @@ TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || 
 TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    adjwang/boki-beldibench:dev cp -r /beldi-bin/media /tmp
+    adjwang/boki-beldibench:dev cp -r /bokiflow-bin/txnbench /tmp
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev cp /bokiflow/data/compressed.json /tmp
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/media/init create beldi
+    /tmp/txnbench/init create cayon
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/media/init populate beldi /tmp/compressed.json
+    /tmp/txnbench/init populate cayon /tmp/compressed.json
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
@@ -77,7 +77,7 @@ mkdir -p $EXP_DIR
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
-scp -q $ROOT_DIR/workloads/workflow/beldi/benchmark/media/workload.lua $CLIENT_HOST:/tmp
+scp -q $ROOT_DIR/workloads/workflow/boki/benchmark/txnbench/workload.lua $CLIENT_HOST:/tmp
 
 ssh -q $CLIENT_HOST --  $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
     -s /tmp/workload.lua \
@@ -95,7 +95,7 @@ scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/media/init clean beldi
+    /tmp/txnbench/init clean cayon
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 

@@ -79,6 +79,12 @@ media:
 	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/media/gc internal/media/core/gc/gc.go
 	# env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/media/collector internal/media/core/collector/collector.go
 
+txnbench:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/txnbench/init internal/txnbench/cmd/init/main.go
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/txnbench/readonly internal/txnbench/cmd/faas/readonly/main.go
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/txnbench/writeonly internal/txnbench/cmd/faas/writeonly/main.go
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/txnbench/dbops internal/txnbench/cmd/faas/dbops/main.go
+
 gctest:
 	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/gctest/gctest internal/gctest/core/main.go
 	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/gctest/gc internal/gctest/core/gc/gc.go
