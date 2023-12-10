@@ -32,6 +32,12 @@ function setup_env {
     mkdir -p $WORK_DIR/config
 
     cp $SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
+    # inspect unhealthy log:
+    # docker inspect --format "{{json .State.Health }}" $(docker ps -a | grep unhealthy | awk '{print $1}') | jq
+    if [ ! -f $SCRIPT_DIR/zk_health_check/zk_health_check ]; then
+        docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+            bash -c "cd /boki-benchmark/scripts/local_debug/zk_health_check && make"
+    fi
     cp $SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
     if [[ $TEST_CASE == microbench ]]; then
         cp $BENCH_EXP_DIR/nightcore_config.json $WORK_DIR/config/nightcore_config.json
