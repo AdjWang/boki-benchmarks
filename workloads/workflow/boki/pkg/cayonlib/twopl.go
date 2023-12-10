@@ -207,7 +207,7 @@ func CommitTxn(env *Env) {
 }
 
 func AbortTxn(env *Env) {
-	log.Printf("[WARN] Abort transaction %s", env.TxnId)
+	// log.Printf("[WARN] Abort transaction %s", env.TxnId)
 	env.Instruction = "ABORT"
 	TPLAbort(env)
 	env.TxnId = ""

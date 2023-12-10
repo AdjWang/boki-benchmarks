@@ -309,7 +309,7 @@ func TPLCommit(env *Env) {
 	}
 	for _, txnLog := range txnLogs {
 		if txnLog.Callee != "" {
-			// log.Printf("[INFO] Commit transaction %s for callee %s", env.TxnId, txnLog.Callee)
+			log.Printf("[INFO] Commit transaction %s for callee %s", env.TxnId, txnLog.Callee)
 			SyncInvoke(env, txnLog.Callee, aws.JSONValue{})
 		}
 	}
@@ -321,13 +321,20 @@ func TPLAbort(env *Env) {
 		if txnLog.Callee != "" {
 			continue
 		}
-		tablename := txnLog.WriteOp["tablename"].(string)
-		key := txnLog.WriteOp["key"].(string)
-		Unlock(env, tablename, key)
+		if len(txnLog.WriteOp) != 0 {
+			tablename := txnLog.WriteOp["tablename"].(string)
+			key := txnLog.WriteOp["key"].(string)
+			Unlock(env, tablename, key)
+		}
+		if len(txnLog.ReadOp) != 0 {
+			tablename := txnLog.ReadOp["tablename"].(string)
+			key := txnLog.ReadOp["key"].(string)
+			Unlock(env, tablename, key)
+		}
 	}
 	for _, txnLog := range txnLogs {
 		if txnLog.Callee != "" {
-			log.Printf("[INFO] Abort transaction %s for callee %s", env.TxnId, txnLog.Callee)
+			log.Printf("[WARN] Abort transaction %s for callee %s", env.TxnId, txnLog.Callee)
 			SyncInvoke(env, txnLog.Callee, aws.JSONValue{})
 		}
 	}
