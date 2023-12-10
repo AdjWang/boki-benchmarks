@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-zookeeper/zk"
+	"github.com/pkg/errors"
 )
 
 func mustExists(zkcli *zk.Conn, node string) {
@@ -13,14 +15,17 @@ func mustExists(zkcli *zk.Conn, node string) {
 		panic(err)
 	}
 	if !ok {
-		panic(fmt.Errorf("node: %v not exist", node))
+		panic(fmt.Errorf("[FATAL] node=%v not exist", node))
 	}
 }
 
+// inspect unhealthy log:
+// docker inspect --format "{{json .State.Health }}" $(docker ps -a | grep unhealthy | awk '{print $1}') | jq
 func main() {
-	zkcli, _, err := zk.Connect([]string{"0.0.0.0"}, time.Second, zk.WithLogInfo(false))
+	log.Println("[INFO] health checking...")
+	zkcli, _, err := zk.Connect([]string{"zookeeper"}, time.Second, zk.WithLogInfo(false))
 	if err != nil {
-		panic(err)
+		panic(errors.Wrap(err, "[FATAL] zookeeper connect failed"))
 	}
 	mustExists(zkcli, "/faas")
 	mustExists(zkcli, "/faas/node")

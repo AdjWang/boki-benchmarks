@@ -120,6 +120,7 @@ zookeeper_dep_db_setup = """\
 """
 
 # zookeeper intializer
+# network_mode: "host"
 zookeeper_setup_f = """\
   zookeeper-setup:
     image: zookeeper:3.6.2
@@ -128,10 +129,11 @@ zookeeper_setup_f = """\
       zookeeper:
         condition: service_started
 {zookeeper_dep_db_setup}
+    networks:
+      - boki-net
     volumes:
       - {workdir}/config/zk_setup.sh:/tmp/boki/zk_setup.sh
       - {workdir}/config/zk_health_check:/tmp/boki/zk_health_check
-    network_mode: "host"
     # restart: always
     healthcheck:
       test: ["CMD-SHELL", "/tmp/boki/zk_health_check"]
