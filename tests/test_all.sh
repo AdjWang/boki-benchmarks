@@ -578,14 +578,14 @@ run)
 
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    # test_workflow boki-hotel-baseline
+    test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
     # test_workflow boki-singleop-asynclog
-    test_workflow boki-txnbench-baseline
+    # test_workflow boki-txnbench-baseline
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

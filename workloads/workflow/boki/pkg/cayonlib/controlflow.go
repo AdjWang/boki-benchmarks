@@ -414,6 +414,10 @@ func (w *funcHandlerWrapper) Call(ctx context.Context, input []byte) ([]byte, er
 		latency := time.Since(ts).Microseconds()
 		common.AppendTrace(ctx, fmt.Sprintf("Fn_%s", w.fnName), latency)
 		common.PrintTrace(ctx, "APITRACE")
+
+		if dbClient, ok := DBClient.(IDBClientDecorator); ok {
+			dbClient.PrintTrace("DBAPITrace")
+		}
 	}()
 
 	var jsonInput map[string]interface{}
