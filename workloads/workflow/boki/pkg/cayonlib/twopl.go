@@ -158,16 +158,18 @@ type TxnLogEntry struct {
 
 func TPLRead(env *Env, tablename string, key string) (bool, interface{}) {
 	if Lock(env, tablename, key) {
-		tag := TransactionStreamTag(env.LambdaId, env.TxnId)
-		LibAppendLog(env, tag, &TxnLogEntry{
-			LambdaId: env.LambdaId,
-			TxnId:    env.TxnId,
-			Callee:   "",
-			ReadOp: aws.JSONValue{
-				"tablename": tablename,
-				"key":       key,
-			},
-		})
+		if FixBokiReadUnlock {
+			tag := TransactionStreamTag(env.LambdaId, env.TxnId)
+			LibAppendLog(env, tag, &TxnLogEntry{
+				LambdaId: env.LambdaId,
+				TxnId:    env.TxnId,
+				Callee:   "",
+				ReadOp: aws.JSONValue{
+					"tablename": tablename,
+					"key":       key,
+				},
+			})
+		}
 		return true, Read(env, tablename, key)
 	} else {
 		return false, nil
