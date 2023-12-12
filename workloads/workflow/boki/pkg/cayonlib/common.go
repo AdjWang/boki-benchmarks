@@ -157,4 +157,4 @@ func CHECK(err error) {
 // BokiFlow is not affected because it has no readonly txn, but the
 // txnbench does.
 // Put a switch here to control benchmark performance.
-var FixBokiReadUnlock = true
+var FixBokiReadUnlock = false
