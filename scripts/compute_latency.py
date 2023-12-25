@@ -33,10 +33,11 @@ def compute_latency(async_result_file_path, warmup_ratio=1.0/6, outlier_ratio=30
     # filtered = list(filter(lambda x: x < threshold, latencies))
     filtered = latencies
     p50 = np.percentile(filtered, 50) / 1000.0
+    p90 = np.percentile(filtered, 90) / 1000.0
     p99 = np.percentile(filtered, 99) / 1000.0
     p99_9 = np.percentile(filtered, 99.9) / 1000.0
     p_success = success_count / len(results[skip:])
-    return p50, p99, p99_9, p_success
+    return p50, p90, p99, p99_9, p_success
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -45,10 +46,11 @@ if __name__ == '__main__':
     parser.add_argument('--outlier-factor', type=int, default=30)
     args = parser.parse_args()
 
-    p50, p99, p99_9, p_success = compute_latency(args.async_result_file,
-                               warmup_ratio=args.warmup_ratio,
-                               outlier_ratio=args.outlier_factor)
+    p50, p90, p99, p99_9, p_success = compute_latency(args.async_result_file,
+                                                      warmup_ratio=args.warmup_ratio,
+                                                      outlier_ratio=args.outlier_factor)
     print('p50 latency: %.2f ms' % p50)
+    print('p90 latency: %.2f ms' % p90)
     print('p99 latency: %.2f ms' % p99)
     print('p99_9 latency: %.2f ms' % p99_9)
     print('p_success: %.2f' % p_success)
