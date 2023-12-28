@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
@@ -533,13 +533,13 @@ function test_workflow {
         echo ""
     fi
 
-    echo "test more requests"
+    # echo "test more requests"
     WRKBENCHDIR=$SCRIPT_DIR
     # WRKBENCHDIR=$APP_SRC_DIR
     echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 20
 }
 
 if [ $# -eq 0 ]; then
@@ -580,8 +580,8 @@ run)
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
-    test_workflow boki-hotel-asynclog
-    # test_workflow boki-movie-asynclog
+    # test_workflow boki-hotel-asynclog
+    test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
     # test_workflow boki-singleop-asynclog

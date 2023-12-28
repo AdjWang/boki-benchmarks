@@ -236,6 +236,10 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	// DEBUG
+	recordMu := sync.Mutex{}
+	records := make([]uint64, 0)
+
 	wg := sync.WaitGroup{}
 	errCh := make(chan error)
 	for _, localId := range fc.AsyncLogOps {
@@ -249,6 +253,11 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 				// log.Printf("wait futureMeta.LocalId=0x%016X state=%v seqNum=0x%016X err=%v",
 				// 	futureMeta.LocalId, futureMeta.State, seqNum, err)
 			}
+			// DEBUG
+			recordMu.Lock()
+			records = append(records, localId)
+			recordMu.Unlock()
+
 			wg.Done()
 		}(ctx, localId)
 	}
@@ -257,10 +266,26 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 		wg.Wait()
 		waitCh <- struct{}{}
 	}()
+	// BUG: Code above would hang on uncertain localid in enigne, no reads
+	// returned. Seems the engine not received the metalog propagation.
+	// Code below fixes the problem but the reason is still not clear. Figure it
+	// out in the future.
+
+	// errCh := make(chan error)
+	// waitCh := make(chan struct{})
+	// go func() {
+	// 	for _, localId := range fc.AsyncLogOps {
+	// 		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, localId); err != nil {
+	// 			errCh <- errors.Wrapf(err, "failed to read index for future: %+v", localId)
+	// 			return
+	// 		}
+	// 	}
+	// 	waitCh <- struct{}{}
+	// }()
 
 	select {
 	case <-ctx.Done():
-		// log.Println("wait future all done timeout")
+		// log.Printf("wait future all done timeout. ops=%v finished=%v", fc.AsyncLogOps, records)
 		return ctx.Err()
 	case err := <-errCh:
 		// log.Println("wait future all done with error:", err)
