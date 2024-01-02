@@ -580,8 +580,8 @@ run)
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
-    test_workflow boki-hotel-asynclog
-    # test_workflow boki-movie-asynclog
+    # test_workflow boki-hotel-asynclog
+    test_workflow boki-movie-asynclog
     # test_workflow beldi-singleop-baseline
     # test_workflow boki-singleop-baseline
     # test_workflow boki-singleop-asynclog
