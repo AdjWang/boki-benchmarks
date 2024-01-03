@@ -11,7 +11,7 @@ WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
 WORK_DIR=/tmp/boki-test
 
-DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
+DOCKER_BUILDER="docker buildx"
 NO_CACHE=""
 
 function setup_env {
@@ -25,6 +25,12 @@ function setup_env {
     mkdir -p $WORK_DIR/config
 
     cp $SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
+    # inspect unhealthy log:
+    # docker inspect --format "{{json .State.Health }}" $(docker ps -a | grep unhealthy | awk '{print $1}') | jq
+    if [ ! -f $SCRIPT_DIR/zk_health_check/zk_health_check ]; then
+        docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+            bash -c "cd /boki-benchmark/scripts/local_debug/zk_health_check && make"
+    fi
     cp $SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
     if [[ $TEST_CASE == sharedlog ]]; then
         cp $TEST_DIR/workloads/sharedlog/nightcore_config.json $WORK_DIR/config/nightcore_config.json
@@ -75,11 +81,13 @@ function build {
     echo "========== build boki =========="
     docker run --rm -v $BOKI_DIR:/boki adjwang/boki-buildenv:dev bash -c "cd /boki && make -j$(nproc)"
 
-    echo "========== build sharedlog =========="
-    $TEST_DIR/workloads/sharedlog/build.sh
+    # echo "========== build sharedlog =========="
+    # $TEST_DIR/workloads/sharedlog/build.sh
 
     echo "========== build workloads =========="
-    $WORKFLOW_SRC_DIR/build_all.sh
+    # $WORKFLOW_SRC_DIR/build_all.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/workloads/workflow/build_all.sh
 
     echo "========== build docker images =========="
     # build boki docker image
@@ -104,7 +112,9 @@ function build {
 
 function push {
     echo "========== build workloads =========="
-    $WORKFLOW_SRC_DIR/build_all.sh REMOTE
+    # $WORKFLOW_SRC_DIR/build_all.sh REMOTE
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        bash -c "/boki-benchmark/workloads/workflow/build_all.sh REMOTE"
 
     echo "========== build docker images =========="
     # boki
@@ -322,10 +332,12 @@ function test_workflow {
     fi
 
     echo "test more requests"
+    WRKBENCHDIR=$SCRIPT_DIR
+    # WRKBENCHDIR=$APP_SRC_DIR
+    echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
+    WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 20 -s $SCRIPT_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
-
-    # BASELINE=$BELDI_BASELINE wrk -t 2 -c 2 -d 150 -s $APP_SRC_DIR/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then
@@ -346,12 +358,12 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
-    cleanup
+    # test_sharedlog
+    # cleanup
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
-    test_workflow boki-hotel-baseline
-    # test_workflow boki-movie-baseline
+    # test_workflow boki-hotel-baseline
+    test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     ;;
