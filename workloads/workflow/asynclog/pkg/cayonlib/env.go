@@ -237,9 +237,9 @@ func (fc *asyncLogContextImpl) ChainStep(stepFuture types.FutureMeta) AsyncLogCo
 
 func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	fc.mu.Lock()
-	futureMetas := make([]types.FutureMeta, 0, len(fc.AsyncLogOps))
+	deps := make([]uint64, 0, len(fc.AsyncLogOps))
 	for _, futureMeta := range fc.AsyncLogOps {
-		futureMetas = append(futureMetas, futureMeta)
+		deps = append(deps, futureMeta.LocalId)
 	}
 	fc.mu.Unlock()
 
@@ -247,8 +247,18 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	for _, futureMeta := range futureMetas {
-		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, futureMeta); err != nil {
+	groupDeps := types.GroupLocalIdByEngine(deps)
+	// log.Printf("[DEBUG] n=%d nGroup=%d deps=%v", len(deps), len(groupDeps), deps)
+	// for engineId, subDeps := range groupDeps {
+	for _, subDeps := range groupDeps {
+		maxId := uint64(0)
+		for _, id := range subDeps {
+			if maxId < id {
+				maxId = id
+			}
+		}
+		// log.Printf("[DEBUG] engineId=%016X, max=%016X", engineId, maxId)
+		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, maxId); err != nil {
 			return err
 		}
 	}
@@ -257,46 +267,6 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
 	fc.mu.Unlock()
 	return nil
-
-	// ctx := context.Background()
-	// ctx, cancel := context.WithTimeout(ctx, timeout)
-	// defer cancel()
-
-	// wg := sync.WaitGroup{}
-	// errCh := make(chan error)
-	// for _, futureMeta := range fc.AsyncLogOps {
-	// 	wg.Add(1)
-	// 	go func(ctx context.Context, futureMeta types.FutureMeta) {
-	// 		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, futureMeta); err != nil {
-	// 			errCh <- errors.Wrapf(err, "failed to read index for future: %+v", futureMeta)
-	// 		} else {
-	// 			// log.Printf("wait future=%+v done", future)
-	// 			// seqNum, err := future.GetResult()
-	// 			// log.Printf("wait futureMeta.LocalId=0x%016X state=%v seqNum=0x%016X err=%v",
-	// 			// 	futureMeta.LocalId, futureMeta.State, seqNum, err)
-	// 		}
-	// 		wg.Done()
-	// 	}(ctx, futureMeta)
-	// }
-	// waitCh := make(chan struct{})
-	// go func() {
-	// 	wg.Wait()
-	// 	waitCh <- struct{}{}
-	// }()
-
-	// select {
-	// case <-ctx.Done():
-	// 	// log.Println("wait future all done timeout")
-	// 	return ctx.Err()
-	// case err := <-errCh:
-	// 	// log.Println("wait future all done with error:", err)
-	// 	return err
-	// case <-waitCh:
-	// 	// log.Println("wait future all done without error")
-	// 	// clear synchronized logs
-	// 	fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
-	// 	return nil
-	// }
 }
 
 func (fc *asyncLogContextImpl) Serialize() ([]byte, error) {

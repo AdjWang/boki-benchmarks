@@ -9,19 +9,14 @@ function build_beldi {
     cd $WORKFLOW_DIR/beldi
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
     go mod tidy
-    make hotel-baseline
-    make media-baseline
-    make hotel
-    make media
+    make hotel-baseline media-baseline hotel media -j$(nproc)
 }
 
 function build_boki {
     cd $WORKFLOW_DIR/boki
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
     go mod tidy
-    make hotel
-    make media
-    make singleop
+    make hotel media singleop -j$(nproc)
 }
 
 function build_asynclog {
