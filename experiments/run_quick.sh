@@ -164,12 +164,14 @@ $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MAC
 
 # $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps150 150
-# $BASE_DIR/run_once.sh qps600 600
+# $BASE_DIR/run_once.sh qps500 500
+$BASE_DIR/run_once.sh qps600 600
 $BASE_DIR/run_once.sh qps650 650
-# echo "[DEBUG] exit early"
-# exit 0
+$BASE_DIR/run_once.sh qps700 700
+echo "[DEBUG] exit early"
+exit 0
 
-$HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
 echo "====== Finish running BokiFlow experiments ======"
 else
