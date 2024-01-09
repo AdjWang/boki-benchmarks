@@ -9,6 +9,6 @@
 /experiments/**/machines.json
 
 /tests/workloads/**/bin/
-/tests/scripts/local_debug/zk_health_check/zk_health_check
+scripts/local_debug/zk_health_check/zk_health_check
 
 *.tar.gz
