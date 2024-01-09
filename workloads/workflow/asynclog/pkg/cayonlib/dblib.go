@@ -320,14 +320,12 @@ func AssertConditionFailure(err error) {
 		case dynamodb.ErrCodeConditionalCheckFailedException:
 			return
 		case dynamodb.ErrCodeResourceNotFoundException:
-			log.Printf("ERROR: DyanombDB ResourceNotFound")
+			log.Panicf("ERROR: DyanombDB ResourceNotFound %v", aerr)
 			return
 		default:
-			log.Printf("ERROR: %s", aerr)
-			panic("ERROR detected")
+			log.Panicf("ERROR: %s", aerr)
 		}
 	} else {
-		log.Printf("ERROR: %s", err)
-		panic("ERROR detected")
+		log.Panicf("ERROR: %s", err)
 	}
 }
