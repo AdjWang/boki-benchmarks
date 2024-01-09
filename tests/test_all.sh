@@ -285,15 +285,15 @@ function test_workflow {
 
     echo "setup env..."
     python3 $SCRIPT_DIR/docker-compose-generator.py \
-        --metalog-reps=2 \
-        --userlog-reps=2 \
-        --index-reps=2 \
+        --metalog-reps=1 \
+        --userlog-reps=1 \
+        --index-reps=1 \
         --test-case=$TEST_CASE \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 2 2 2 $TEST_CASE
+    setup_env 1 1 1 $TEST_CASE
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -337,9 +337,16 @@ function test_workflow {
     echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 50
-    sleep_count_down 10
-    $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 50
+    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
+    # sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
+    # $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
+    # sleep_count_down 10
 
     python3 $SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
 }
