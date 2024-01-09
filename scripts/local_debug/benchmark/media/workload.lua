@@ -1062,9 +1062,9 @@ request = function()
     local rating = math.random(0, 10)
     local text = string.random(256)
 
-    -- local path = '/asyncFunction/'..baseline_prefix..'Frontend'
+    local path = '/asyncFunction/'..baseline_prefix..'Frontend'
     -- DEBUG
-    local path = '/function/'..baseline_prefix..'Frontend'
+    -- local path = '/function/'..baseline_prefix..'Frontend'
     local method = "POST"
     local headers = {}
     --local body = "username=" .. username .. "&password=" .. password .. "&title=" ..
@@ -1102,7 +1102,7 @@ request = function()
     headers["Content-Type"] = "application/json"
 
     local req = wrk.format(method, path, headers, body)
-    print("request:", req)
+    -- print("request:", req)
     return req
 end
 
@@ -1119,11 +1119,11 @@ function dump(o)
    end
 end
 
-response = function(status, headers, body)
-  print("status:", status)
-  print("headers:", dump(headers))
-  print("body:", body)
-  if status ~= 200 then
-    error(status)
-  end
-end
+-- response = function(status, headers, body)
+--   print("status:", status)
+--   print("headers:", dump(headers))
+--   print("body:", body)
+--   if status ~= 200 then
+--     error(status)
+--   end
+-- end

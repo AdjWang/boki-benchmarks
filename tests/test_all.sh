@@ -285,15 +285,15 @@ function test_workflow {
 
     echo "setup env..."
     python3 $SCRIPT_DIR/docker-compose-generator.py \
-        --metalog-reps=3 \
-        --userlog-reps=3 \
-        --index-reps=1 \
+        --metalog-reps=2 \
+        --userlog-reps=2 \
+        --index-reps=2 \
         --test-case=$TEST_CASE \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 $TEST_CASE
+    setup_env 2 2 2 $TEST_CASE
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -337,7 +337,11 @@ function test_workflow {
     echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 50
+    sleep_count_down 10
+    $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 50
+
+    python3 $SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
 }
 
 if [ $# -eq 0 ]; then
@@ -363,9 +367,9 @@ run)
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
-    # test_workflow boki-movie-baseline
+    test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
-    test_workflow boki-movie-asynclog
+    # test_workflow boki-movie-asynclog
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

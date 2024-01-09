@@ -18,7 +18,7 @@ func mustExists(zkcli *zk.Conn, node string) {
 }
 
 func main() {
-	zkcli, _, err := zk.Connect([]string{"0.0.0.0"}, time.Second, zk.WithLogInfo(false))
+	zkcli, _, err := zk.Connect([]string{"zookeeper"}, time.Second, zk.WithLogInfo(false))
 	if err != nil {
 		panic(err)
 	}

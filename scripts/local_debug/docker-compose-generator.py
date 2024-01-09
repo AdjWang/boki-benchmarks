@@ -106,7 +106,8 @@ zookeeper_setup_f = """\
     volumes:
       - {workdir}/config/zk_setup.sh:/tmp/boki/zk_setup.sh
       - {workdir}/config/zk_health_check:/tmp/boki/zk_health_check
-    network_mode: "host"
+    networks:
+      - boki-net
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "/tmp/boki/zk_health_check"]
