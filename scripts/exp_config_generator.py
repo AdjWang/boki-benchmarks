@@ -656,6 +656,14 @@ ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \\
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && mv $HOST $EXP_DIR/fn_output
+done
+cd -
 """
 
 
@@ -754,6 +762,8 @@ def boki_movie_asynclog():
 
 IMAGE_FAAS = "adjwang/boki:dev"
 IMAGE_APP = "adjwang/boki-beldibench:dev"
+# IMAGE_FAAS = "zjia/boki:sosp-ae"
+# IMAGE_APP = "zjia/boki-beldibench:sosp-ae"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

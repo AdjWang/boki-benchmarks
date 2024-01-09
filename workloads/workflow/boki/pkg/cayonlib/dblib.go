@@ -4,6 +4,8 @@ import (
 	"log"
 	// "fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/pkg/errors"
+
 	// "github.com/mitchellh/mapstructure"
 	// "strings"
 
@@ -24,6 +26,7 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			Key:            Key,
 			ConsistentRead: aws.Bool(true),
 		})
+		CHECK(errors.Wrapf(err, "TableName=%s Key=%v Projection=nil", kTablePrefix+tablename, Key))
 	} else {
 		expr, err := expression.NewBuilder().WithProjection(BuildProjection(projection)).Build()
 		CHECK(err)
@@ -34,8 +37,9 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			ExpressionAttributeNames: expr.Names(),
 			ConsistentRead:           aws.Bool(true),
 		})
+		CHECK(errors.Wrapf(err, "TableName=%s Key=%v Projection=%v AttrNames=%v",
+			kTablePrefix+tablename, Key, expr.Projection(), expr.Names()))
 	}
-	CHECK(err)
 	item := aws.JSONValue{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, &item)
 	CHECK(err)
