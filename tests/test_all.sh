@@ -111,10 +111,11 @@ function build {
 }
 
 function push {
-    echo "========== build workloads =========="
-    # $WORKFLOW_SRC_DIR/build_all.sh REMOTE
-    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
-        bash -c "/boki-benchmark/workloads/workflow/build_all.sh REMOTE"
+    # DEPRECATED
+    # echo "========== build workloads =========="
+    # # $WORKFLOW_SRC_DIR/build_all.sh REMOTE
+    # docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+    #     bash -c "/boki-benchmark/workloads/workflow/build_all.sh REMOTE"
 
     echo "========== build docker images =========="
     # boki
@@ -325,9 +326,15 @@ function test_workflow {
         echo ""
     else # $APP_NAME == "media"
         echo "test basic"
-        curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
-            http://localhost:9000/function/Frontend ||
-            assert_should_success $LINENO
+        if [[ $BELDI_BASELINE == "0" ]]; then
+            curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
+                http://localhost:9000/function/Frontend ||
+                assert_should_success $LINENO
+        else # $BELDI_BASELINE == "1"
+            curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
+                http://localhost:9000/function/bFrontend ||
+                assert_should_success $LINENO
+        fi
         echo ""
     fi
 
@@ -337,17 +344,18 @@ function test_workflow {
     echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    # $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
 
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
-    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
-    # sleep_count_down 10
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
-    # $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
-    # sleep_count_down 10
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
+    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
+    sleep_count_down 10
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
+    $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
+    sleep_count_down 10
 
+    wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
     python3 $SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
 }
 
@@ -372,9 +380,9 @@ run)
     # test_sharedlog
     # cleanup
     # test_workflow beldi-hotel-baseline
-    # test_workflow beldi-movie-baseline
+    test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
-    test_workflow boki-movie-baseline
+    # test_workflow boki-movie-baseline
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     ;;

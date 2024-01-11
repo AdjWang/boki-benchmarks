@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -107,7 +108,7 @@ func LibWrite(tablename string, key aws.JSONValue, update map[expression.NameBui
 		ExpressionAttributeValues: expr.Values(),
 		UpdateExpression:          expr.Update(),
 	})
-	CHECK(err)
+	CHECK(errors.Wrapf(err, "table name=%s key=%v expr=%v", kTablePrefix+tablename, key, dumpExp(expr)))
 }
 
 func LibCondWrite(tablename string, key string, update map[expression.NameBuilder]expression.OperandBuilder,
@@ -991,32 +992,34 @@ func TQuery(env *Env, tablename string, key string) interface{} {
 	return LibRead(env.LogTable, logKey, projection)
 }
 
-func PrintExp(exp expression.Expression) {
-	fmt.Println("Names:")
+func dumpExp(exp expression.Expression) string {
+	result := ""
+	result += fmt.Sprintln("Names:")
 	for k, v := range exp.Names() {
-		fmt.Printf("%s %s\n", k, *v)
+		result += fmt.Sprintf("%s %s\n", k, *v)
 	}
-	fmt.Println("----------")
-	fmt.Println("Values:")
+	result += fmt.Sprintln("----------")
+	result += fmt.Sprintln("Values:")
 	for k, v := range exp.Values() {
-		fmt.Printf("%s %s\n", k, *v)
+		result += fmt.Sprintf("%s %s\n", k, *v)
 	}
 	if exp.Filter() != nil {
-		fmt.Println("----------")
-		fmt.Printf("Filter: %s\n", *exp.Filter())
+		result += fmt.Sprintln("----------")
+		result += fmt.Sprintf("Filter: %s\n", *exp.Filter())
 	}
 	if exp.Update() != nil {
-		fmt.Println("----------")
-		fmt.Printf("Update: %s\n", *exp.Update())
+		result += fmt.Sprintln("----------")
+		result += fmt.Sprintf("Update: %s\n", *exp.Update())
 	}
 	if exp.Condition() != nil {
-		fmt.Println("----------")
-		fmt.Printf("Condition: %s\n", *exp.Condition())
+		result += fmt.Sprintln("----------")
+		result += fmt.Sprintf("Condition: %s\n", *exp.Condition())
 	}
 	if exp.Projection() != nil {
-		fmt.Println("----------")
-		fmt.Printf("Projection: %s\n", *exp.Projection())
+		result += fmt.Sprintln("----------")
+		result += fmt.Sprintf("Projection: %s\n", *exp.Projection())
 	}
+	return result
 }
 
 func AssertConditionFailure(err error) {
@@ -1025,15 +1028,13 @@ func AssertConditionFailure(err error) {
 		case dynamodb.ErrCodeConditionalCheckFailedException:
 			return
 		case dynamodb.ErrCodeResourceNotFoundException:
-			log.Printf("ERROR: DyanombDB ResourceNotFound")
+			log.Panicf("ERROR: DyanombDB ResourceNotFound %v", aerr)
 			return
 		default:
-			log.Printf("ERROR: %s", aerr)
-			panic("ERROR detected")
+			log.Panicf("ERROR: %s", aerr)
 		}
 	} else {
-		log.Printf("ERROR: %s", err)
-		panic("ERROR detected")
+		log.Panicf("ERROR: %s", err)
 	}
 }
 
