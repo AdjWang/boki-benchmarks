@@ -138,10 +138,21 @@ echo "====== Start running BokiFlow experiments ======"
 
 # $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
+# $BASE_DIR/run_once.sh qps50 50
 # # $BASE_DIR/run_once.sh qps100 100
 # # $BASE_DIR/run_once.sh qps150 150
 # # $BASE_DIR/run_once.sh qps600 600
-# $BASE_DIR/run_once.sh qps650 650
+# # $BASE_DIR/run_once.sh qps650 650
+
+# # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# echo "[DEBUG] exit early"
+# exit 0
+
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-finra-baseline
+
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+# $BASE_DIR/run_once.sh qps10 10
 
 # # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 # echo "[DEBUG] exit early"
@@ -158,20 +169,31 @@ echo "====== Start running BokiFlow experiments ======"
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-asynclog
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-asynclog
+
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+# # $BASE_DIR/run_once.sh qps100 100
+# # $BASE_DIR/run_once.sh qps150 150
+# # $BASE_DIR/run_once.sh qps500 500
+# $BASE_DIR/run_once.sh qps600 600
+# $BASE_DIR/run_once.sh qps650 650
+# $BASE_DIR/run_once.sh qps700 700
+# echo "[DEBUG] exit early"
+# exit 0
+
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+
+BASE_DIR=$ROOT_DIR/experiments/workflow/boki-finra-asynclog
 
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# $BASE_DIR/run_once.sh qps100 100
-# $BASE_DIR/run_once.sh qps150 150
-# $BASE_DIR/run_once.sh qps500 500
-$BASE_DIR/run_once.sh qps600 600
-$BASE_DIR/run_once.sh qps650 650
-$BASE_DIR/run_once.sh qps700 700
+$BASE_DIR/run_once.sh qps10 10
+
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "[DEBUG] exit early"
 exit 0
 
-# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
 echo "====== Finish running BokiFlow experiments ======"
 else

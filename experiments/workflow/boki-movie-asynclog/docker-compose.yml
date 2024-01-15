@@ -124,185 +124,184 @@ services:
       - FAAS_NODE_ID={{.Task.Slot}}
     restart: always
 
-  frontend:
+  Frontend-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/Frontend", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  cast-info-service:
+  CastInfo-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/CastInfo", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  review-storage-service:
+  ReviewStorage-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/ReviewStorage", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  user-review-service:
+  UserReview-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/UserReview", "4"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  movie-review-service:
+  MovieReview-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/MovieReview", "5"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  compose-review-service:
+  ComposeReview-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/ComposeReview", "6"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  text-service:
+  Text-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/Text", "7"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  user-service:
+  User-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/User", "8"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  unique-id-service:
+  UniqueId-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/UniqueId", "9"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  rating-service:
+  Rating-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/Rating", "10"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  movie-id-service:
+  MovieId-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/MovieId", "11"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  plot-service:
+  Plot-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/Plot", "12"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  movie-info-service:
+  MovieInfo-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/MovieInfo", "13"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
 
-  page-service:
+  Page-service:
     image: adjwang/boki-beldibench:dev
     entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/media/Page", "14"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
-      - FAAS_GO_MAX_PROC_FACTOR=4
-      - GOGC=1000
       - TABLE_PREFIX=${TABLE_PREFIX:?}
+      - FAAS_GO_MAX_PROC_FACTOR=8
+      - GOGC=1000
     depends_on:
       - boki-engine
     restart: always
-

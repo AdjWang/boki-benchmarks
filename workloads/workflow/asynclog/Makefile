@@ -12,7 +12,7 @@ LDFLAGS_COMMON = -s -w
 build:
 # single operation
 
-all: singleop hotel media
+all: singleop hotel media finra
 
 singleop: singleop_init singleop_beldi_main singleop_beldi_nop \
 	singleop_baseline_init singleop_baseline_main singleop_baseline_nop
@@ -165,6 +165,22 @@ media_Gc:
 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BELDI)" -o bin/media/gc internal/media/core/gc/gc.go
 # media_Collector:
 # 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BELDI)" -o bin/media/collector internal/media/core/collector/collector.go
+
+finra: fetchData lastpx marginBalance marketdata side trddate volume
+fetchData:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/fetchData internal/finra/cmd/fetchData/main.go
+lastpx:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/lastpx internal/finra/cmd/lastpx/main.go
+marginBalance:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/marginBalance internal/finra/cmd/marginBalance/main.go
+marketdata:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/marketdata internal/finra/cmd/marketdata/main.go
+side:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/side internal/finra/cmd/side/main.go
+trddate:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/trddate internal/finra/cmd/trddate/main.go
+volume:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/volume internal/finra/cmd/volume/main.go
 
 gctest:
 	env GOOS=linux go build $(COMPILE_FLAGS) -ldflags="$(LDFLAGS_COMMON) $(LDFLAGS_BELDI)" -o bin/gctest/gctest internal/gctest/core/main.go

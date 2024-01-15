@@ -1,0 +1,44 @@
+[
+    {
+        "funcName": "fetchData",
+        "funcId": 1,
+        "minWorkers": 8,
+        "maxWorkers": 8
+    },
+    {
+        "funcName": "lastpx",
+        "funcId": 2,
+        "minWorkers": 8,
+        "maxWorkers": 8
+    },
+    {
+        "funcName": "marginBalance",
+        "funcId": 3,
+        "minWorkers": 8,
+        "maxWorkers": 8
+    },
+    {
+        "funcName": "marketdata",
+        "funcId": 4,
+        "minWorkers": 8,
+        "maxWorkers": 8
+    },
+    {
+        "funcName": "side",
+        "funcId": 5,
+        "minWorkers": 8,
+        "maxWorkers": 8
+    },
+    {
+        "funcName": "trddate",
+        "funcId": 6,
+        "minWorkers": 8,
+        "maxWorkers": 8
+    },
+    {
+        "funcName": "volume",
+        "funcId": 7,
+        "minWorkers": 8,
+        "maxWorkers": 8
+    }
+]

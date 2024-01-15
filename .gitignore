@@ -13,3 +13,4 @@
 /scripts/local_debug/zk_health_check/zk_health_check
 
 *.tar.gz
+*__pycache__*

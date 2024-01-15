@@ -15,4 +15,4 @@ require (
 	github.com/pkg/errors v0.9.1
 )
 
-replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /home/ubuntu/boki-benchmarks/boki/worker/golang

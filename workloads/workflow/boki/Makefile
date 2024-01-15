@@ -79,6 +79,22 @@ media:
 	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/media/gc internal/media/core/gc/gc.go
 	# env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/media/collector internal/media/core/collector/collector.go
 
+finra: fetchData lastpx marginBalance marketdata side trddate volume
+fetchData:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/fetchData internal/finra/cmd/fetchData/main.go
+lastpx:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/lastpx internal/finra/cmd/lastpx/main.go
+marginBalance:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/marginBalance internal/finra/cmd/marginBalance/main.go
+marketdata:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/marketdata internal/finra/cmd/marketdata/main.go
+side:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/side internal/finra/cmd/side/main.go
+trddate:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/trddate internal/finra/cmd/trddate/main.go
+volume:
+	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/finra/volume internal/finra/cmd/volume/main.go
+
 gctest:
 	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/gctest/gctest internal/gctest/core/main.go
 	env GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/gctest/gc internal/gctest/core/gc/gc.go

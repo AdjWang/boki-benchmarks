@@ -4,8 +4,9 @@ set -euo pipefail
 DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
-SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
-DOCKERFILE_DIR=$(realpath $SCRIPT_DIR/dockerfiles)
+SCRIPT_DIR=$(realpath $TEST_DIR/../scripts)
+DEBUG_SCRIPT_DIR=$(realpath $TEST_DIR/../scripts/local_debug)
+DOCKERFILE_DIR=$(realpath $DEBUG_SCRIPT_DIR/dockerfiles)
 WORKFLOW_EXP_DIR=$(realpath $TEST_DIR/../experiments/workflow)
 WORKFLOW_SRC_DIR=$(realpath $TEST_DIR/../workloads/workflow)
 
@@ -24,14 +25,14 @@ function setup_env {
     rm -rf $WORK_DIR/config
     mkdir -p $WORK_DIR/config
 
-    cp $SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
+    cp $DEBUG_SCRIPT_DIR/zk_setup.sh $WORK_DIR/config
     # inspect unhealthy log:
     # docker inspect --format "{{json .State.Health }}" $(docker ps -a | grep unhealthy | awk '{print $1}') | jq
-    if [ ! -f $SCRIPT_DIR/zk_health_check/zk_health_check ]; then
+    if [ ! -f $DEBUG_SCRIPT_DIR/zk_health_check/zk_health_check ]; then
         docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
             bash -c "cd /boki-benchmark/scripts/local_debug/zk_health_check && make"
     fi
-    cp $SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
+    cp $DEBUG_SCRIPT_DIR/zk_health_check/zk_health_check $WORK_DIR/config
     if [[ $TEST_CASE == sharedlog ]]; then
         cp $TEST_DIR/workloads/sharedlog/nightcore_config.json $WORK_DIR/config/nightcore_config.json
         cp $TEST_DIR/workloads/sharedlog/run_launcher $WORK_DIR/config
@@ -176,7 +177,7 @@ function test_sharedlog {
     echo "========== test sharedlog =========="
 
     echo "setup env..."
-    python3 $SCRIPT_DIR/docker-compose-generator.py \
+    python3 $DEBUG_SCRIPT_DIR/docker-compose-generator.py \
         --metalog-reps=3 \
         --userlog-reps=3 \
         --index-reps=1 \
@@ -255,6 +256,11 @@ function test_workflow {
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"boki"
         BELDI_BASELINE="0"
         ;;
+    boki-finra-baseline)
+        APP_NAME="finra"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"boki"
+        BELDI_BASELINE="0"
+        ;;
     boki-hotel-asynclog)
         APP_NAME="hotel"
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
@@ -265,39 +271,43 @@ function test_workflow {
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
         BELDI_BASELINE="0"
         ;;
+    boki-finra-asynclog)
+        APP_NAME="finra"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
+        BELDI_BASELINE="0"
+        ;;
     *)
         echo "[ERROR] TEST_CASE should be either beldi-hotel|movie-baseline or boki-hotel|movie-baseline|asynclog, given $TEST_CASE"
         exit 1
         ;;
     esac
 
-    if [[ $APP_NAME == "hotel" ]]; then
-        DB_DATA=""
-    else
+    if [[ $APP_NAME == "media" ]]; then
         DB_DATA=$APP_SRC_DIR/internal/media/data/compressed.json
+    else
+        DB_DATA=""
     fi
 
     echo "========== test workflow $TEST_CASE =========="
 
     # strange bug: head not generating EOF and just stucks. Only on my vm, tested ok in WSL.
     # TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
-    TABLE_PREFIX=$(echo $RANDOM | md5sum | head -c8)
-    TABLE_PREFIX="${TABLE_PREFIX}-"
+    # TABLE_PREFIX=$(echo $RANDOM | md5sum | head -c8)
+    # TABLE_PREFIX="${TABLE_PREFIX}-"
 
     echo "setup env..."
-    python3 $SCRIPT_DIR/docker-compose-generator.py \
+    python3 $SCRIPT_DIR/bokicli/bin/local_config_generator.py \
         --metalog-reps=1 \
         --userlog-reps=1 \
         --index-reps=1 \
         --test-case=$TEST_CASE \
-        --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
     setup_env 1 1 1 $TEST_CASE
 
     echo "setup cluster..."
-    cd $WORK_DIR && docker compose up -d
+    cd $WORK_DIR && docker compose up -d --remove-orphans
 
     echo "wait to startup..."
     sleep_count_down 15
@@ -324,39 +334,47 @@ function test_workflow {
             http://localhost:9000/function/gateway ||
             assert_should_success $LINENO
         echo ""
-    else # $APP_NAME == "media"
+    elif [[ $APP_NAME == "media" ]]; then
         echo "test basic"
         if [[ $BELDI_BASELINE == "0" ]]; then
-            curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
+            curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
                 http://localhost:9000/function/Frontend ||
                 assert_should_success $LINENO
         else # $BELDI_BASELINE == "1"
-            curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":true,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
+            curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"Compose","Input":{"Username":"username_80","Password":"password_80","Title":"Welcome to Marwen","Rating":7,"Text":"cZQPir9Ka9kcRJPBEsGfAoMAwMrMDMsh6ztv6wHXOioeTJY2ol3CKG1qrCm80blj38ACrvF7XuarfpQSjMkdpCrBJo7NbBtJUBtYKOuGtdBJ0HM9vv77N2JGI3mrcwyPGB9xdlnXOMUwlldt8NVpkjEBGjM1b4VOBwO3lYSxn34qhrnY7x6oOrlGN5PO70Bgxnckdf0wdRrYWdIw5qKY7sN5Gzuaq1fkeLbHGmHPeHtJ8iOfAVkizGHyRXukRqln"}}}' \
                 http://localhost:9000/function/bFrontend ||
                 assert_should_success $LINENO
         fi
         echo ""
+    elif [[ $APP_NAME == "finra" ]]; then
+        curl -X POST -H "Content-Type: application/json" -d '{"InstanceId":"","CallerName":"","Async":false,"Input":{"Function":"fetchData","Input":{"body":{"n_parallel":1,"portfolioType":"S&P","portfolio":"1234"}}}}' \
+            http://localhost:9000/function/fetchData ||
+            assert_should_success $LINENO
+        echo ""
+    else
+        echo "unknown app name ${APP_NAME}"
+        exit 1
     fi
 
     echo "test more requests"
-    WRKBENCHDIR=$SCRIPT_DIR
+    WRKBENCHDIR=$DEBUG_SCRIPT_DIR
     # WRKBENCHDIR=$APP_SRC_DIR
     echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    # $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
 
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
-    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
-    sleep_count_down 10
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
-    $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
-    sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
+    # sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
+    # $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
+    # sleep_count_down 10
 
     wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
-    python3 $SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
+    python3 $DEBUG_SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
 }
 
 if [ $# -eq 0 ]; then
@@ -380,9 +398,11 @@ run)
     # test_sharedlog
     # cleanup
     # test_workflow beldi-hotel-baseline
-    test_workflow beldi-movie-baseline
+    # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
     # test_workflow boki-movie-baseline
+    # test_workflow boki-finra-baseline
+    test_workflow boki-finra-asynclog
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     ;;

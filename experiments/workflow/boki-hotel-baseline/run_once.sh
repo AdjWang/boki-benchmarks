@@ -28,15 +28,16 @@ sleep 40
 TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || true)
 TABLE_PREFIX="${TABLE_PREFIX}-"
 
+ssh -q $CLIENT_HOST -- mkdir -p /tmp/app
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    adjwang/boki-beldibench:dev cp -r /bokiflow-bin/hotel /tmp
+    adjwang/boki-beldibench:dev cp -r /bokiflow-bin/hotel/. /tmp/app
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev cp /bokiflow/data/compressed.json /tmp
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/hotel/init create cayon
+    /tmp/app/init create cayon
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/hotel/init populate cayon /tmp/compressed.json
+    /tmp/app/init populate cayon /tmp/compressed.json
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
@@ -79,13 +80,13 @@ ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
 scp -q $ROOT_DIR/workloads/workflow/boki/benchmark/hotel/workload.lua $CLIENT_HOST:/tmp
 
-ssh -q $CLIENT_HOST --  $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
+ssh -q $CLIENT_HOST --   $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
     -s /tmp/workload.lua \
     http://$ENTRY_HOST:8080 -R $QPS >$EXP_DIR/wrk_warmup.log
 
 sleep 10
 
-ssh -q $CLIENT_HOST --  $WRK_DIR/wrk -t 2 -c 2 -d 150 -L -U \
+ssh -q $CLIENT_HOST --   $WRK_DIR/wrk -t 2 -c 2 -d 150 -L -U \
     -s /tmp/workload.lua \
     http://$ENTRY_HOST:8080 -R $QPS 2>/dev/null >$EXP_DIR/wrk.log
 
@@ -95,7 +96,15 @@ scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
 
 ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/hotel/init clean cayon
+    /tmp/app/init clean cayon
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 
+cd /tmp
+mkdir -p $EXP_DIR/fn_output
+for HOST in $ALL_ENGINE_HOSTS; do
+    ssh -q $HOST -- sudo tar -czf /tmp/output.tar.gz /mnt/inmem/boki/output
+    scp -q $HOST:/tmp/output.tar.gz /tmp
+    tar -zxf /tmp/output.tar.gz && mv mnt $HOST && mv $HOST $EXP_DIR/fn_output
+done
+cd -
