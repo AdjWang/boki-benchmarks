@@ -23,4 +23,4 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 )
 
-replace cs.utexas.edu/zjia/faas => /home/ubuntu/boki-benchmarks/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang

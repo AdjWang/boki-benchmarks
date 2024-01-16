@@ -6,7 +6,7 @@ import (
 )
 
 func UploadText2(env *cayonlib.Env, reqId string, text string) {
-	cayonlib.AsyncInvoke(env, TComposeReview(), RPCInput{
+	cayonlib.SyncInvoke(env, TComposeReview(), RPCInput{
 		Function: "UploadText",
 		Input:    aws.JSONValue{"reqId": reqId, "text": text},
 	})

@@ -3,13 +3,14 @@ package core
 import (
 	"crypto/sha512"
 	"encoding/hex"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/eniac/Beldi/pkg/cayonlib"
 	"github.com/lithammer/shortuuid"
 	"github.com/mitchellh/mapstructure"
-	"time"
 )
 
 func RegisterUserWithUserId(env *cayonlib.Env, firstName string, lastName string, username string, password string,
@@ -60,7 +61,7 @@ func UploadUser(env *cayonlib.Env, reqId string, username string) {
 	item := cayonlib.Read(env, TUser(), username)
 	var user User
 	cayonlib.CHECK(mapstructure.Decode(item, &user))
-	cayonlib.AsyncInvoke(env, TComposeReview(), RPCInput{
+	cayonlib.SyncInvoke(env, TComposeReview(), RPCInput{
 		Function: "UploadUserId",
 		Input: aws.JSONValue{
 			"reqId":  reqId,
