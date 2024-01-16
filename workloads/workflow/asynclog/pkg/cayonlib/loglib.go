@@ -176,6 +176,10 @@ func LibAsyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uin
 	encoded := snappy.Encode(nil, serializedData)
 	future, err := env.FaasEnv.AsyncSharedLogAppendWithDeps(env.FaasCtx, []types.Tag{tag}, encoded, []uint64{depLocalId})
 	CHECK(err)
+	// DEBUG: print dep graph edges
+	// localId := future.GetLocalId()
+	// log.Printf("[DEBUG] log id=%016X dep=%016X", localId, depLocalId)
+
 	return future
 }
 func CheckLogDataField(intentLog *IntentLogEntry, field string, expected string) {
