@@ -162,6 +162,8 @@ func LibSyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uint
 	// the seqnum is enough to guarantee read-your-write consistency.
 	err := future.Await(gSyncTimeout)
 	CHECK(err)
+	// DEBUG: print dep graph edges
+	// log.Printf("[DEBUG] sync append log id=%016X dep=%016X", future.GetLocalId(), depLocalId)
 
 	// // But wait for index is fast enough so no need to do this optimization.
 	// indexFuture, err := env.FaasEnv.AsyncSharedLogReadIndex(env.FaasCtx, future.GetLocalId())

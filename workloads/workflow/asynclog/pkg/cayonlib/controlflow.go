@@ -220,7 +220,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	switch ow.Status {
 	case "Success":
 		// chain async logs from subcalls
-		asyncLogOps, lastStepLogMeta, err := DeserializeRawAsyncLogContext([]byte(iw.AsyncLogCtxPropagator))
+		asyncLogOps, lastStepLogMeta, err := DeserializeRawAsyncLogContext([]byte(ow.AsyncLogCtxPropagator))
 		CHECK(err)
 		for _, op := range asyncLogOps {
 			env.AsyncLogCtx.ChainFuture(op)

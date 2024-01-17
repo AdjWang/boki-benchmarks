@@ -229,40 +229,36 @@ func (fc *asyncLogContextImpl) ChainStep(stepFutureLocalId uint64) AsyncLogConte
 // Sync relies on the blocking read index to ensure durability.
 // Note that indices are propagated from the storage node.
 func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
-	fc.mu.Lock()
-	defer fc.mu.Unlock()
-
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	errCh := make(chan error)
-	waitCh := make(chan struct{})
-	go func() {
-		for _, localId := range fc.AsyncLogOps {
-			if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, localId); err != nil {
-				errCh <- errors.Wrapf(err, "failed to read index for future: %+v", localId)
-				return
+	fc.mu.Lock()
+	groupDeps := types.GroupLocalIdByEngine(fc.AsyncLogOps)
+	fc.mu.Unlock()
+	// log.Printf("[DEBUG] n=%d nGroup=%d deps=%v", len(deps), len(groupDeps), deps)
+	// for engineId, subDeps := range groupDeps {
+	for _, subDeps := range groupDeps {
+		maxId := uint64(0)
+		for _, id := range subDeps {
+			if maxId < id {
+				maxId = id
 			}
 		}
-		waitCh <- struct{}{}
-	}()
-
-	select {
-	case <-ctx.Done():
-		// log.Println("wait future all done timeout")
-		return ctx.Err()
-	case err := <-errCh:
-		// log.Println("wait future all done with error:", err)
-		return err
-	case <-waitCh:
-		// log.Println("wait future all done without error")
-		// clear synchronized logs
-		fc.AsyncLogOps = make([]uint64, 0, 100)
-		// not clear LastStepLocalId here since the global log order depends
-		// on it, which is an independent mechanism with durability
-		return nil
+		// log.Printf("[DEBUG] engineId=%016X, max=%016X", engineId, maxId)
+		// DEBUG: print dep graph edges
+		// log.Printf("[DEBUG] sync log id=%016X", maxId)
+		// if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, maxId); err != nil {
+		// 	return err
+		// }
 	}
+	// DEBUG: print dep graph edges
+	// log.Printf("[DEBUG] sync log ids=%s", types.IdsToString(fc.AsyncLogOps))
+
+	fc.mu.Lock()
+	fc.AsyncLogOps = make([]uint64, 0, 100)
+	fc.mu.Unlock()
+	return nil
 }
 
 func (fc *asyncLogContextImpl) Serialize() ([]byte, error) {
@@ -305,5 +301,5 @@ func DeserializeRawAsyncLogContext(data []byte) ([]uint64, uint64, error) {
 func (fc *asyncLogContextImpl) String() string {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
-	return fmt.Sprintf("log chain: %+v, last log: %+v", fc.AsyncLogOps, fc.LastStepLocalId)
+	return fmt.Sprintf("log chain: %s, last log: %016X", types.IdsToString(fc.AsyncLogOps), fc.LastStepLocalId)
 }

@@ -158,7 +158,7 @@ function build_boki {
 }
 
 function cleanup {
-    cd $WORK_DIR && docker compose down || true
+    cd $WORK_DIR && docker compose down -t 1 || true
     sudo rm -rf $WORK_DIR
     mkdir -p $WORK_DIR
 }
@@ -533,13 +533,13 @@ function test_workflow {
         echo ""
     fi
 
-    echo "test more requests"
-    WRKBENCHDIR=$SCRIPT_DIR
-    # WRKBENCHDIR=$APP_SRC_DIR
-    echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
-    WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
-    # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    # echo "test more requests"
+    # WRKBENCHDIR=$SCRIPT_DIR
+    # # WRKBENCHDIR=$APP_SRC_DIR
+    # echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
+    # WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
+    # # DEBUG: benchmarks printing responses
+    # $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then
