@@ -98,7 +98,10 @@ REMOTE_SERVICES = {
 }
 
 def dump_configs(dump_dir, config: ServConfig, args):
-    docker_compose_boki = generate_docker_compose(config.enable_sharedlog)
+    docker_compose_boki = generate_docker_compose(config.enable_sharedlog,
+                                                  args.metalog_reps,
+                                                  args.userlog_reps,
+                                                  args.index_reps)
     docker_compose_func = config.serv_generator.generate_remote_config(config.workflow_bin_dir)
     docker_compose = docker_compose_boki + docker_compose_func
 

@@ -113,9 +113,9 @@ docker_compose_faas_sharedlog_f = """\
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
-      - --metalog_replicas=3
-      - --userlog_replicas=3
-      - --index_replicas=8
+      - --metalog_replicas={metalog_reps}
+      - --userlog_replicas={userlog_reps}
+      - --index_replicas={index_reps}
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -407,10 +407,16 @@ cd -
 """
 
 
-def generate_docker_compose(enable_sharedlog):
+def generate_docker_compose(enable_sharedlog,
+                            metalog_reps=3,
+                            userlog_reps=3,
+                            index_reps=8):
     docker_compose_faas_f = docker_compose_faas_sharedlog_f if enable_sharedlog else docker_compose_faas_nightcore_f
     docker_compose = (docker_compose_common +
-                      docker_compose_faas_f.format(image_faas=common.IMAGE_FAAS))
+                      docker_compose_faas_f.format(image_faas=common.IMAGE_FAAS,
+                                                   metalog_reps=metalog_reps,
+                                                   userlog_reps=userlog_reps,
+                                                   index_reps=index_reps))
     return docker_compose
 
 
