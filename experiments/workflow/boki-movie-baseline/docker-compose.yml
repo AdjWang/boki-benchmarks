@@ -15,6 +15,13 @@ services:
     volumes:
       - /tmp/zk_setup.sh:/tmp/boki/zk_setup.sh
     restart: always
+  
+  # db:
+  #   image: amazon/dynamodb-local
+  #   hostname: dynamodb
+  #   ports:
+  #     - 8000:8000
+  #   restart: always
 
   boki-engine:
     image: adjwang/boki:dev
@@ -49,9 +56,9 @@ services:
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
-      - --metalog_replicas=3
-      - --userlog_replicas=3
-      - --index_replicas=8
+      - --metalog_replicas=1
+      - --userlog_replicas=1
+      - --index_replicas=1
       # - --v=1
     depends_on:
       - zookeeper-setup

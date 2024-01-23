@@ -8,6 +8,7 @@ BOKI_DIR=$PROJECT_DIR/boki
 function build_beldi {
     cd $WORKFLOW_DIR/beldi
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
+    go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
     go mod tidy
     make hotel-baseline media-baseline hotel media -j$(nproc)
 }
@@ -15,6 +16,7 @@ function build_beldi {
 function build_boki {
     cd $WORKFLOW_DIR/boki
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
+    go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
     go mod tidy
     make hotel media singleop finra -j$(nproc)
 }
@@ -22,6 +24,7 @@ function build_boki {
 function build_asynclog {
     cd $WORKFLOW_DIR/asynclog
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
+    go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
     go mod tidy
     # make hotel
     # make hotel-baseline

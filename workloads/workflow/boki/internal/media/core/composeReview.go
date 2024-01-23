@@ -1,20 +1,27 @@
 package core
 
 import (
+	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/eniac/Beldi/pkg/cayonlib"
 	"github.com/mitchellh/mapstructure"
-	"sync"
 )
 
 func UploadReq(env *cayonlib.Env, reqId string) {
+	// DEBUG
+	// log.Printf("[DEBUG] UploadReq reqId=%s", reqId)
+
 	cayonlib.Write(env, TComposeReview(), reqId, map[expression.NameBuilder]expression.OperandBuilder{
 		expression.Name("V"): expression.Value(aws.JSONValue{"reqId": reqId, "counter": 0}),
 	})
 }
 
 func UploadUniqueId(env *cayonlib.Env, reqId string, reviewId string) {
+	// DEBUG
+	// log.Printf("[DEBUG] UploadUniqueId reqId=%s reviewId=%s", reqId, reviewId)
+
 	cayonlib.Write(env, TComposeReview(), reqId, map[expression.NameBuilder]expression.OperandBuilder{
 		expression.Name("V.reviewId"): expression.Value(reviewId),
 		expression.Name("V.counter"):  expression.Name("V.counter").Plus(expression.Value(1)),
@@ -23,6 +30,9 @@ func UploadUniqueId(env *cayonlib.Env, reqId string, reviewId string) {
 }
 
 func UploadText(env *cayonlib.Env, reqId string, text string) {
+	// DEBUG
+	// log.Printf("[DEBUG] UploadText reqId=%s text=%s", reqId, text)
+
 	cayonlib.Write(env, TComposeReview(), reqId, map[expression.NameBuilder]expression.OperandBuilder{
 		expression.Name("V.text"):    expression.Value(text),
 		expression.Name("V.counter"): expression.Name("V.counter").Plus(expression.Value(1)),
@@ -31,6 +41,9 @@ func UploadText(env *cayonlib.Env, reqId string, text string) {
 }
 
 func UploadRating(env *cayonlib.Env, reqId string, rating int32) {
+	// DEBUG
+	// log.Printf("[DEBUG] UploadRating reqId=%s rating=%d", reqId, rating)
+
 	cayonlib.Write(env, TComposeReview(), reqId, map[expression.NameBuilder]expression.OperandBuilder{
 		expression.Name("V.rating"):  expression.Value(rating),
 		expression.Name("V.counter"): expression.Name("V.counter").Plus(expression.Value(1)),
@@ -39,6 +52,9 @@ func UploadRating(env *cayonlib.Env, reqId string, rating int32) {
 }
 
 func UploadUserId(env *cayonlib.Env, reqId string, userId string) {
+	// DEBUG
+	// log.Printf("[DEBUG] UploadUserId reqId=%s userId=%s", reqId, userId)
+
 	cayonlib.Write(env, TComposeReview(), reqId, map[expression.NameBuilder]expression.OperandBuilder{
 		expression.Name("V.userId"):  expression.Value(userId),
 		expression.Name("V.counter"): expression.Name("V.counter").Plus(expression.Value(1)),
@@ -47,6 +63,9 @@ func UploadUserId(env *cayonlib.Env, reqId string, userId string) {
 }
 
 func UploadMovieId(env *cayonlib.Env, reqId string, movieId string) {
+	// DEBUG
+	// log.Printf("[DEBUG] UploadMovieId reqId=%s movieId=%s", reqId, movieId)
+
 	cayonlib.Write(env, TComposeReview(), reqId, map[expression.NameBuilder]expression.OperandBuilder{
 		expression.Name("V.movieId"): expression.Value(movieId),
 		expression.Name("V.counter"): expression.Name("V.counter").Plus(expression.Value(1)),
@@ -56,16 +75,16 @@ func UploadMovieId(env *cayonlib.Env, reqId string, movieId string) {
 
 func Cleanup(reqId string) {
 	// Debugging
-/*
-	if cayonlib.TYPE == "BASELINE" {
-		cayonlib.LibDelete(TComposeReview(), aws.JSONValue{"K": reqId})
-		return
-	}
-	cayonlib.LibDelete(TComposeReview(), aws.JSONValue{
-		"K":       reqId,
-		"ROWHASH": "HEAD",
-	})
-*/
+	/*
+		if cayonlib.TYPE == "BASELINE" {
+			cayonlib.LibDelete(TComposeReview(), aws.JSONValue{"K": reqId})
+			return
+		}
+		cayonlib.LibDelete(TComposeReview(), aws.JSONValue{
+			"K":       reqId,
+			"ROWHASH": "HEAD",
+		})
+	*/
 	//cond := expression.Key("K").Equal(expression.Value(reqId))
 	//expr, err := expression.NewBuilder().
 	//	WithProjection(cayonlib.BuildProjection([]string{"K", "ROWHASH"})).
@@ -95,6 +114,9 @@ func TryComposeAndUpload(env *cayonlib.Env, reqId string) {
 	}
 	res := item.(map[string]interface{})
 	if counter, ok := res["counter"].(float64); ok {
+		// DEBUG
+		// log.Printf("[DEBUG] TryComposeAndUpload reqId=%s counter=%d", reqId, int32(counter))
+
 		if int32(counter) == 5 {
 			var wg sync.WaitGroup
 			wg.Add(1)

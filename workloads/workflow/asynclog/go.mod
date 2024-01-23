@@ -24,3 +24,5 @@ require (
 )
 
 replace cs.utexas.edu/zjia/faas => /home/ubuntu/boki-benchmarks/boki/worker/golang
+
+replace cs.utexas.edu/zjia/faas/slib => /home/ubuntu/boki-benchmarks/boki/slib

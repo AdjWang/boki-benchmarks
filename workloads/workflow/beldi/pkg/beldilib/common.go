@@ -1,10 +1,10 @@
 package beldilib
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,34 +23,9 @@ var sess = session.Must(session.NewSessionWithOptions(session.Options{
 // var DBClient = dynamodb.New(sess, NewDBConfig(DBENV))
 var DBClient = NewDynamodbSession(sess, NewDBConfig((DBENV)))
 
-type Tracer struct {
-	statMu   sync.Mutex
-	stats    map[string]*utils.StatisticsCollector
-	counters map[string]*utils.CounterCollector
-}
-
-func NewTracer() *Tracer {
-	return &Tracer{
-		statMu:   sync.Mutex{},
-		stats:    make(map[string]*utils.StatisticsCollector),
-		counters: make(map[string]*utils.CounterCollector),
-	}
-}
-
-func (t *Tracer) AppendTrace(tag string, latency int64) {
-	t.statMu.Lock()
-	defer t.statMu.Unlock()
-	if _, ok := t.stats[tag]; !ok {
-		stat := utils.NewStatisticsCollector(fmt.Sprintf("%s delay(us)", tag), 1000 /*reportSamples*/, 10*time.Second)
-		t.stats[tag] = stat
-		counter := utils.NewCounterCollector(fmt.Sprintf("%s count", tag), 10*time.Second)
-		t.counters[tag] = counter
-	}
-	t.stats[tag].AddSample(float64(latency))
-	t.counters[tag].Tick(1)
-}
-
 type IDBClientDecorator interface {
+	AddTrace(tag string, sampleUs int64)
+
 	Query(input *dynamodb.QueryInput) (*dynamodb.QueryOutput, error)
 	GetItem(input *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, error)
 	UpdateItem(input *dynamodb.UpdateItemInput) (*dynamodb.UpdateItemOutput, error)
@@ -60,26 +35,50 @@ type IDBClientDecorator interface {
 	CreateTable(input *dynamodb.CreateTableInput) (*dynamodb.CreateTableOutput, error)
 	DeleteTable(input *dynamodb.DeleteTableInput) (*dynamodb.DeleteTableOutput, error)
 	DescribeTable(input *dynamodb.DescribeTableInput) (*dynamodb.DescribeTableOutput, error)
+	ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error)
 }
 
 type DBClientDecorator struct {
-	tracer *Tracer
-	client *dynamodb.DynamoDB
+	traceMu  sync.Mutex
+	counters map[string]*utils.CounterCollector
+	stats    map[string]*utils.StatisticsCollector
+	client   *dynamodb.DynamoDB
 }
 
 func NewDynamodbSession(p client.ConfigProvider, cfgs ...*aws.Config) IDBClientDecorator {
 	dbClient := dynamodb.New(p, cfgs...)
-	return &DBClientDecorator{
-		tracer: NewTracer(),
-		client: dbClient,
+	client := &DBClientDecorator{
+		traceMu:  sync.Mutex{},
+		counters: nil,
+		stats:    nil,
+		client:   dbClient,
 	}
+	if EnableDBTrace && client.counters == nil {
+		client.counters = make(map[string]*utils.CounterCollector)
+		client.stats = make(map[string]*utils.StatisticsCollector)
+	}
+
+	return client
+}
+func (c *DBClientDecorator) AddTrace(tag string, sampleUs int64) {
+	c.traceMu.Lock()
+	defer c.traceMu.Unlock()
+
+	if _, found := c.counters[tag]; !found {
+		c.counters[tag] = utils.NewCounterCollector(tag, 10*time.Second)
+	}
+	if _, found := c.stats[tag]; !found {
+		c.stats[tag] = utils.NewStatisticsCollector(tag, 1000 /*reportSamples*/, 10*time.Second)
+	}
+	c.counters[tag].Tick(1)
+	c.stats[tag].AddSample(float64(sampleUs))
 }
 func (c *DBClientDecorator) Query(input *dynamodb.QueryInput) (*dynamodb.QueryOutput, error) {
 	if EnableDBTrace {
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-Query", latency)
+			c.AddTrace("Dynamodb-Query", latency)
 		}()
 	}
 	return c.client.Query(input)
@@ -89,7 +88,7 @@ func (c *DBClientDecorator) GetItem(input *dynamodb.GetItemInput) (*dynamodb.Get
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-GetItem", latency)
+			c.AddTrace("Dynamodb-GetItem", latency)
 		}()
 	}
 	return c.client.GetItem(input)
@@ -99,7 +98,7 @@ func (c *DBClientDecorator) UpdateItem(input *dynamodb.UpdateItemInput) (*dynamo
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-UpdateItem", latency)
+			c.AddTrace("Dynamodb-UpdateItem", latency)
 		}()
 	}
 	return c.client.UpdateItem(input)
@@ -109,7 +108,7 @@ func (c *DBClientDecorator) Scan(input *dynamodb.ScanInput) (*dynamodb.ScanOutpu
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-Scan", latency)
+			c.AddTrace("Dynamodb-Scan", latency)
 		}()
 	}
 	return c.client.Scan(input)
@@ -119,7 +118,7 @@ func (c *DBClientDecorator) DeleteItem(input *dynamodb.DeleteItemInput) (*dynamo
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-DeleteItem", latency)
+			c.AddTrace("Dynamodb-DeleteItem", latency)
 		}()
 	}
 	return c.client.DeleteItem(input)
@@ -129,7 +128,7 @@ func (c *DBClientDecorator) TransactWriteItems(input *dynamodb.TransactWriteItem
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-TransactWriteItems", latency)
+			c.AddTrace("Dynamodb-TransactWriteItems", latency)
 		}()
 	}
 	return c.client.TransactWriteItems(input)
@@ -139,7 +138,7 @@ func (c *DBClientDecorator) CreateTable(input *dynamodb.CreateTableInput) (*dyna
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-CreateTable", latency)
+			c.AddTrace("Dynamodb-CreateTable", latency)
 		}()
 	}
 	return c.client.CreateTable(input)
@@ -149,7 +148,7 @@ func (c *DBClientDecorator) DeleteTable(input *dynamodb.DeleteTableInput) (*dyna
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-DeleteTable", latency)
+			c.AddTrace("Dynamodb-DeleteTable", latency)
 		}()
 	}
 	return c.client.DeleteTable(input)
@@ -159,10 +158,13 @@ func (c *DBClientDecorator) DescribeTable(input *dynamodb.DescribeTableInput) (*
 		apiTs := time.Now()
 		defer func() {
 			latency := time.Since(apiTs).Microseconds()
-			c.tracer.AppendTrace("Dynamodb-DescribeTable", latency)
+			c.AddTrace("Dynamodb-DescribeTable", latency)
 		}()
 	}
 	return c.client.DescribeTable(input)
+}
+func (c *DBClientDecorator) ListTables(input *dynamodb.ListTablesInput) (*dynamodb.ListTablesOutput, error) {
+	return c.client.ListTables(input)
 }
 
 func NewDBConfig(dbenv string) *aws.Config {
@@ -177,8 +179,23 @@ func NewDBConfig(dbenv string) *aws.Config {
 			CredentialsChainVerboseErrors: aws.Bool(true),
 		}
 	} else {
-		log.Println("[INFO] Init remote dynamodb configuration")
-		return &aws.Config{}
+		// log.Println("[INFO] Init remote dynamodb configuration")
+		// return &aws.Config{}
+		// DEBUG
+		data, err := os.ReadFile("/tmp/boki/dbendpoint")
+		if err != nil {
+			panic(err)
+		}
+		DBENDPOINT := strings.Trim(string(data), "\n")
+		log.Printf("[INFO] Init remote dynamodb configuration at %s", DBENDPOINT)
+		return &aws.Config{
+			Endpoint: aws.String(DBENDPOINT),
+			Region:   aws.String("us-east-2"),
+			// Credentials:                   credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
+			Credentials:                   credentials.NewStaticCredentials("2333", "abcd", "TOKEN"),
+			CredentialsChainVerboseErrors: aws.Bool(true),
+			// LogLevel:                      aws.LogLevel(aws.LogDebugWithRequestRetries),
+		}
 	}
 }
 
@@ -189,18 +206,17 @@ func GLOGSIZE() int {
 	return r
 }
 
-// var T = int64(60)
-var T = int64(30)
+var T = int64(60)
 
-var TYPE = "BELDI"
+var TYPE = "BELDI"             // or "BASELINE"
 var DBENV = os.Getenv("DBENV") // "REMOTE" or "LOCAL" or unset
+const EnableDBTrace = true
+
+var kTablePrefix = os.Getenv("TABLE_PREFIX")
+var gSyncTimeout = time.Duration(60 * time.Second)
 
 func CHECK(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
-
-var kTablePrefix = os.Getenv("TABLE_PREFIX")
-
-const EnableDBTrace = true

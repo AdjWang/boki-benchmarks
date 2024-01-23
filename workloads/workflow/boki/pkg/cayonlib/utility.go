@@ -11,7 +11,7 @@ import (
 )
 
 func CreateMainTable(lambdaId string) {
-	_, _ = DBClient.CreateTable(&dynamodb.CreateTableInput{
+	_, err := DBClient.CreateTable(&dynamodb.CreateTableInput{
 		BillingMode: aws.String("PAY_PER_REQUEST"),
 		AttributeDefinitions: []*dynamodb.AttributeDefinition{
 			{
@@ -27,6 +27,9 @@ func CreateMainTable(lambdaId string) {
 		},
 		TableName: aws.String(kTablePrefix + lambdaId),
 	})
+	if err != nil {
+		panic(err)
+	}
 }
 
 func CreateLogTable(lambdaId string) {

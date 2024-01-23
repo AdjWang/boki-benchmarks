@@ -32,6 +32,8 @@ func tables(baseline bool) {
 				break
 			}
 		}
+		// DEBUG
+		log.Println(cayonlib.ListTables())
 	}
 }
 

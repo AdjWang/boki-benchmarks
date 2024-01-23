@@ -1,7 +1,9 @@
 package cayonlib
 
 import (
+	"fmt"
 	"log"
+
 	// "fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/pkg/errors"
@@ -37,8 +39,8 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			ExpressionAttributeNames: expr.Names(),
 			ConsistentRead:           aws.Bool(true),
 		})
-		CHECK(errors.Wrapf(err, "TableName=%s Key=%v Projection=%v AttrNames=%v",
-			kTablePrefix+tablename, Key, expr.Projection(), expr.Names()))
+		CHECK(errors.Wrapf(err, "TableName=%s Key=%v Projection=%v AttrNames=%v, Tables=%v",
+			kTablePrefix+tablename, Key, expr.Projection(), expr.Names(), ListTables()))
 	}
 	item := aws.JSONValue{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, &item)
@@ -277,7 +279,7 @@ func AssertConditionFailure(err error) {
 			return
 		case dynamodb.ErrCodeResourceNotFoundException:
 			log.Printf("ERROR: DyanombDB ResourceNotFound")
-			return
+			panic(err)
 		default:
 			log.Printf("ERROR: %s", aerr)
 			panic("ERROR detected")
@@ -286,4 +288,42 @@ func AssertConditionFailure(err error) {
 		log.Printf("ERROR: %s", err)
 		panic("ERROR detected")
 	}
+}
+
+func ListTables() string {
+	// create the input configuration instance
+	input := &dynamodb.ListTablesInput{}
+
+	tablesResult := "Tables:\n"
+
+	for {
+		// Get the list of tables
+		result, err := DBClient.ListTables(input)
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				switch aerr.Code() {
+				case dynamodb.ErrCodeInternalServerError:
+					log.Panicln(dynamodb.ErrCodeInternalServerError, aerr.Error())
+				default:
+					log.Panicln(aerr)
+				}
+			} else {
+				log.Panicln(err)
+			}
+		}
+
+		for _, n := range result.TableNames {
+			tablesResult += fmt.Sprint(*n) + "\n"
+		}
+
+		// assign the last read tablename as the start for our next call to the ListTables function
+		// the maximum number of table names returned in a call is 100 (default), which requires us to make
+		// multiple calls to the ListTables function to retrieve all table names
+		input.ExclusiveStartTableName = result.LastEvaluatedTableName
+
+		if result.LastEvaluatedTableName == nil {
+			break
+		}
+	}
+	return tablesResult
 }

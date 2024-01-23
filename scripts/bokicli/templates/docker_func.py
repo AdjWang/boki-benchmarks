@@ -56,8 +56,8 @@ class FuncMeta:
     def services_count(self):
         return len(self.service_names)
 
-    def generate_local_config(self, image_fn_bin_dir: str, engines: int) -> str:
-        func_bins = [f'{image_fn_bin_dir}/{self.app_name}/{fn_name}'
+    def generate_local_config(self, image_fn_bin_dir: str, engines: int, app_prefix: str="") -> str:
+        func_bins = [f'{image_fn_bin_dir}/{app_prefix}{self.app_name}/{fn_name}'
                      for fn_name in self.func_names]
         func_envs = ('  '*(self.base_indents+2)) \
                    .join([f'- {k}={v}\n' for k, v in self.func_envs_local.items()]) \
@@ -76,8 +76,8 @@ class FuncMeta:
                 func_templates.append(func)
         return '\n'.join(func_templates)
 
-    def generate_remote_config(self, image_fn_bin_dir: str) -> str:
-        func_bins = [f'{image_fn_bin_dir}/{self.app_name}/{fn_name}'
+    def generate_remote_config(self, image_fn_bin_dir: str, app_prefix: str="") -> str:
+        func_bins = [f'{image_fn_bin_dir}/{app_prefix}{self.app_name}/{fn_name}'
                      for fn_name in self.func_names]
         func_envs = ('  '*(self.base_indents+2)) \
                    .join([f'- {k}={v}\n' for k, v in self.func_envs_remote.items()]) \
@@ -93,10 +93,10 @@ class FuncMeta:
             func_templates.append(func)
         return '\n'.join(func_templates)
     
-    def generate_nightcore_config(self) -> str:
+    def generate_nightcore_config(self, func_name_prefix: str="") -> str:
         config = []
         for idx in range(self.services_count):
-            func_name = self.func_names[idx]
+            func_name = func_name_prefix + self.func_names[idx]
             func_id = idx + 1
             entry = dict(funcName=func_name,
                          funcId=func_id,

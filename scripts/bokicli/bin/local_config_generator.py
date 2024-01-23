@@ -138,7 +138,8 @@ if __name__ == '__main__':
     # print(dc_boki)
     # in all our benchmarks, each engine contains an index
     dc_serv = config.serv_generator.generate_local_config(
-        image_fn_bin_dir=config.workflow_bin_dir, engines=args.index_reps)
+        image_fn_bin_dir=config.workflow_bin_dir, engines=args.index_reps,
+        app_prefix=baseline_prefix)
     # print(dc_serv)
 
     with open(os.path.join(args.output, 'docker-compose.yml'), 'w') as f:

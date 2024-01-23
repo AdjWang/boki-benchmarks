@@ -23,21 +23,13 @@ scp -q $BASE_DIR/docker-compose-generated.yml $MANAGER_HOST:/tmp
 
 ssh -q $MANAGER_HOST -- docker stack rm boki-experiment
 
-sleep 40
-
-TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || true)
-TABLE_PREFIX="${TABLE_PREFIX}-"
+sleep 20
 
 ssh -q $CLIENT_HOST -- mkdir -p /tmp/app
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev cp -r /beldi-bin/bmedia/. /tmp/app
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev cp /bokiflow/data/compressed.json /tmp
-
-ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/app/init create baseline
-ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/app/init populate baseline /tmp/compressed.json
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
 ssh -q $MANAGER_HOST -- sudo mkdir -p /mnt/inmem/store
@@ -62,9 +54,32 @@ for HOST in $ALL_STORAGE_HOSTS; do
     ssh -q $HOST -- sudo mkdir -p /mnt/storage/logdata
 done
 
+echo "http://$CLIENT_HOST:8000" > /tmp/dbendpoint
+ssh -q $CLIENT_HOST -- mkdir -p /tmp/boki
+scp -q /tmp/dbendpoint $CLIENT_HOST:/tmp/boki/dbendpoint
+for HOST in $ALL_ENGINE_HOSTS; do
+    scp -q /tmp/dbendpoint $HOST:/tmp/dbendpoint
+    ssh -q $HOST -- sudo cp /tmp/dbendpoint /mnt/inmem/boki/dbendpoint
+done
+
+TABLE_PREFIX=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1 || true)
+TABLE_PREFIX="${TABLE_PREFIX}-"
+
 ssh -q $MANAGER_HOST -- TABLE_PREFIX=$TABLE_PREFIX docker stack deploy \
     -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
 sleep 60
+
+ssh -q $CLIENT_HOST -- kill -9 $(ps -ef | grep -v "grep" | grep "/tmp/app/init" | awk '{print $2}') || true
+ssh -q $CLIENT_HOST -- mkdir -p /tmp/app
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
+    adjwang/boki-beldibench:dev cp -r /beldi-bin/bmedia/. /tmp/app
+ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
+    adjwang/boki-beldibench:dev cp /bokiflow/data/compressed.json /tmp
+
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
+    /tmp/app/init create baseline
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
+    /tmp/app/init populate baseline /tmp/compressed.json
 
 for HOST in $ALL_ENGINE_HOSTS; do
     ENGINE_CONTAINER_ID=`$HELPER_SCRIPT get-container-id --base-dir=$BASE_DIR --service boki-engine --machine-host $HOST`
@@ -78,15 +93,15 @@ mkdir -p $EXP_DIR
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
-scp -q $ROOT_DIR/workloads/workflow/beldi/benchmark/bmedia/workload.lua $CLIENT_HOST:/tmp
+scp -q $ROOT_DIR/workloads/workflow/beldi/benchmark/media/workload.lua $CLIENT_HOST:/tmp
 
-ssh -q $CLIENT_HOST --  BASELINE=1 $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
+ssh -q $CLIENT_HOST -- BASELINE=1 $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
     -s /tmp/workload.lua \
     http://$ENTRY_HOST:8080 -R $QPS >$EXP_DIR/wrk_warmup.log
 
 sleep 10
 
-ssh -q $CLIENT_HOST --  BASELINE=1 $WRK_DIR/wrk -t 2 -c 2 -d 150 -L -U \
+ssh -q $CLIENT_HOST -- BASELINE=1 $WRK_DIR/wrk -t 2 -c 2 -d 60 -L -U \
     -s /tmp/workload.lua \
     http://$ENTRY_HOST:8080 -R $QPS 2>/dev/null >$EXP_DIR/wrk.log
 
@@ -95,8 +110,8 @@ sleep 10
 scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
 
-ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
-    /tmp/app/init clean baseline
+# ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
+#     /tmp/app/init clean baseline
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs
 

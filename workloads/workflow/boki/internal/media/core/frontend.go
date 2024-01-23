@@ -2,9 +2,10 @@ package core
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/eniac/Beldi/pkg/cayonlib"
-	"sync"
 )
 
 type ComposeInput struct {

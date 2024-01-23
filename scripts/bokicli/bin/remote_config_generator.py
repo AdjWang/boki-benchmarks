@@ -29,7 +29,7 @@ REMOTE_SERVICES = {
         wrk_env="BASELINE=1",
         workflow_bin_dir="/beldi-bin",
         workflow_lib_name=common.WorkflowLibName.beldi.value[0],
-        workflow_app_name=common.WorkflowAppName.bhotel.value[0],
+        workflow_app_name=common.WorkflowAppName.hotel.value[0],
         serv_generator=common.WORKFLOW_HOTEL_SERVS,
     ),
     'beldi-movie-baseline': ServConfig(
@@ -38,7 +38,7 @@ REMOTE_SERVICES = {
         wrk_env="BASELINE=1",
         workflow_bin_dir="/beldi-bin",
         workflow_lib_name=common.WorkflowLibName.beldi.value[0],
-        workflow_app_name=common.WorkflowAppName.bmedia.value[0],
+        workflow_app_name=common.WorkflowAppName.media.value[0],
         serv_generator=common.WORKFLOW_MEDIA_SERVS,
     ),
     'boki-hotel-baseline': ServConfig(
@@ -102,14 +102,16 @@ def dump_configs(dump_dir, config: ServConfig, args):
                                                   args.metalog_reps,
                                                   args.userlog_reps,
                                                   args.index_reps)
-    docker_compose_func = config.serv_generator.generate_remote_config(config.workflow_bin_dir)
+    app_prefix = "b" if config.data_init_mode == "baseline" else ""
+    docker_compose_func = config.serv_generator.generate_remote_config(config.workflow_bin_dir,
+                                                                       app_prefix)
     docker_compose = docker_compose_boki + docker_compose_func
 
     config_json = config.serv_generator.generate_cluster_config(
         args.metalog_reps, args.userlog_reps, args.index_reps)
-    nightcore_config_json = config.serv_generator.generate_nightcore_config()
+    nightcore_config_json = config.serv_generator.generate_nightcore_config(app_prefix)
 
-    bin_path = Path(config.workflow_bin_dir) / config.workflow_app_name
+    bin_path = Path(config.workflow_bin_dir) / (app_prefix + config.workflow_app_name)
     run_once_sh = generate_run_once(
         bin_path, config.data_init_mode, config.workflow_lib_name, config.workflow_app_name,
         ' '.join([args.wrk_env, config.wrk_env]))
@@ -143,12 +145,12 @@ if __name__ == '__main__':
         # "beldi-movie",
         "beldi-hotel-baseline",
         "beldi-movie-baseline",
-        "boki-hotel-baseline",
-        "boki-movie-baseline",
-        "boki-finra-baseline",
-        "boki-hotel-asynclog",
-        "boki-movie-asynclog",
-        "boki-finra-asynclog",
+        # "boki-hotel-baseline",
+        # "boki-movie-baseline",
+        # "boki-finra-baseline",
+        # "boki-hotel-asynclog",
+        # "boki-movie-asynclog",
+        # "boki-finra-asynclog",
     ]
     for bench_name in benchmarks:
         assert bench_name in REMOTE_SERVICES, f'{bench_name}'

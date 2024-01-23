@@ -134,7 +134,7 @@ function push {
 }
 
 function cleanup {
-    cd $WORK_DIR && docker compose down || true
+    cd $WORK_DIR && docker compose down -t 1 || true
     sudo rm -rf $WORK_DIR
     mkdir -p $WORK_DIR
 }
@@ -362,16 +362,16 @@ function test_workflow {
     echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
+    # $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 80
 
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
-    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
-    # sleep_count_down 10
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
-    # $WRK -t 2 -c 2 -d 150 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 4000
-    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
-    # sleep_count_down 10
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
+    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
+    sleep_count_down 10
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
+    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
+    sleep_count_down 10
 
     wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
     python3 $DEBUG_SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
@@ -400,9 +400,9 @@ run)
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
-    # test_workflow boki-movie-baseline
+    test_workflow boki-movie-baseline
     # test_workflow boki-finra-baseline
-    test_workflow boki-finra-asynclog
+    # test_workflow boki-finra-asynclog
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     ;;
