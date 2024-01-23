@@ -6,7 +6,7 @@ import (
 )
 
 func UploadRating2(env *cayonlib.Env, reqId string, rating int32) {
-	cayonlib.AsyncInvoke(env, TComposeReview(), RPCInput{
+	cayonlib.SyncInvoke(env, TComposeReview(), RPCInput{
 		Function: "UploadRating",
 		Input: aws.JSONValue{
 			"reqId":  reqId,

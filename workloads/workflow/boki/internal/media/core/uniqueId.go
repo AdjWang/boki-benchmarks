@@ -8,7 +8,7 @@ import (
 
 func UploadUniqueId2(env *cayonlib.Env, reqId string) {
 	reviewId := shortuuid.New()
-	cayonlib.AsyncInvoke(env, TComposeReview(), RPCInput{
+	cayonlib.SyncInvoke(env, TComposeReview(), RPCInput{
 		Function: "UploadUniqueId",
 		Input:    aws.JSONValue{"reqId": reqId, "reviewId": reviewId},
 	})

@@ -126,26 +126,40 @@ func TryComposeAndUpload(env *cayonlib.Env, reqId string) {
 			}()
 			var review Review
 			cayonlib.CHECK(mapstructure.Decode(res, &review))
-			cayonlib.AsyncInvoke(env, TReviewStorage(), RPCInput{
-				Function: "StoreReview",
-				Input:    review,
-			})
-			cayonlib.AsyncInvoke(env, TUserReview(), RPCInput{
-				Function: "UploadUserReview",
-				Input: aws.JSONValue{
-					"userId":    review.UserId,
-					"reviewId":  review.ReviewId,
-					"timestamp": review.Timestamp,
-				},
-			})
-			cayonlib.AsyncInvoke(env, TMovieReview(), RPCInput{
-				Function: "UploadMovieReview",
-				Input: aws.JSONValue{
-					"movieId":   review.MovieId,
-					"reviewId":  review.ReviewId,
-					"timestamp": review.Timestamp,
-				},
-			})
+
+			invoke1 := cayonlib.ProposeInvoke(env, TReviewStorage())
+			invoke2 := cayonlib.ProposeInvoke(env, TUserReview())
+			invoke3 := cayonlib.ProposeInvoke(env, TMovieReview())
+			wg.Add(3)
+			go func() {
+				defer wg.Done()
+				cayonlib.AssignedSyncInvoke(env, TReviewStorage(), RPCInput{
+					Function: "StoreReview",
+					Input:    review,
+				}, invoke1)
+			}()
+			go func() {
+				defer wg.Done()
+				cayonlib.AssignedSyncInvoke(env, TUserReview(), RPCInput{
+					Function: "UploadUserReview",
+					Input: aws.JSONValue{
+						"userId":    review.UserId,
+						"reviewId":  review.ReviewId,
+						"timestamp": review.Timestamp,
+					},
+				}, invoke2)
+			}()
+			go func() {
+				defer wg.Done()
+				cayonlib.AssignedSyncInvoke(env, TMovieReview(), RPCInput{
+					Function: "UploadMovieReview",
+					Input: aws.JSONValue{
+						"movieId":   review.MovieId,
+						"reviewId":  review.ReviewId,
+						"timestamp": review.Timestamp,
+					},
+				}, invoke3)
+			}()
 			wg.Wait()
 		}
 	} else {

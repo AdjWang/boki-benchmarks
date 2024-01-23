@@ -361,6 +361,8 @@ function test_workflow {
     # WRKBENCHDIR=$APP_SRC_DIR
     echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
+    
+    set -x
     # DEBUG: benchmarks printing responses
     # $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 80
 
