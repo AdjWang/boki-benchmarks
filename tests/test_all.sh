@@ -459,15 +459,15 @@ function test_workflow {
 
     echo "setup env..."
     python3 $SCRIPT_DIR/docker-compose-generator.py \
-        --metalog-reps=3 \
-        --userlog-reps=3 \
+        --metalog-reps=1 \
+        --userlog-reps=1 \
         --index-reps=1 \
         --test-case=$TEST_CASE \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 $TEST_CASE
+    setup_env 1 1 1 $TEST_CASE
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -533,13 +533,14 @@ function test_workflow {
         echo ""
     fi
 
-    # echo "test more requests"
-    # WRKBENCHDIR=$SCRIPT_DIR
-    # # WRKBENCHDIR=$APP_SRC_DIR
-    # echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
-    # WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
-    # # DEBUG: benchmarks printing responses
-    # $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    echo "test more requests"
+    WRKBENCHDIR=$SCRIPT_DIR
+    # WRKBENCHDIR=$APP_SRC_DIR
+    echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
+    WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
+    set +x
+    # DEBUG: benchmarks printing responses
+    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then

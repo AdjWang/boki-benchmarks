@@ -248,9 +248,10 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 		// log.Printf("[DEBUG] engineId=%016X, max=%016X", engineId, maxId)
 		// DEBUG: print dep graph edges
 		// log.Printf("[DEBUG] sync log id=%016X", maxId)
-		// if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, maxId); err != nil {
-		// 	return err
-		// }
+
+		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, maxId); err != nil {
+			return err
+		}
 	}
 	// DEBUG: print dep graph edges
 	// log.Printf("[DEBUG] sync log ids=%s", types.IdsToString(fc.AsyncLogOps))

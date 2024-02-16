@@ -1062,9 +1062,9 @@ request = function()
     local rating = math.random(0, 10)
     local text = string.random(256)
 
-    -- local path = '/asyncFunction/'..baseline_prefix..'Frontend'
+    local path = '/asyncFunction/'..baseline_prefix..'Frontend'
     -- DEBUG
-    local path = '/function/'..baseline_prefix..'Frontend'
+    -- local path = '/function/'..baseline_prefix..'Frontend'
     local method = "POST"
     local headers = {}
     --local body = "username=" .. username .. "&password=" .. password .. "&title=" ..

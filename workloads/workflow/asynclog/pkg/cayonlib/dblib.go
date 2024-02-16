@@ -5,6 +5,7 @@ import (
 
 	// "fmt"
 
+	"cs.utexas.edu/zjia/faas/types"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 
 	// "github.com/mitchellh/mapstructure"
@@ -38,7 +39,7 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			ExpressionAttributeNames: expr.Names(),
 			ConsistentRead:           aws.Bool(true),
 		})
-		CHECK(err)
+		AssertConditionFailure(err)
 	}
 	item := aws.JSONValue{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, &item)
@@ -179,9 +180,14 @@ func CondWrite(env *Env, tablename string, key string,
 	err := env.AsyncLogCtx.Sync(gSyncTimeout)
 	CHECK(err)
 	// resolve cond
-	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetLocalId())
+	// logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetLocalId())
+	stepSeqNum, err := stepFuture.GetResult(gSyncTimeout)
 	CHECK(err)
-	if applied := ResolveLog(env, logEntry.Identifiers, logEntry.SeqNum); !applied {
+	// TODO: tag hack of logEntry.Identifiers
+	tag := types.Tag{StreamType: FsmType_STEPSTREAM, StreamId: IntentStepStreamTag(env.InstanceId)}
+	tags := []types.Tag{tag}
+	if applied := ResolveLog(env, tags, stepSeqNum); !applied {
+		// if applied := ResolveLog(env, logEntry.Identifiers, logEntry.SeqNum); !applied {
 		// discarded
 		if ok := fnGetLoggedStepResult(preWriteLog); ok {
 			return
@@ -315,6 +321,9 @@ func BuildProjection(names []string) expression.ProjectionBuilder {
 }
 
 func AssertConditionFailure(err error) {
+	if err == nil {
+		return
+	}
 	if aerr, ok := err.(awserr.Error); ok {
 		switch aerr.Code() {
 		case dynamodb.ErrCodeConditionalCheckFailedException:

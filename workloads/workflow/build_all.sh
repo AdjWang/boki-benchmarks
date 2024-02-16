@@ -10,11 +10,7 @@ function build_beldi {
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
     go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
     go mod tidy
-    make hotel-baseline
-    make media-baseline
-    make hotel
-    make media
-    make singleop
+    make hotel-baseline media-baseline hotel media singleop -j$(nproc)
 }
 
 function build_boki {
@@ -22,10 +18,7 @@ function build_boki {
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
     go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
     go mod tidy
-    make hotel
-    make media
-    make singleop
-    make txnbench
+    make hotel media singleop txnbench -j$(nproc)
 }
 
 function build_asynclog {

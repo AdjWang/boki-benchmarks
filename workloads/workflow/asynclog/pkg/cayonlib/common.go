@@ -43,3 +43,4 @@ var kTablePrefix = os.Getenv("TABLE_PREFIX")
 var gSyncTimeout = time.Duration(60 * time.Second)
 
 const EnableSlogTrace = false
+const EnableLogSyncTrace = true

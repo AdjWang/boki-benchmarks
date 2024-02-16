@@ -2,9 +2,10 @@ package core
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/eniac/Beldi/pkg/cayonlib"
-	"sync"
 )
 
 type ComposeInput struct {
@@ -30,6 +31,7 @@ func Compose(env *cayonlib.Env, input ComposeInput) {
 	invoke4 := cayonlib.ProposeInvoke(env, TText())
 	var wg sync.WaitGroup
 	wg.Add(4)
+	// wg.Add(3)
 	go func() {
 		defer wg.Done()
 		cayonlib.AssignedSyncInvoke(env, TUniqueId(), RPCInput{
@@ -59,4 +61,9 @@ func Compose(env *cayonlib.Env, input ComposeInput) {
 		}, invoke4)
 	}()
 	wg.Wait()
+
+	// cayonlib.SyncInvoke(env, TText(), RPCInput{
+	// 	Function: "UploadText2",
+	// 	Input:    aws.JSONValue{"reqId": reqId, "text": input.Text},
+	// })
 }

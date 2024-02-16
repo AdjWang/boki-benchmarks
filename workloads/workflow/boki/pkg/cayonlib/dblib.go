@@ -5,6 +5,7 @@ import (
 	// "fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/pkg/errors"
+
 	// "github.com/mitchellh/mapstructure"
 	// "strings"
 
@@ -25,7 +26,7 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			Key:            Key,
 			ConsistentRead: aws.Bool(true),
 		})
-		CHECK(err)
+		AssertConditionFailure(err)
 	} else {
 		expr, err := expression.NewBuilder().WithProjection(BuildProjection(projection)).Build()
 		CHECK(err)
@@ -36,7 +37,7 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			ExpressionAttributeNames: expr.Names(),
 			ConsistentRead:           aws.Bool(true),
 		})
-		CHECK(err)
+		AssertConditionFailure(err)
 	}
 	item := aws.JSONValue{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, &item)
@@ -272,7 +273,11 @@ func BuildProjection(names []string) expression.ProjectionBuilder {
 }
 
 func AssertConditionFailure(err error) {
-	if aerr, ok := err.(awserr.Error); ok {
+	if err == nil {
+		return
+	}
+	var aerr awserr.Error
+	if errors.As(err, &aerr) {
 		switch aerr.Code() {
 		case dynamodb.ErrCodeConditionalCheckFailedException:
 			return
@@ -280,11 +285,11 @@ func AssertConditionFailure(err error) {
 			log.Printf("ERROR: DyanombDB ResourceNotFound")
 			return
 		default:
-			log.Printf("ERROR: %s", aerr)
+			log.Printf("ERROR: %v", aerr)
 			panic("ERROR detected")
 		}
 	} else {
-		log.Printf("ERROR: %s", err)
+		log.Printf("ERROR: %v", err)
 		panic("ERROR detected")
 	}
 }
