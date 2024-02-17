@@ -2,6 +2,7 @@ package cayonlib
 
 import (
 	"fmt"
+	"time"
 
 	// "log"
 	"encoding/json"
@@ -155,6 +156,15 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 }
 
 func LibSyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uint64) {
+	if EnableLogAppendTrace {
+		ts := time.Now()
+		defer func() {
+			latency := time.Since(ts).Microseconds()
+			tracer := GetLogTracer()
+			tracer.AddTrace("SyncAppend", latency)
+		}()
+	}
+
 	future := LibAsyncAppendLog(env, tag, data, depLocalId)
 	env.AsyncLogCtx.ChainStep(future.GetLocalId())
 	// sync until receives index
@@ -173,6 +183,15 @@ func LibSyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uint
 }
 
 func LibAsyncAppendLog(env *Env, tag types.Tag, data interface{}, depLocalId uint64) types.Future[uint64] {
+	if EnableLogAppendTrace {
+		ts := time.Now()
+		defer func() {
+			latency := time.Since(ts).Microseconds()
+			tracer := GetLogTracer()
+			tracer.AddTrace("AsyncAppend", latency)
+		}()
+	}
+
 	serializedData, err := json.Marshal(data)
 	CHECK(err)
 	encoded := snappy.Encode(nil, serializedData)

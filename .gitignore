@@ -13,3 +13,4 @@
 /tests/scripts/zk_health_check/zk_health_check
 
 *.tar.gz
+*.pyc

@@ -472,7 +472,7 @@ func (w *funcHandlerWrapper) Call(ctx context.Context, input []byte) ([]byte, er
 	defer func() {
 		latency := time.Since(ts).Microseconds()
 		common.AppendTrace(ctx, fmt.Sprintf("Fn_%s", w.fnName), latency)
-		if EnableSlogTrace {
+		if EnableFuncCallTrace {
 			common.PrintTrace(ctx, "APITRACE")
 		}
 	}()

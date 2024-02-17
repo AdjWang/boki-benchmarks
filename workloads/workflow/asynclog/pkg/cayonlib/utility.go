@@ -5,13 +5,27 @@ import (
 	"log"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
+	"cs.utexas.edu/zjia/faas/utils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
+
+var logTracerMu = sync.Mutex{}
+var logTracer *utils.TracerGroup = nil
+
+func GetLogTracer() *utils.TracerGroup {
+	logTracerMu.Lock()
+	defer logTracerMu.Unlock()
+	if logTracer == nil {
+		logTracer = utils.NewTracer()
+	}
+	return logTracer
+}
 
 func CreateMainTable(lambdaId string) {
 	_, _ = DBClient.CreateTable(&dynamodb.CreateTableInput{

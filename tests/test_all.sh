@@ -540,7 +540,7 @@ function test_workflow {
     WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     set +x
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
+    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -R 5
 }
 
 if [ $# -eq 0 ]; then

@@ -226,9 +226,36 @@ func (fc *asyncLogContextImpl) ChainStep(stepFutureLocalId uint64) AsyncLogConte
 	return fc
 }
 
-// Sync relies on the blocking read index to ensure durability.
-// Note that indices are propagated from the storage node.
-func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
+func (fc *asyncLogContextImpl) originalSync(timeout time.Duration) error {
+	fc.mu.Lock()
+	localIds := make([]uint64, 0, len(fc.AsyncLogOps))
+	for _, localId := range fc.AsyncLogOps {
+		localIds = append(localIds, localId)
+	}
+	fc.mu.Unlock()
+
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	for _, localId := range localIds {
+		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, localId); err != nil {
+			return err
+		}
+	}
+
+	if EnableLogSyncTrace {
+		syncCount := int64(len(localIds))
+		tracer := GetLogTracer()
+		tracer.AddTrace("SyncCount", syncCount)
+	}
+
+	fc.mu.Lock()
+	fc.AsyncLogOps = make([]uint64, 0, 100)
+	fc.mu.Unlock()
+	return nil
+}
+func (fc *asyncLogContextImpl) optimizedSync(timeout time.Duration) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -255,11 +282,34 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	}
 	// DEBUG: print dep graph edges
 	// log.Printf("[DEBUG] sync log ids=%s", types.IdsToString(fc.AsyncLogOps))
+	if EnableLogSyncTrace {
+		syncCount := int64(len(groupDeps))
+		tracer := GetLogTracer()
+		tracer.AddTrace("SyncCount", syncCount)
+	}
 
 	fc.mu.Lock()
 	fc.AsyncLogOps = make([]uint64, 0, 100)
 	fc.mu.Unlock()
 	return nil
+}
+
+// Sync relies on the blocking read index to ensure durability.
+// Note that indices are propagated from the storage node.
+func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
+	if EnableLogSyncTrace {
+		ts := time.Now()
+		defer func() {
+			latency := time.Since(ts).Microseconds()
+			tracer := GetLogTracer()
+			tracer.AddTrace("SyncLatency", latency)
+		}()
+	}
+	if EnableLogSyncOptimization {
+		return fc.optimizedSync(timeout)
+	} else {
+		return fc.originalSync(timeout)
+	}
 }
 
 func (fc *asyncLogContextImpl) Serialize() ([]byte, error) {
