@@ -2,6 +2,7 @@ package cayonlib
 
 import (
 	"log"
+	"time"
 
 	// "fmt"
 
@@ -183,10 +184,18 @@ func CondWrite(env *Env, tablename string, key string,
 	// logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetLocalId())
 	stepSeqNum, err := stepFuture.GetResult(gSyncTimeout)
 	CHECK(err)
+
+	ts := time.Now()
 	// TODO: tag hack of logEntry.Identifiers
 	tag := types.Tag{StreamType: FsmType_STEPSTREAM, StreamId: IntentStepStreamTag(env.InstanceId)}
 	tags := []types.Tag{tag}
-	if applied := ResolveLog(env, tags, stepSeqNum); !applied {
+	applied := ResolveLog(env, tags, stepSeqNum)
+	if EnableLogAppendTrace {
+		latency := time.Since(ts).Microseconds()
+		tracer := GetLogTracer()
+		tracer.AddTrace("AssertStep", latency)
+	}
+	if !applied {
 		// if applied := ResolveLog(env, logEntry.Identifiers, logEntry.SeqNum); !applied {
 		// discarded
 		if ok := fnGetLoggedStepResult(preWriteLog); ok {
