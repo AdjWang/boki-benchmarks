@@ -2,6 +2,7 @@ package cayonlib
 
 import (
 	"fmt"
+	"time"
 
 	// "log"
 	"encoding/json"
@@ -111,10 +112,16 @@ func ProposeNextStep(env *Env, data aws.JSONValue) (bool, *IntentLogEntry) {
 		Data:       data,
 	}
 	seqNum := LibAppendLog(env, IntentStepStreamTag(env.InstanceId), &intentLog)
+	ts := time.Now()
 	env.Fsm.Catch(env)
 	intentLog = env.Fsm.GetStepLog(step)
 	if intentLog == nil {
 		panic(fmt.Sprintf("Cannot find intent log for step %d", step))
+	}
+	if EnableLogAppendTrace {
+		latency := time.Since(ts).Microseconds()
+		tracer := GetLogTracer()
+		tracer.AddTrace("AssertStep", latency)
 	}
 	return seqNum == intentLog.SeqNum, intentLog
 }
@@ -142,6 +149,15 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 }
 
 func LibAppendLog(env *Env, tag uint64, data interface{}) uint64 {
+	if EnableLogAppendTrace {
+		ts := time.Now()
+		defer func() {
+			latency := time.Since(ts).Microseconds()
+			tracer := GetLogTracer()
+			tracer.AddTrace("SyncAppend", latency)
+		}()
+	}
+
 	serializedData, err := json.Marshal(data)
 	CHECK(err)
 	encoded := snappy.Encode(nil, serializedData)

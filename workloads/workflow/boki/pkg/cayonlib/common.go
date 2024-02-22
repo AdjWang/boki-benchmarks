@@ -213,8 +213,8 @@ func CHECK(err error) {
 	}
 }
 
-var EnableSlogTrace = false
-var EnableDBTrace = true
+var EnableDBTrace = false
+var EnableLogAppendTrace = true
 
 // Boki lock readonly txn forever, fix this needs additional log appends.
 // BokiFlow is not affected because it has no readonly txn, but the
