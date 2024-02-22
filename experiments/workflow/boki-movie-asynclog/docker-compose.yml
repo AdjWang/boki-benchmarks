@@ -33,6 +33,7 @@ services:
       - --slog_engine_enable_cache
       - --slog_engine_cache_cap_mb=1024
       - --slog_engine_propagate_auxdata
+      - --enable_monitor
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -49,8 +50,8 @@ services:
     entrypoint:
       - /boki/controller
       - --zookeeper_host=zookeeper:2181
-      - --metalog_replicas=1
-      - --userlog_replicas=1
+      - --metalog_replicas=3
+      - --userlog_replicas=3
       - --index_replicas=1
       # - --v=1
     depends_on:
