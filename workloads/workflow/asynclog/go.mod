@@ -20,9 +20,8 @@ require (
 require (
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
-	github.com/montanaflynn/stats v0.7.1 // indirect
 )
 
-replace cs.utexas.edu/zjia/faas => /home/ubuntu/boki-benchmarks/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang
 
-replace cs.utexas.edu/zjia/faas/slib => /home/ubuntu/boki-benchmarks/boki/slib
+replace cs.utexas.edu/zjia/faas/slib => /boki-benchmark/boki/slib

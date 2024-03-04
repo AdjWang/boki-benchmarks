@@ -21,6 +21,6 @@ require (
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
 )
 
-replace cs.utexas.edu/zjia/faas => /home/ubuntu/boki-benchmarks/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang
 
-replace cs.utexas.edu/zjia/faas/slib => /home/ubuntu/boki-benchmarks/boki/slib
+replace cs.utexas.edu/zjia/faas/slib => /boki-benchmark/boki/slib

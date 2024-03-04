@@ -220,9 +220,6 @@ func AssignedSyncInvoke(env *Env, callee string, input interface{}, preInvokeLog
 }
 
 func AsyncInvoke(env *Env, callee string, input interface{}) string {
-	// DEBUG
-	panic("unreachable")
-
 	newLog, preInvokeLog := ProposeNextStep(env, aws.JSONValue{
 		"type":       "PreInvoke",
 		"instanceId": shortuuid.New(),

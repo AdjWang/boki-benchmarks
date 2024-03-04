@@ -203,7 +203,7 @@ var T = int64(60)
 
 var TYPE = "BELDI"             // or "BASELINE"
 var DBENV = os.Getenv("DBENV") // "REMOTE" or "LOCAL" or unset
-var EnableDBTrace = true
+var EnableDBTrace = false
 
 var kTablePrefix = os.Getenv("TABLE_PREFIX")
 var gSyncTimeout = time.Duration(60 * time.Second)

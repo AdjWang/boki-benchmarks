@@ -126,31 +126,36 @@ echo "====== Start running BokiFlow experiments ======"
 
 # $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# $BASE_DIR/run_once.sh qps100 100
+# # $BASE_DIR/run_once.sh qps100 100
 # # $BASE_DIR/run_once.sh qps200 200
+# # $BASE_DIR/run_once.sh qps300 300
+# $BASE_DIR/run_once.sh qps500 500
+# # $BASE_DIR/run_once.sh qps1000 1000
+# # $BASE_DIR/run_once.sh qps1800 1800
+# $BASE_DIR/run_once.sh qps2000 2000
 
-# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 # echo "[DEBUG] exit early"
 # exit 0
 
 
-# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-baseline
-BASE_DIR=$ROOT_DIR/experiments/workflow/beldi-movie-baseline
+# # BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-baseline
+# BASE_DIR=$ROOT_DIR/experiments/workflow/beldi-movie-baseline
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# $BASE_DIR/run_once.sh qps50 50
-# $BASE_DIR/run_once.sh qps100 100
-$BASE_DIR/run_once.sh qps130 130
-# $BASE_DIR/run_once.sh qps150 150
-# $BASE_DIR/run_once.sh qps200 200
-# $BASE_DIR/run_once.sh qps500 500
-# $BASE_DIR/run_once.sh qps600 600
-# $BASE_DIR/run_once.sh qps650 650
+# # $BASE_DIR/run_once.sh qps50 50
+# # $BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps130 130
+# # $BASE_DIR/run_once.sh qps150 150
+# # $BASE_DIR/run_once.sh qps200 200
+# # $BASE_DIR/run_once.sh qps500 500
+# # $BASE_DIR/run_once.sh qps600 600
+# # $BASE_DIR/run_once.sh qps650 650
 
-# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
-echo "[DEBUG] exit early"
-exit 0
+# # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# echo "[DEBUG] exit early"
+# exit 0
 
 # BASE_DIR=$ROOT_DIR/experiments/workflow/boki-finra-baseline
 
@@ -163,14 +168,21 @@ exit 0
 # exit 0
 
 
-# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-asynclog
+BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-asynclog
 
-# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
 # $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps200 200
+# $BASE_DIR/run_once.sh qps300 300
+# $BASE_DIR/run_once.sh qps500 500
+# $BASE_DIR/run_once.sh qps1000 1000
+$BASE_DIR/run_once.sh qps1800 1800
+# $BASE_DIR/run_once.sh qps2000 2000
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+echo "[DEBUG] exit early"
+exit 0
 
 
 # BASE_DIR=$ROOT_DIR/experiments/workflow/boki-movie-asynclog

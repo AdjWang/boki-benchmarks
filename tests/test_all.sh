@@ -364,19 +364,19 @@ function test_workflow {
     
     set -x
     # DEBUG: benchmarks printing responses
-    # $WRK -t 2 -c 2 -d 3 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 80
+    $WRK -t 2 -c 2 -d 10 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
 
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
-    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
-    sleep_count_down 10
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
-    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
-    curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
-    sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
+    # sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
+    # sleep_count_down 10
 
-    wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
-    python3 $DEBUG_SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
+    # wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
+    # python3 $DEBUG_SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
 }
 
 if [ $# -eq 0 ]; then
@@ -402,10 +402,10 @@ run)
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
     # test_workflow boki-hotel-baseline
-    test_workflow boki-movie-baseline
+    # test_workflow boki-movie-baseline
     # test_workflow boki-finra-baseline
     # test_workflow boki-finra-asynclog
-    # test_workflow boki-hotel-asynclog
+    test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     ;;
 *)

@@ -235,11 +235,57 @@ func (fc *asyncLogContextImpl) ChainStep(stepFuture types.FutureMeta) AsyncLogCo
 	return fc
 }
 
-func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
+func (fc *asyncLogContextImpl) originalParallelSync(timeout time.Duration) error {
 	fc.mu.Lock()
-	deps := make([]uint64, 0, len(fc.AsyncLogOps))
-	for _, futureMeta := range fc.AsyncLogOps {
-		deps = append(deps, futureMeta.LocalId)
+	defer fc.mu.Unlock()
+
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	wg := sync.WaitGroup{}
+	errCh := make(chan error)
+	for _, fm := range fc.AsyncLogOps {
+		wg.Add(1)
+		go func(ctx context.Context, localId uint64) {
+			if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, localId); err != nil {
+				errCh <- errors.Wrapf(err, "failed to read index for future: %+v", localId)
+			} else {
+				// log.Printf("wait future=%+v done", future)
+				// seqNum, err := future.GetResult()
+				// log.Printf("wait futureMeta.LocalId=0x%016X state=%v seqNum=0x%016X err=%v",
+				// 	futureMeta.LocalId, futureMeta.State, seqNum, err)
+			}
+			wg.Done()
+		}(ctx, fm.LocalId)
+	}
+	waitCh := make(chan struct{})
+	go func() {
+		wg.Wait()
+		waitCh <- struct{}{}
+	}()
+
+	select {
+	case <-ctx.Done():
+		// log.Println("wait future all done timeout")
+		return ctx.Err()
+	case err := <-errCh:
+		// log.Println("wait future all done with error:", err)
+		return err
+	case <-waitCh:
+		// log.Println("wait future all done without error")
+		// clear synchronized logs
+		fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
+		// not clear LastStepLocalId here since the global log order depends
+		// on it, which is an independent mechanism with durability
+		return nil
+	}
+}
+func (fc *asyncLogContextImpl) originalSync(timeout time.Duration) error {
+	fc.mu.Lock()
+	localIds := make([]uint64, 0, len(fc.AsyncLogOps))
+	for _, fm := range fc.AsyncLogOps {
+		localIds = append(localIds, fm.LocalId)
 	}
 	fc.mu.Unlock()
 
@@ -247,7 +293,29 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	groupDeps := types.GroupLocalIdByEngine(deps)
+	for _, localId := range localIds {
+		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, localId); err != nil {
+			return err
+		}
+	}
+
+	fc.mu.Lock()
+	fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
+	fc.mu.Unlock()
+	return nil
+}
+func (fc *asyncLogContextImpl) optimizedSync(timeout time.Duration) error {
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	fc.mu.Lock()
+	localIds := make([]uint64, 0, len(fc.AsyncLogOps))
+	for _, fm := range fc.AsyncLogOps {
+		localIds = append(localIds, fm.LocalId)
+	}
+	groupDeps := types.GroupLocalIdByEngine(localIds)
+	fc.mu.Unlock()
 	// log.Printf("[DEBUG] n=%d nGroup=%d deps=%v", len(deps), len(groupDeps), deps)
 	// for engineId, subDeps := range groupDeps {
 	for _, subDeps := range groupDeps {
@@ -258,6 +326,9 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 			}
 		}
 		// log.Printf("[DEBUG] engineId=%016X, max=%016X", engineId, maxId)
+		// DEBUG: print dep graph edges
+		// log.Printf("[DEBUG] sync log id=%016X", maxId)
+
 		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, maxId); err != nil {
 			return err
 		}
@@ -267,6 +338,17 @@ func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
 	fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
 	fc.mu.Unlock()
 	return nil
+}
+
+// Sync relies on the blocking read index to ensure durability.
+// Note that indices are propagated from the storage node.
+func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
+	if EnableLogSyncOptimization {
+		return fc.optimizedSync(timeout)
+	} else {
+		// return fc.originalSync(timeout)
+		return fc.originalParallelSync(timeout)
+	}
 }
 
 func (fc *asyncLogContextImpl) Serialize() ([]byte, error) {

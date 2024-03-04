@@ -158,9 +158,9 @@ func Lock(env *Env, tablename string, key string) bool {
 	fsm := env.FsmHub.GetOrCreateLockFsm(lockId)
 	success := fsm.Lock(env, env.TxnId)
 	env.FsmHub.StoreBackLockFsm(fsm)
-	if !success {
-		log.Printf("[WARN] Failed to lock %s with txn %s", lockId, env.TxnId)
-	}
+	// if !success {
+	// 	log.Printf("[WARN] Failed to lock %s with txn %s", lockId, env.TxnId)
+	// }
 	return success
 }
 
@@ -269,7 +269,7 @@ func BeginTxn(env *Env) {
 }
 
 func CommitTxn(env *Env) {
-	log.Printf("[INFO] Commit transaction %s", env.TxnId)
+	// log.Printf("[INFO] Commit transaction %s", env.TxnId)
 	env.Instruction = "COMMIT"
 	TPLCommit(env)
 	env.TxnId = ""
@@ -277,7 +277,7 @@ func CommitTxn(env *Env) {
 }
 
 func AbortTxn(env *Env) {
-	log.Printf("[WARN] Abort transaction %s", env.TxnId)
+	// log.Printf("[WARN] Abort transaction %s", env.TxnId)
 	env.Instruction = "ABORT"
 	TPLAbort(env)
 	env.TxnId = ""
@@ -307,7 +307,7 @@ func TPLCommit(env *Env) {
 	}
 	for _, txnLog := range txnLogs {
 		if txnLog.Callee != "" {
-			log.Printf("[INFO] Commit transaction %s for callee %s", env.TxnId, txnLog.Callee)
+			// log.Printf("[INFO] Commit transaction %s for callee %s", env.TxnId, txnLog.Callee)
 			SyncInvoke(env, txnLog.Callee, aws.JSONValue{})
 		}
 	}
@@ -325,7 +325,7 @@ func TPLAbort(env *Env) {
 	}
 	for _, txnLog := range txnLogs {
 		if txnLog.Callee != "" {
-			log.Printf("[INFO] Abort transaction %s for callee %s", env.TxnId, txnLog.Callee)
+			// log.Printf("[INFO] Abort transaction %s for callee %s", env.TxnId, txnLog.Callee)
 			SyncInvoke(env, txnLog.Callee, aws.JSONValue{})
 		}
 	}
