@@ -42,7 +42,7 @@ var DBENV = os.Getenv("DBENV") // "REMOTE" or "LOCAL" or unset
 var kTablePrefix = os.Getenv("TABLE_PREFIX")
 var gSyncTimeout = time.Duration(60 * time.Second)
 
-const EnableLogSyncOptimization = false
+const EnableLogSyncOptimization = true
 const UseSerialLogSync = true
 
 var EnableFuncCallTrace = false

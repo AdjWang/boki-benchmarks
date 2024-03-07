@@ -221,6 +221,9 @@ func (fc *asyncLogContextImpl) GetLastStepLogMeta() types.FutureMeta {
 }
 
 func (fc *asyncLogContextImpl) ChainFuture(future types.FutureMeta) AsyncLogContext {
+	// DEBUG: async log chain
+	// log.Printf("ChainFuture localid=%016X", future.LocalId)
+
 	fc.mu.Lock()
 	fc.AsyncLogOps = append(fc.AsyncLogOps, future)
 	fc.mu.Unlock()
@@ -228,6 +231,9 @@ func (fc *asyncLogContextImpl) ChainFuture(future types.FutureMeta) AsyncLogCont
 }
 
 func (fc *asyncLogContextImpl) ChainStep(stepFuture types.FutureMeta) AsyncLogContext {
+	// DEBUG: async log chain
+	// log.Printf("ChainStep localid=%016X", stepFuture.LocalId)
+
 	fc.mu.Lock()
 	fc.AsyncLogOps = append(fc.AsyncLogOps, stepFuture)
 	fc.LastStepLogMeta = stepFuture
@@ -326,6 +332,9 @@ func (fc *asyncLogContextImpl) optimizedSync(timeout time.Duration) error {
 	for _, fm := range fc.AsyncLogOps {
 		localIds = append(localIds, fm.LocalId)
 	}
+	// DEBUG: async log chain
+	// log.Printf("Sync localIds num=%d", len(localIds))
+
 	groupDeps := types.GroupLocalIdByEngine(localIds)
 	fc.mu.Unlock()
 	// log.Printf("[DEBUG] n=%d nGroup=%d deps=%v", len(deps), len(groupDeps), deps)
@@ -396,17 +405,25 @@ func (fc *asyncLogContextImpl) Serialize() ([]byte, error) {
 }
 
 func DeserializeAsyncLogContext(faasEnv types.Environment, data []byte) (AsyncLogContext, error) {
-	var asyncLogCtxPropagator asyncLogContextImpl
-	err := json.Unmarshal(data, &asyncLogCtxPropagator)
+	asyncLogOps, lastStep, err := DeserializeRawAsyncLogContext(data)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unresolvable data: %v", data)
+		return nil, err
 	}
 	return &asyncLogContextImpl{
 		faasEnv:         faasEnv,
 		mu:              sync.Mutex{},
-		AsyncLogOps:     asyncLogCtxPropagator.AsyncLogOps,
-		LastStepLogMeta: asyncLogCtxPropagator.LastStepLogMeta,
+		AsyncLogOps:     asyncLogOps,
+		LastStepLogMeta: lastStep,
 	}, nil
+}
+
+func DeserializeRawAsyncLogContext(data []byte) ([]types.FutureMeta, types.FutureMeta, error) {
+	var asyncLogCtxPropagator asyncLogContextImpl
+	err := json.Unmarshal(data, &asyncLogCtxPropagator)
+	if err != nil {
+		return nil, types.FutureMeta{}, errors.Wrapf(err, "unresolvable data: %v", data)
+	}
+	return asyncLogCtxPropagator.AsyncLogOps, asyncLogCtxPropagator.LastStepLogMeta, nil
 }
 
 // DEBUG
