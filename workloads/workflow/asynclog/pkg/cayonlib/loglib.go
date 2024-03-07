@@ -2,6 +2,7 @@ package cayonlib
 
 import (
 	"fmt"
+	"time"
 
 	// "log"
 	"encoding/json"
@@ -225,6 +226,15 @@ func FetchStepResultLog(env *Env, stepNumber int32, catch bool) *IntentLogEntry 
 // }
 
 func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, dep types.FutureMeta) {
+	if EnableLogAppendTrace {
+		ts := time.Now()
+		defer func() {
+			latency := time.Since(ts).Microseconds()
+			tracer := GetLogTracer()
+			tracer.AddTrace("SyncAppend", latency)
+		}()
+	}
+
 	future := LibAsyncAppendLog(env, tag, tagMeta, data,
 		func(cond types.CondHandle) {
 			cond.AddDep(dep)
@@ -244,6 +254,15 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 }
 
 func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, cond func(types.CondHandle)) types.Future[uint64] {
+	if EnableLogAppendTrace {
+		ts := time.Now()
+		defer func() {
+			latency := time.Since(ts).Microseconds()
+			tracer := GetLogTracer()
+			tracer.AddTrace("AsyncAppend", latency)
+		}()
+	}
+
 	serializedData, err := json.Marshal(data)
 	CHECK(err)
 	encoded := snappy.Encode(nil, serializedData)

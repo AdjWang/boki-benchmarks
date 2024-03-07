@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/eniac/Beldi/pkg/cayonlib"
@@ -10,7 +11,14 @@ import (
 func UploadMovie(env *cayonlib.Env, reqId string, title string, rating int32) {
 	item := cayonlib.Read(env, TMovieId(), title)
 	if item == nil {
-		panic(fmt.Sprintf("%s doesn't exist", title))
+		cayonlib.ListTables()
+
+		items := cayonlib.LibScan(TMovieId(), []string{"V"})
+		var res []interface{}
+		for _, item := range items {
+			res = append(res, item["V"])
+		}
+		panic(fmt.Sprintf("%s doesn't exist. table name=%s items=%+v", TMovieId(), title, res))
 	}
 	val := item.(map[string]interface{})
 	if movieId, exist := val["movieId"].(string); exist {

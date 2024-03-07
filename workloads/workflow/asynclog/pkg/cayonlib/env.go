@@ -274,6 +274,12 @@ func (fc *asyncLogContextImpl) originalParallelSync(timeout time.Duration) error
 		return err
 	case <-waitCh:
 		// log.Println("wait future all done without error")
+		if EnableLogSyncTrace {
+			syncCount := int64(len(fc.AsyncLogOps))
+			tracer := GetLogTracer()
+			tracer.AddTrace("SyncCount", syncCount)
+		}
+
 		// clear synchronized logs
 		fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
 		// not clear LastStepLocalId here since the global log order depends
@@ -297,6 +303,12 @@ func (fc *asyncLogContextImpl) originalSync(timeout time.Duration) error {
 		if _, err := fc.faasEnv.AsyncSharedLogReadIndex(ctx, localId); err != nil {
 			return err
 		}
+	}
+
+	if EnableLogSyncTrace {
+		syncCount := int64(len(localIds))
+		tracer := GetLogTracer()
+		tracer.AddTrace("SyncCount", syncCount)
 	}
 
 	fc.mu.Lock()
@@ -334,6 +346,12 @@ func (fc *asyncLogContextImpl) optimizedSync(timeout time.Duration) error {
 		}
 	}
 
+	if EnableLogSyncTrace {
+		syncCount := int64(len(groupDeps))
+		tracer := GetLogTracer()
+		tracer.AddTrace("SyncCount", syncCount)
+	}
+
 	fc.mu.Lock()
 	fc.AsyncLogOps = make([]types.FutureMeta, 0, 100)
 	fc.mu.Unlock()
@@ -343,11 +361,23 @@ func (fc *asyncLogContextImpl) optimizedSync(timeout time.Duration) error {
 // Sync relies on the blocking read index to ensure durability.
 // Note that indices are propagated from the storage node.
 func (fc *asyncLogContextImpl) Sync(timeout time.Duration) error {
+	if EnableLogSyncTrace {
+		ts := time.Now()
+		defer func() {
+			latency := time.Since(ts).Microseconds()
+			tracer := GetLogTracer()
+			tracer.AddTrace("SyncLatency", latency)
+		}()
+	}
+
 	if EnableLogSyncOptimization {
 		return fc.optimizedSync(timeout)
 	} else {
-		// return fc.originalSync(timeout)
-		return fc.originalParallelSync(timeout)
+		if UseSerialLogSync {
+			return fc.originalSync(timeout)
+		} else {
+			return fc.originalParallelSync(timeout)
+		}
 	}
 }
 

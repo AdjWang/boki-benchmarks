@@ -128,11 +128,11 @@ echo "====== Start running BokiFlow experiments ======"
 
 # # $BASE_DIR/run_once.sh qps100 100
 # # $BASE_DIR/run_once.sh qps200 200
-# # $BASE_DIR/run_once.sh qps300 300
-# $BASE_DIR/run_once.sh qps500 500
+# $BASE_DIR/run_once.sh qps300 300
+# # $BASE_DIR/run_once.sh qps500 500
 # # $BASE_DIR/run_once.sh qps1000 1000
 # # $BASE_DIR/run_once.sh qps1800 1800
-# $BASE_DIR/run_once.sh qps2000 2000
+# # $BASE_DIR/run_once.sh qps2000 2000
 
 # # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 # echo "[DEBUG] exit early"
@@ -173,11 +173,13 @@ BASE_DIR=$ROOT_DIR/experiments/workflow/boki-hotel-asynclog
 $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
 # $BASE_DIR/run_once.sh qps100 100
-# $BASE_DIR/run_once.sh qps200 200
+$BASE_DIR/run_once.sh qps150 150
+$BASE_DIR/run_once.sh qps200 200
+# $BASE_DIR/run_once.sh qps250 250
 # $BASE_DIR/run_once.sh qps300 300
 # $BASE_DIR/run_once.sh qps500 500
 # $BASE_DIR/run_once.sh qps1000 1000
-$BASE_DIR/run_once.sh qps1800 1800
+# $BASE_DIR/run_once.sh qps1800 1800
 # $BASE_DIR/run_once.sh qps2000 2000
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
@@ -189,26 +191,30 @@ exit 0
 
 # $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-# # $BASE_DIR/run_once.sh qps100 100
+# $BASE_DIR/run_once.sh qps10 10
+# # $BASE_DIR/run_once.sh qps40 40
+# # $BASE_DIR/run_once.sh qps60 60
+# # $BASE_DIR/run_once.sh qps70 70
+# $BASE_DIR/run_once.sh qps100 100
 # # $BASE_DIR/run_once.sh qps150 150
 # # $BASE_DIR/run_once.sh qps500 500
-# $BASE_DIR/run_once.sh qps600 600
-# $BASE_DIR/run_once.sh qps650 650
-# $BASE_DIR/run_once.sh qps700 700
+# # $BASE_DIR/run_once.sh qps600 600
+# # $BASE_DIR/run_once.sh qps650 650
+# # $BASE_DIR/run_once.sh qps700 700
 # echo "[DEBUG] exit early"
 # exit 0
 
 # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 
-BASE_DIR=$ROOT_DIR/experiments/workflow/boki-finra-asynclog
+# BASE_DIR=$ROOT_DIR/experiments/workflow/boki-finra-asynclog
 
-$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+# $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
 
-$BASE_DIR/run_once.sh qps10 10
+# $BASE_DIR/run_once.sh qps10 10
 
-# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
-echo "[DEBUG] exit early"
-exit 0
+# # $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+# echo "[DEBUG] exit early"
+# exit 0
 
 
 echo "====== Finish running BokiFlow experiments ======"

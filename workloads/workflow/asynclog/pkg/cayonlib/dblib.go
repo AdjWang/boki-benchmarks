@@ -2,6 +2,7 @@ package cayonlib
 
 import (
 	"log"
+	"time"
 
 	// "fmt"
 
@@ -38,7 +39,7 @@ func LibRead(tablename string, key aws.JSONValue, projection []string) aws.JSONV
 			ExpressionAttributeNames: expr.Names(),
 			ConsistentRead:           aws.Bool(true),
 		})
-		CHECK(err)
+		AssertConditionFailure(err)
 	}
 	item := aws.JSONValue{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, &item)
@@ -180,8 +181,17 @@ func CondWrite(env *Env, tablename string, key string,
 	CHECK(err)
 	// resolve cond
 	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
+	// stepSeqNum, err := stepFuture.GetResult(gSyncTimeout)
 	CHECK(err)
-	if applied := ResolveLog(env, logEntry.Tags, logEntry.TagBuildMeta, logEntry.SeqNum); !applied {
+
+	ts := time.Now()
+	applied := ResolveLog(env, logEntry.Tags, logEntry.TagBuildMeta, logEntry.SeqNum)
+	if EnableLogAppendTrace {
+		latency := time.Since(ts).Microseconds()
+		tracer := GetLogTracer()
+		tracer.AddTrace("AssertStep", latency)
+	}
+	if !applied {
 		// discarded
 		if ok := fnGetLoggedStepResult(preWriteLog); ok {
 			return
@@ -315,17 +325,22 @@ func BuildProjection(names []string) expression.ProjectionBuilder {
 }
 
 func AssertConditionFailure(err error) {
+	if err == nil {
+		return
+	}
 	if aerr, ok := err.(awserr.Error); ok {
 		switch aerr.Code() {
 		case dynamodb.ErrCodeConditionalCheckFailedException:
 			return
 		case dynamodb.ErrCodeResourceNotFoundException:
-			log.Panicf("ERROR: DyanombDB ResourceNotFound %v", aerr)
+			log.Printf("ERROR: DyanombDB ResourceNotFound")
 			return
 		default:
-			log.Panicf("ERROR: %s", aerr)
+			log.Printf("ERROR: %s", aerr)
+			panic("ERROR detected")
 		}
 	} else {
-		log.Panicf("ERROR: %s", err)
+		log.Printf("ERROR: %s", err)
+		panic("ERROR detected")
 	}
 }
