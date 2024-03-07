@@ -32,8 +32,8 @@
     {
         "funcName": "ComposeReview",
         "funcId": 6,
-        "minWorkers": 16,
-        "maxWorkers": 16
+        "minWorkers": 64,
+        "maxWorkers": 64
     },
     {
         "funcName": "Text",
