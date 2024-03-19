@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"cs.utexas.edu/zjia/faas/types"
+	"cs.utexas.edu/zjia/faas/utils"
 	"github.com/pkg/errors"
 )
 
@@ -30,6 +31,8 @@ type Env struct {
 	FsmHub  FsmHub
 	// Step flow
 	AsyncLogCtx AsyncLogContext
+	// Profile
+	ProbeCtx *utils.ProbeContext
 }
 
 type AsyncLogContext interface {

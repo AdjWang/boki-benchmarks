@@ -17,6 +17,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"cs.utexas.edu/zjia/faas/types"
+	"cs.utexas.edu/zjia/faas/utils"
 
 	"context"
 	// "strings"
@@ -33,10 +34,11 @@ type InputWrapper struct {
 	Instruction string      `mapstructure:"Instruction"`
 	Async       bool        `mapstructure:"Async"`
 
-	// TODO: more graceful way to propagate
 	// Currently mapstructure+json would lose the type of the field, like
 	// []byte or types.FutureMeta, use string instead.
 	AsyncLogCtxPropagator string `mapstructure:"AsyncLogCtxPropagator"`
+	// Profile probe infomations
+	ProbeCtxPropagator string `mapstructure:"ProbeCtxPropagator"`
 }
 
 func (iw *InputWrapper) Serialize() []byte {
@@ -74,6 +76,7 @@ type OutputWrapper struct {
 	Status                string
 	Output                interface{}
 	AsyncLogCtxPropagator string
+	ProbePropagator       string
 }
 
 func (ow *OutputWrapper) Serialize() []byte {
@@ -122,8 +125,10 @@ func PrepareEnv(ctx context.Context, iw *InputWrapper, lambdaId string, faasEnv 
 		FsmHub:  nil,
 
 		AsyncLogCtx: nil,
+		ProbeCtx:    nil,
 	}
 	env.FsmHub = NewFsmHub(env)
+	// restore async log ctx
 	if iw.CallerName != "" {
 		asyncLogCtx, err := DeserializeAsyncLogContext(env.FaasEnv, []byte(iw.AsyncLogCtxPropagator))
 		CHECK(err)
@@ -133,6 +138,9 @@ func PrepareEnv(ctx context.Context, iw *InputWrapper, lambdaId string, faasEnv 
 	}
 	// DEBUG: async log chain
 	// log.Printf("PrepareEnv at func=%s actx=%+v", lambdaId, env.AsyncLogCtx)
+
+	// restore profile probe ctx
+	env.ProbeCtx = utils.NewProbeCtxFromString(iw.ProbeCtxPropagator)
 
 	return env
 }
@@ -189,6 +197,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 		Instruction: env.Instruction,
 
 		AsyncLogCtxPropagator: "", // assign later
+		ProbeCtxPropagator:    env.ProbeCtx.ToString(),
 	}
 	if iw.Instruction == "EXECUTE" {
 		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId),
@@ -228,6 +237,11 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 		}
 		// chain a step twice is harmless
 		env.AsyncLogCtx.ChainStep(lastStepLogMeta)
+
+		// merge profile probes
+		probesFromChild := utils.NewProbeCtxFromString(ow.ProbePropagator)
+		env.ProbeCtx.Merge(probesFromChild)
+
 		return ow.Output, iw.InstanceId
 	default:
 		panic("never happens")
@@ -277,6 +291,7 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 		Instruction: env.Instruction,
 
 		AsyncLogCtxPropagator: "", // assign later
+		ProbeCtxPropagator:    env.ProbeCtx.ToString(),
 	}
 	if iw.Instruction == "EXECUTE" {
 		env.AsyncLogCtx.ChainStep(LibAsyncAppendLog(env, TransactionStreamTag(env.LambdaId, env.TxnId),
@@ -316,6 +331,11 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 		}
 		// chain a step twice is harmless
 		env.AsyncLogCtx.ChainStep(lastStepLogMeta)
+
+		// merge profile probes
+		probesFromChild := utils.NewProbeCtxFromString(ow.ProbePropagator)
+		env.ProbeCtx.Merge(probesFromChild)
+
 		return ow.Output, iw.InstanceId
 	default:
 		panic("never happens")
@@ -361,6 +381,7 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 		Input:      input,
 
 		AsyncLogCtxPropagator: string(asyncLogCtxData),
+		ProbeCtxPropagator:    env.ProbeCtx.ToString(),
 	}
 	payload := iw.Serialize()
 	err = env.FaasEnv.InvokeFuncAsync(env.FaasCtx, callee, payload)
@@ -374,6 +395,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	if TYPE == "BASELINE" {
 		panic("Baseline type not supported")
 	}
+	invocationTs := time.Now()
 
 	if iw.CallerName != "" {
 		ASSERT(env.AsyncLogCtx.GetLastStepLogMeta().IsValid(),
@@ -447,8 +469,23 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	// clear pending logs at the end of the workflow
 	if iw.CallerName == "" {
 		// ensure all logs are durable if exec on async or outer function
+		syncTs := time.Now()
 		err := env.AsyncLogCtx.Sync(gSyncTimeout)
 		CHECK(err)
+		duration := time.Since(syncTs).Microseconds()
+
+		// profile probe for sync and func invocation
+		if syncDurationCarrier := env.ProbeCtx.Value(kProbeKeySync); syncDurationCarrier != nil {
+			duration += int64(syncDurationCarrier.(float64))
+		}
+		env.ProbeCtx.WithValue(kProbeKeySync, duration)
+
+		// assert that here is the end of the workflow
+		if invocationDurationCarrier := env.ProbeCtx.Value(kProbeKeyInvoke); invocationDurationCarrier != nil {
+			log.Panicln(invocationDurationCarrier)
+		}
+		invocationDuration := time.Since(invocationTs).Microseconds()
+		env.ProbeCtx.WithValue(kProbeKeyInvoke, invocationDuration)
 	}
 
 	asyncLogCtxData, err := env.AsyncLogCtx.Serialize()
@@ -457,6 +494,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 		Status:                "Success",
 		Output:                output,
 		AsyncLogCtxPropagator: string(asyncLogCtxData),
+		ProbePropagator:       env.ProbeCtx.ToString(),
 	}, nil
 }
 

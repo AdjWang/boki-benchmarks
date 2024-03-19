@@ -45,6 +45,10 @@ var gSyncTimeout = time.Duration(60 * time.Second)
 const EnableLogSyncOptimization = false
 const UseSerialLogSync = true
 
+const kProbeKeySync = "Sync"
+const kProbeKeyResolve = "Resolve"
+const kProbeKeyInvoke = "Invoke"
+
 var EnableFuncCallTrace = false
 var EnableLogAppendTrace = false
 var EnableLogSyncTrace = false

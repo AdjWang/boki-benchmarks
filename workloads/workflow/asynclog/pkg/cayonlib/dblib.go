@@ -177,20 +177,35 @@ func CondWrite(env *Env, tablename string, key string,
 	// DEBUG
 	// log.Printf("[DEBUG] CondWrite before sync: %v", env.AsyncLogCtx)
 	// sync
+	syncTs := time.Now()
 	err := env.AsyncLogCtx.Sync(gSyncTimeout)
 	CHECK(err)
+	syncDuration := time.Since(syncTs).Microseconds()
+
+	if syncDurationCarrier := env.ProbeCtx.Value(kProbeKeySync); syncDurationCarrier != nil {
+		syncDuration += int64(syncDurationCarrier.(float64))
+	}
+	env.ProbeCtx.WithValue(kProbeKeySync, syncDuration)
+
 	// resolve cond
+	ts := time.Now()
 	logEntry, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())
 	// stepSeqNum, err := stepFuture.GetResult(gSyncTimeout)
 	CHECK(err)
 
-	ts := time.Now()
 	applied := ResolveLog(env, logEntry.Tags, logEntry.TagBuildMeta, logEntry.SeqNum)
+	resolveDuration := time.Since(ts).Microseconds()
+	// output before modifying resolveDuration
 	if EnableLogAppendTrace {
-		latency := time.Since(ts).Microseconds()
 		tracer := GetLogTracer()
-		tracer.AddTrace("AssertStep", latency)
+		tracer.AddTrace("AssertStep", resolveDuration)
 	}
+	// probe
+	if syncDurationCarrier := env.ProbeCtx.Value(kProbeKeyResolve); syncDurationCarrier != nil {
+		resolveDuration += int64(syncDurationCarrier.(float64))
+	}
+	env.ProbeCtx.WithValue(kProbeKeyResolve, resolveDuration)
+
 	if !applied {
 		// discarded
 		if ok := fnGetLoggedStepResult(preWriteLog); ok {
