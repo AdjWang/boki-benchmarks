@@ -38,8 +38,8 @@
     {
         "funcName": "search",
         "funcId": 7,
-        "minWorkers": 64,
-        "maxWorkers": 64
+        "minWorkers": 8,
+        "maxWorkers": 8
     },
     {
         "funcName": "flight",
@@ -62,7 +62,7 @@
     {
         "funcName": "gateway",
         "funcId": 11,
-        "minWorkers": 64,
-        "maxWorkers": 64
+        "minWorkers": 8,
+        "maxWorkers": 8
     }
 ]

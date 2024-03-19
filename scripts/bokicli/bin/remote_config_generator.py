@@ -145,11 +145,11 @@ if __name__ == '__main__':
         # "beldi-movie",
         # "beldi-hotel-baseline",
         # "beldi-movie-baseline",
-        "boki-hotel-baseline",
+        # "boki-hotel-baseline",
         # "boki-movie-baseline",
         # "boki-finra-baseline",
-        "boki-hotel-asynclog",
-        # "boki-movie-asynclog",
+        # "boki-hotel-asynclog",
+        "boki-movie-asynclog",
         # "boki-finra-asynclog",
     ]
     for bench_name in benchmarks:
