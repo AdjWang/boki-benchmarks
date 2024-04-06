@@ -51,4 +51,4 @@ const kProbeKeyInvoke = "Invoke"
 
 var EnableFuncCallTrace = false
 var EnableLogAppendTrace = false
-var EnableLogSyncTrace = false
+var EnableLogSyncTrace = true

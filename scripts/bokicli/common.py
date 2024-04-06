@@ -95,7 +95,7 @@ WORKFLOW_MEDIA_SERVS = FuncMeta(
                     "ReviewStorage": (8, 8),
                     "UserReview": (8, 8),
                     "MovieReview": (8, 8),
-                    "ComposeReview": (16, 16),
+                    "ComposeReview": (64, 64),
                     "Text": (8, 8),
                     "User": (8, 8),
                     "UniqueId": (8, 8),

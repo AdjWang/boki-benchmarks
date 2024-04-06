@@ -59,6 +59,55 @@
             "labels": [
                 "engine_node=true"
             ]
+        },
+        "bokiexp-engine-2": {
+            "type": "c5d.2xlarge",
+            "role": "worker",
+            "labels": [
+                "engine_node=true"
+            ]
+        },
+        "bokiexp-engine-3": {
+            "type": "c5d.2xlarge",
+            "role": "worker",
+            "labels": [
+                "engine_node=true"
+            ]
+        },
+        "bokiexp-engine-4": {
+            "type": "c5d.2xlarge",
+            "role": "worker",
+            "labels": [
+                "engine_node=true"
+            ]
+        },
+        "bokiexp-engine-5": {
+            "type": "c5d.2xlarge",
+            "role": "worker",
+            "labels": [
+                "engine_node=true"
+            ]
+        },
+        "bokiexp-engine-6": {
+            "type": "c5d.2xlarge",
+            "role": "worker",
+            "labels": [
+                "engine_node=true"
+            ]
+        },
+        "bokiexp-engine-7": {
+            "type": "c5d.2xlarge",
+            "role": "worker",
+            "labels": [
+                "engine_node=true"
+            ]
+        },
+        "bokiexp-engine-8": {
+            "type": "c5d.2xlarge",
+            "role": "worker",
+            "labels": [
+                "engine_node=true"
+            ]
         }
     },
     "services": {
@@ -84,89 +133,89 @@
         },
         "boki-engine": {
             "placement_label": "engine_node",
-            "replicas": 1
+            "replicas": 8
         },
         "Frontend-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "CastInfo-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "ReviewStorage-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "UserReview-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "MovieReview-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "ComposeReview-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "Text-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "User-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "UniqueId-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "Rating-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "MovieId-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "Plot-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "MovieInfo-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         },
         "Page-service": {
             "placement_label": "engine_node",
-            "replicas": 1,
+            "replicas": 8,
             "need_aws_env": true,
             "mount_certs": true
         }
