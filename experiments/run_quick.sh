@@ -200,7 +200,7 @@ $HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MAC
 # $BASE_DIR/run_once.sh qps70 70
 # $BASE_DIR/run_once.sh qps100 100
 # $BASE_DIR/run_once.sh qps150 150
-$BASE_DIR/run_once.sh qps500 500
+# $BASE_DIR/run_once.sh qps500 500
 $BASE_DIR/run_once.sh qps600 600
 # $BASE_DIR/run_once.sh qps650 650
 # $BASE_DIR/run_once.sh qps700 700
