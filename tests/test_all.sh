@@ -364,7 +364,7 @@ function test_workflow {
     
     set -x
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
+    $WRK -t 2 -c 2 -d 10 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
 
     # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
     # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100

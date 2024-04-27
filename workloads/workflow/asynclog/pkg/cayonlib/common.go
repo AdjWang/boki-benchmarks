@@ -48,6 +48,7 @@ const UseSerialLogSync = true
 const kProbeKeySync = "Sync"
 const kProbeKeyResolve = "Resolve"
 const kProbeKeyInvoke = "Invoke"
+const kProbeKeyAppend = "Append"
 
 var EnableFuncCallTrace = false
 var EnableLogAppendTrace = true

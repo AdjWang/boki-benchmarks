@@ -243,6 +243,10 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 	// sync until receives index
 	// If the async log is not propagated to a different engine, waiting for
 	// the seqnum is enough to gaurantee read-your-write consistency.
+	var awaitTs time.Time
+	if EnableLogAppendTrace {
+		awaitTs = time.Now()
+	}
 	err := future.Await(gSyncTimeout)
 	CHECK(err)
 
@@ -251,6 +255,15 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 	// CHECK(err)
 	// err = indexFuture.Await(gSyncTimeout)
 	// CHECK(err)
+
+	if EnableLogAppendTrace {
+		// profile probe for appends
+		duration := time.Since(awaitTs).Microseconds()
+		if appendDurationCarrier := env.ProbeCtx.Value(kProbeKeyAppend); appendDurationCarrier != nil {
+			duration += int64(appendDurationCarrier.(float64))
+		}
+		env.ProbeCtx.WithValue(kProbeKeyAppend, duration)
+	}
 }
 
 func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interface{}, cond func(types.CondHandle)) types.Future[uint64] {
@@ -260,6 +273,14 @@ func LibAsyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data inter
 			latency := time.Since(ts).Microseconds()
 			tracer := GetLogTracer()
 			tracer.AddTrace("AsyncAppend", latency)
+
+			// profile probe for appends
+			duration := latency
+			if appendDurationCarrier := env.ProbeCtx.Value(kProbeKeyAppend); appendDurationCarrier != nil {
+				duration += int64(appendDurationCarrier.(float64))
+			}
+			env.ProbeCtx.WithValue(kProbeKeyAppend, duration)
+
 		}()
 	}
 
