@@ -1,0 +1,24 @@
+# cd ~/boki-benchmarks
+# docker buildx build -t adjwang/boki-benchbuildenv:dev -f $(pwd)/scripts/local_debug/dockerfiles/Dockerfile.benchbuildenv .
+FROM ubuntu:focal
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Chicago
+RUN apt update && \
+    apt upgrade -y && \
+    apt install -y gcc wget make git
+
+RUN cd $HOME && \
+    wget https://go.dev/dl/go1.20.7.linux-amd64.tar.gz && \
+    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.7.linux-amd64.tar.gz
+
+ENV PATH=$PATH:/usr/local/go/bin
+
+# prebuild to update go packages
+# maybe slow for first run to build all dependencies
+RUN mkdir -p /boki-benchmarks
+COPY ./boki /boki-benchmarks/boki
+COPY ./workloads /boki-benchmarks/workloads
+# RUN cd /boki-benchmarks/workloads/microbenchmark && ./build.sh
+# RUN cd /boki-benchmarks/workloads/queue && ./build.sh
+# RUN cd /boki-benchmarks/workloads/retwis && ./build.sh
+RUN cd /boki-benchmarks/workloads/workflow && ./build_all.sh

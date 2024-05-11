@@ -12,6 +12,7 @@ class WorkflowLibName(Enum):
     boki = "boki",
     asynclog = "asynclog",
     test = "test",
+    optimal = "optimal",
 
 class WorkflowAppName(Enum):
     singleop = "singleop",
@@ -127,6 +128,21 @@ WORKFLOW_FINRA_SERVS = FuncMeta(
                     "side": (8, 8),
                     "trddate": (8, 8),
                     "volume": (8, 8)},
+    func_envs_local=dict(TABLE_PREFIX=TABLE_PREFIX,
+                         DBENV="LOCAL"),
+    func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}"),
+)
+
+WORKFLOW_OPTIMAL_SINGLEOP_SERVS = FuncMeta(
+    app_name="singleop",
+    image_name=IMAGE_APP,
+    engine_mnt_dir_local="/tmp/boki-test",
+    func_names=["nop",
+                "singleop",
+                "prewarm"],
+    worker_min_max={"nop": (8, 8),
+                    "singleop": (8, 8),
+                    "prewarm": (1, 1)},
     func_envs_local=dict(TABLE_PREFIX=TABLE_PREFIX,
                          DBENV="LOCAL"),
     func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}"),

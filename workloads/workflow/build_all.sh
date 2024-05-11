@@ -34,6 +34,14 @@ function build_asynclog {
     make all -j$(nproc)
 }
 
-build_beldi
-build_boki
-build_asynclog
+function build_optimal {
+    cd $WORKFLOW_DIR/optimal
+    go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
+    go mod tidy
+    make hotel media singleop -j$(nproc)
+}
+
+# build_beldi
+# build_boki
+# build_asynclog
+build_optimal

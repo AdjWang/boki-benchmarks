@@ -25,6 +25,7 @@ from templates.docker_compose_boki import (
     dynamodb,
     dynamodb_setup_hotel_f,
     dynamodb_setup_media_f,
+    dynamodb_setup_optimal_singleop_f,
     generate_docker_compose)
 
 @dataclass
@@ -35,6 +36,7 @@ class ServConfig:
     workflow_bin_dir: str
     workflow_lib_name: str
     serv_generator: FuncMeta
+    use_txn_engine: bool
 
 LOCAL_SERVICES = {
     'beldi-hotel-baseline': ServConfig(
@@ -44,6 +46,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/beldi-bin",
         workflow_lib_name=common.WorkflowLibName.beldi.value[0],
         serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        use_txn_engine=False,
     ),
     'beldi-movie-baseline': ServConfig(
         db=dynamodb,
@@ -52,6 +55,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/beldi-bin",
         workflow_lib_name=common.WorkflowLibName.beldi.value[0],
         serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        use_txn_engine=False,
     ),
     'boki-hotel-baseline': ServConfig(
         db=dynamodb,
@@ -60,6 +64,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/bokiflow-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
         serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        use_txn_engine=False,
     ),
     'boki-movie-baseline': ServConfig(
         db=dynamodb,
@@ -68,6 +73,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/bokiflow-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
         serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        use_txn_engine=False,
     ),
     'boki-finra-baseline': ServConfig(
         db="",
@@ -76,6 +82,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/bokiflow-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
         serv_generator=common.WORKFLOW_FINRA_SERVS,
+        use_txn_engine=False,
     ),
     'boki-hotel-asynclog': ServConfig(
         db=dynamodb,
@@ -84,6 +91,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/asynclog-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
         serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        use_txn_engine=False,
     ),
     'boki-movie-asynclog': ServConfig(
         db=dynamodb,
@@ -92,6 +100,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/asynclog-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
         serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        use_txn_engine=False,
     ),
     'boki-finra-asynclog': ServConfig(
         db="",
@@ -100,6 +109,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/asynclog-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
         serv_generator=common.WORKFLOW_FINRA_SERVS,
+        use_txn_engine=False,
     ),
     'sharedlog': ServConfig(
         db="",
@@ -109,6 +119,16 @@ LOCAL_SERVICES = {
         workflow_lib_name=common.WorkflowLibName.test.value[0],
         # TODO: add services generator
         serv_generator=None,
+        use_txn_engine=False,
+    ),
+    'optimal-singleop': ServConfig(
+        db=dynamodb,
+        db_setup_f=dynamodb_setup_optimal_singleop_f,
+        unsafe_baseline=False,
+        workflow_bin_dir="/optimal-bin",
+        workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+        serv_generator=common.WORKFLOW_OPTIMAL_SINGLEOP_SERVS,
+        use_txn_engine=True,
     ),
 }
 

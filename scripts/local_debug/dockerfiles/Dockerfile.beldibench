@@ -5,4 +5,5 @@ COPY ./beldi/bin        /beldi-bin
 COPY ./boki/bin         /bokiflow-bin
 COPY ./boki/internal/media/data /bokiflow/data
 COPY ./asynclog/bin     /asynclog-bin
+COPY ./optimal/bin     /optimal-bin
 COPY --from=boki     /boki/launcher       /boki/launcher

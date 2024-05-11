@@ -7,6 +7,9 @@ from pathlib import Path
 PROJECT_DIR = Path(sys.argv[0]).parent.parent
 sys.path.append(str(PROJECT_DIR))
 import common
+from dataclasses import dataclass
+
+from templates.docker_func import FuncMeta
 
 # dc: docker compose file
 
@@ -88,6 +91,31 @@ dynamodb_setup_media_f = """\
 
 """
 
+dynamodb_setup_optimal_singleop_f = """\
+  db-setup:
+    image: adjwang/boki-beldibench:dev
+    networks:
+      - boki-net
+    command: bash -c "
+        {workflow_bin_dir}/singleop/init clean &&
+        {workflow_bin_dir}/singleop/init create &&
+        {workflow_bin_dir}/singleop/init populate &&
+        sleep infinity
+      "
+    environment:
+      {func_env}
+      - TABLE_PREFIX={table_prefix}
+    depends_on:
+       - db
+    healthcheck:
+      test: ["CMD-SHELL", "{workflow_bin_dir}/singleop/init health_check"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 60s
+
+"""
+
 # zookeeper
 zookeeper = """\
   zookeeper:
@@ -151,6 +179,7 @@ boki_engine_f = """\
       - --slog_engine_cache_cap_mb=512
       - --slog_engine_propagate_auxdata
       - --v={verbose}
+      {additional_configs}
     depends_on:
       zookeeper-setup:
         condition: service_healthy
@@ -239,6 +268,7 @@ boki_storage_f = """\
       - --slog_storage_backend=rocksdb
       - --slog_storage_cache_cap_mb=512
       - --v={verbose}
+      {additional_configs}
     depends_on:
       zookeeper-setup:
         condition: service_healthy
@@ -284,6 +314,10 @@ boki_sequencer_f = """\
 """
 
 def generate_docker_compose(func_config, work_dir, metalog_reps, userlog_reps, index_reps):
+    # for halfmoon optimal workflow
+    engine_additional_configs = '- --use_txn_engine' if func_config.use_txn_engine else ''
+    storage_additional_configs = '- --use_txn_engine' if func_config.use_txn_engine else ''
+
     baseline_prefix = 'b' if func_config.unsafe_baseline else ''
     dc_content = ''.join([
         dc_header,
@@ -327,7 +361,8 @@ def generate_docker_compose(func_config, work_dir, metalog_reps, userlog_reps, i
             zookeeper_endpoint=common.ZOOKEEPER_ENDPOINT,
             io_uring_entries=common.IO_URING_ENTRIES,
             io_uring_fd_slots=common.IO_URING_FD_SLOTS,
-            verbose=common.VERBOSE
+            verbose=common.VERBOSE,
+            additional_configs=engine_additional_configs,
         ) for i in range(1, 1+index_reps)],
 
         *[boki_storage_f.format(
@@ -337,7 +372,8 @@ def generate_docker_compose(func_config, work_dir, metalog_reps, userlog_reps, i
             zookeeper_endpoint=common.ZOOKEEPER_ENDPOINT,
             io_uring_entries=common.IO_URING_ENTRIES,
             io_uring_fd_slots=common.IO_URING_FD_SLOTS,
-            verbose=common.VERBOSE
+            verbose=common.VERBOSE,
+            additional_configs=storage_additional_configs,
         ) for i in range(1, 1+userlog_reps)],
 
         *[boki_sequencer_f.format(
@@ -358,55 +394,73 @@ if __name__ == '__main__':
     parser.add_argument('--metalog-reps', type=int, default=3)
     parser.add_argument('--userlog-reps', type=int, default=3)
     parser.add_argument('--index-reps', type=int, default=3)
-    parser.add_argument('--test-case', type=str, default='boki-hotel-baseline')
-    parser.add_argument('--table-prefix', type=str, default="23333")
+    parser.add_argument('--test-case', type=str, default='optimal-singleop')
     parser.add_argument('--workdir', type=str, default='/tmp')
     parser.add_argument('--output', type=str, default='/tmp')
     args = parser.parse_args()
+
+    @dataclass
+    class ServConfig:
+        db: str
+        db_setup_f: str
+        unsafe_baseline: bool
+        workflow_bin_dir: str
+        workflow_lib_name: str
+        serv_generator: FuncMeta
+        use_txn_engine: bool
 
     # no beldi-hotel and beldi-movie here, compare to boki is enough
     AVAILABLE_TEST_CASES = {
         'beldi-hotel-baseline': dict(
             db=dynamodb,
             db_setup_f=dynamodb_setup_hotel_f,
-            baseline=True,
+            unsafe_baseline=True,
             workflow_bin_dir="/beldi-bin",
         ),
         'beldi-movie-baseline': dict(
             db=dynamodb,
             db_setup_f=dynamodb_setup_media_f,
-            baseline=True,
+            unsafe_baseline=True,
             workflow_bin_dir="/beldi-bin",
         ),
         'boki-hotel-baseline': dict(
             db=dynamodb,
             db_setup_f=dynamodb_setup_hotel_f,
-            baseline=False,
+            unsafe_baseline=False,
             workflow_bin_dir="/bokiflow-bin",
         ),
         'boki-movie-baseline': dict(
             db=dynamodb,
             db_setup_f=dynamodb_setup_hotel_f,
-            baseline=False,
+            unsafe_baseline=False,
             workflow_bin_dir="/bokiflow-bin",
         ),
         'boki-hotel-asynclog': dict(
             db=dynamodb,
             db_setup_f=dynamodb_setup_hotel_f,
-            baseline=False,
+            unsafe_baseline=False,
             workflow_bin_dir="/asynclog-bin",
         ),
         'boki-movie-asynclog': dict(
             db=dynamodb,
             db_setup_f=dynamodb_setup_hotel_f,
-            baseline=False,
+            unsafe_baseline=False,
             workflow_bin_dir="/asynclog-bin",
         ),
         'sharedlog': dict(
             db="",
             db_setup_f="",
-            baseline=False,
+            unsafe_baseline=False,
             workflow_bin_dir="/test-bin",
+        ),
+        'optimal-singleop': ServConfig(
+            db=dynamodb,
+            db_setup_f=dynamodb_setup_optimal_singleop_f,
+            unsafe_baseline=False,
+            workflow_bin_dir="/optimal-bin",
+            workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+            serv_generator=common.WORKFLOW_OPTIMAL_SINGLEOP_SERVS,
+            use_txn_engine=False,
         ),
     }
 
@@ -414,11 +468,9 @@ if __name__ == '__main__':
     if args.test_case not in AVAILABLE_TEST_CASES:
         raise Exception("invalid test case: '{}', need to be one of: {}".format(
                         args.test_case, list(AVAILABLE_TEST_CASES.keys())))
-    if args.test_case.startswith('boki-') and args.table_prefix == "":
-        raise Exception("table prefix of workflow is not allowed to be empty")
 
     config = AVAILABLE_TEST_CASES[args.test_case]
 
     dc_content = generate_docker_compose(
-        config, args.workdir, args.table_prefix, args.metalog_reps, args.userlog_reps, args.index_reps)
+        config, args.workdir, args.metalog_reps, args.userlog_reps, args.index_reps)
     print(dc_content)
