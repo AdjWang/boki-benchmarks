@@ -299,6 +299,7 @@ boki_sequencer_f = """\
       - --io_uring_fd_slots={io_uring_fd_slots}
       - --slog_global_cut_interval_us=300
       - --v={verbose}
+      {additional_configs}
     depends_on:
       zookeeper-setup:
         condition: service_healthy
@@ -383,7 +384,8 @@ def generate_docker_compose(func_config, work_dir, metalog_reps, userlog_reps, i
             zookeeper_endpoint=common.ZOOKEEPER_ENDPOINT,
             io_uring_entries=common.IO_URING_ENTRIES,
             io_uring_fd_slots=common.IO_URING_FD_SLOTS,
-            verbose=common.VERBOSE
+            verbose=common.VERBOSE,
+            additional_configs=engine_additional_configs,
         ) for i in range(1, 1+metalog_reps)],
     ])
     return dc_content
