@@ -13,7 +13,7 @@ class FuncMeta:
     func_envs_remote: Dict[str, str]
 
     service_names: List[str] = field(init=False)
-    func_bins: List[str] = field(init=False)
+    func_bins: List[str] = field(default=None)
     # declaring common indents already have, not which should add to all lines
     # 2 spaces per indent
     base_indents: int = 1
@@ -49,16 +49,25 @@ class FuncMeta:
 """
 
     def __post_init__(self):
-      self.service_names = [f'{fn_name}-service'
-                            for fn_name in self.func_names]
+        self.service_names = [f"{fn_name}-service" for fn_name in self.func_names]
 
     @property
     def services_count(self):
         return len(self.service_names)
 
-    def generate_local_config(self, image_fn_bin_dir: str, engines: int, app_prefix: str="") -> str:
-        func_bins = [f'{image_fn_bin_dir}/{app_prefix}{self.app_name}/{fn_name}'
-                     for fn_name in self.func_names]
+    def generate_local_config(
+        self,
+        image_fn_bin_dir: str,
+        engines: int,
+        app_prefix: str = "",
+    ) -> str:
+        if self.func_bins is None:
+            func_bins = [f'{image_fn_bin_dir}/{app_prefix}{self.app_name}/{fn_name}'
+                         for fn_name in self.func_names]
+        else:
+            assert len(self.func_bins) == len(self.func_names)
+            func_bins = [f'{image_fn_bin_dir}/{app_prefix}{self.app_name}/{fn_name}'
+                         for fn_name in self.func_bins]
         func_envs = ('  '*(self.base_indents+2)) \
                    .join([f'- {k}={v}\n' for k, v in self.func_envs_local.items()]) \
                    .strip('\n')
@@ -92,7 +101,7 @@ class FuncMeta:
                                                     func_envs=func_envs)
             func_templates.append(func)
         return '\n'.join(func_templates)
-    
+
     def generate_nightcore_config(self, func_name_prefix: str="") -> str:
         config = []
         for idx in range(self.services_count):

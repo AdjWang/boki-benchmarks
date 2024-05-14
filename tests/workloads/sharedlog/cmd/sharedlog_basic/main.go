@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -13,6 +14,14 @@ import (
 	"cs.utexas.edu/zjia/faas/types"
 	"github.com/eniac/Beldi/pkg/cayonlib"
 )
+
+type fooHandler struct {
+	env types.Environment
+}
+
+type barHandler struct {
+	env types.Environment
+}
 
 type basicLogOpHandler struct {
 	env types.Environment
@@ -35,7 +44,11 @@ type funcHandlerFactory struct {
 }
 
 func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.FuncHandler, error) {
-	if funcName == "BasicLogOp" {
+	if funcName == "Foo" {
+		return &fooHandler{env: env}, nil
+	} else if funcName == "Bar" {
+		return &barHandler{env: env}, nil
+	} else if funcName == "BasicLogOp" {
 		return &basicLogOpHandler{env: env}, nil
 	} else if funcName == "AsyncLogOp" {
 		return &asyncLogOpHandler{env: env}, nil
@@ -44,6 +57,7 @@ func (f *funcHandlerFactory) New(env types.Environment, funcName string) (types.
 	} else if funcName == "Bench" {
 		return &benchHandler{env: env}, nil
 	} else {
+		log.Panicf("[FATAL] unknown func name=%v", funcName)
 		return nil, nil
 	}
 }
@@ -77,6 +91,20 @@ func assertLogEntry(funcName string, logEntry *types.LogEntry, expected *types.L
 			funcName, logEntry.SeqNum, logEntry.Tags, logEntry.Data, logEntry.AuxData)
 		return output, true
 	}
+}
+
+func (h *fooHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	barOutput, err := h.env.InvokeFunc(ctx, "Bar", input)
+	if err != nil {
+		return nil, err
+	}
+	output := fmt.Sprintf("foo invokes bar, output=%v", string(barOutput))
+	return []byte(output), nil
+}
+
+func (h *barHandler) Call(ctx context.Context, input []byte) ([]byte, error) {
+	output := fmt.Sprintf("bar invoked with arg=%v\n", string(input))
+	return []byte(output), nil
 }
 
 func (h *basicLogOpHandler) Call(ctx context.Context, input []byte) ([]byte, error) {

@@ -39,10 +39,41 @@ TABLE_PREFIX = "23333333-"
 HALFMOON_LOGGING_MODE = "read"
 # HALFMOON_LOGGING_MODE = "write"
 
+IMAGE_TESTS = "adjwang/boki-tests:dev"
+
 IMAGE_FAAS = "adjwang/boki:dev"
 IMAGE_APP = "adjwang/boki-beldibench:dev"
 # IMAGE_FAAS = "zjia/boki:sosp-ae"
 # IMAGE_APP = "zjia/boki-beldibench:sosp-ae"
+
+SLOG_TEST_SERVS = FuncMeta(
+    app_name="sharedlog",
+    image_name=IMAGE_TESTS,
+    engine_mnt_dir_local="/tmp/boki-test",
+    func_names=["Foo",
+                "Bar",
+                "BasicLogOp",
+                "AsyncLogOp",
+                "AsyncLogOpChild",
+                "Bench"],
+    worker_min_max={"Foo": (1, 32),
+                    "Bar": (1, 32),
+                    "BasicLogOp": (1, 32),
+                    "AsyncLogOp": (1, 32),
+                    "AsyncLogOpChild": (1, 32),
+                    "Bench": (1, 32)},
+    func_bins=["sharedlog_basic",
+               "sharedlog_basic",
+               "sharedlog_basic",
+               "sharedlog_basic",
+               "sharedlog_basic",
+               "sharedlog_basic"],
+    func_envs_local=dict(TABLE_PREFIX=TABLE_PREFIX,
+                         DBENV="LOCAL",
+                         LoggingMode=HALFMOON_LOGGING_MODE),
+    func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}",
+                          LoggingMode="${LoggingMode:?}"),
+)
 
 WORKFLOW_HOTEL_SERVS = FuncMeta(
     app_name="hotel",

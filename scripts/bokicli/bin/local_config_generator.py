@@ -127,8 +127,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/test-bin",
         workflow_lib_name=common.WorkflowLibName.test.value[0],
-        # TODO: add services generator
-        serv_generator=None,
+        serv_generator=common.SLOG_TEST_SERVS,
         use_txn_engine=False,
     ),
     'optimal-hotel': ServConfig(

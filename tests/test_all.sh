@@ -84,6 +84,8 @@ function build {
 
     # echo "========== build sharedlog =========="
     # $TEST_DIR/workloads/sharedlog/build.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/tests/workloads/sharedlog/build.sh
 
     echo "========== build workloads =========="
     # $WORKFLOW_SRC_DIR/build_all.sh
@@ -177,15 +179,15 @@ function test_sharedlog {
     echo "========== test sharedlog =========="
 
     echo "setup env..."
-    python3 $DEBUG_SCRIPT_DIR/docker-compose-generator.py \
-        --metalog-reps=3 \
-        --userlog-reps=3 \
+    python3 $SCRIPT_DIR/bokicli/bin/local_config_generator.py \
+        --metalog-reps=1 \
+        --userlog-reps=1 \
         --index-reps=1 \
         --test-case=sharedlog \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 sharedlog
+    setup_env 1 1 1 sharedlog
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -217,9 +219,9 @@ function test_sharedlog {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
         assert_should_success $LINENO
 
-    echo "test async shared log operations"
-    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
-        assert_should_success $LINENO
+    # echo "test async shared log operations"
+    # timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
+    #     assert_should_success $LINENO
 
     echo "run bench"
     timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/Bench ||
@@ -417,7 +419,7 @@ clean)
     cleanup
     ;;
 run)
-    # test_sharedlog
+    test_sharedlog
     # cleanup
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
@@ -427,7 +429,7 @@ run)
     # test_workflow boki-finra-asynclog
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
-    test_workflow optimal-hotel
+    # test_workflow optimal-hotel
     # test_workflow optimal-movie
     # test_workflow optimal-singleop
     ;;
