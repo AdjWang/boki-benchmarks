@@ -36,6 +36,8 @@ IO_URING_ENTRIES = 64
 IO_URING_FD_SLOTS = 1024
 LOCAL_FUNC_ENV = "- DBENV=LOCAL"
 TABLE_PREFIX = "23333333-"
+HALFMOON_LOGGING_MODE = "read"
+# HALFMOON_LOGGING_MODE = "write"
 
 IMAGE_FAAS = "adjwang/boki:dev"
 IMAGE_APP = "adjwang/boki-beldibench:dev"
@@ -69,8 +71,10 @@ WORKFLOW_HOTEL_SERVS = FuncMeta(
                     "frontend": (8, 8),
                     "gateway": (8, 8)},
     func_envs_local=dict(TABLE_PREFIX=TABLE_PREFIX,
-                         DBENV="LOCAL"),
-    func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}"),
+                         DBENV="LOCAL",
+                         LoggingMode=HALFMOON_LOGGING_MODE),
+    func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}",
+                          LoggingMode="${LoggingMode:?}"),
 )
 
 WORKFLOW_MEDIA_SERVS = FuncMeta(
@@ -106,8 +110,10 @@ WORKFLOW_MEDIA_SERVS = FuncMeta(
                     "MovieInfo": (8, 8),
                     "Page": (8, 8)},
     func_envs_local=dict(TABLE_PREFIX=TABLE_PREFIX,
-                         DBENV="LOCAL"),
-    func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}"),
+                         DBENV="LOCAL",
+                         LoggingMode=HALFMOON_LOGGING_MODE),
+    func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}",
+                          LoggingMode="${LoggingMode:?}"),
 )
 
 WORKFLOW_FINRA_SERVS = FuncMeta(
@@ -144,6 +150,7 @@ WORKFLOW_OPTIMAL_SINGLEOP_SERVS = FuncMeta(
                     "singleop": (8, 8),
                     "prewarm": (1, 1)},
     func_envs_local=dict(TABLE_PREFIX=TABLE_PREFIX,
-                         DBENV="LOCAL"),
+                         DBENV="LOCAL",
+                         LoggingMode=HALFMOON_LOGGING_MODE),
     func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}"),
 )

@@ -171,16 +171,22 @@ if __name__ == '__main__':
                         "order": (8, 8),
                         "frontend": (8, 8),
                         "gateway": (8, 8)},
-        func_envs_local=dict(TABLE_PREFIX="2333"),
-        func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}"),
+        func_envs_local=dict(TABLE_PREFIX="2333",
+                             LoggingMode="read"),
+        func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}",
+                              LoggingMode="${LoggingMode:?}"),
     )
 
-    # funcs_per_engine = bokiflow_hotel_funcs.generate_local_config(engines=1)
-    # funcs_per_engine = bokiflow_hotel_funcs.generate_remote_config()
-    # print(funcs_per_engine)
+    # funcs_per_engine = bokiflow_hotel_funcs.generate_local_config(
+    #     image_fn_bin_dir="/optimal-bin", engines=1
+    # )
+    funcs_per_engine = bokiflow_hotel_funcs.generate_remote_config(
+        image_fn_bin_dir="/optimal-bin"
+    )
+    print(funcs_per_engine)
 
     # nightcore_config = bokiflow_hotel_funcs.generate_nightcore_config()
     # print(nightcore_config)
 
-    cluster_config = bokiflow_hotel_funcs.generate_cluster_config(rep_sequencer=3, rep_storage=3, rep_engine=8)
-    print(cluster_config)
+    # cluster_config = bokiflow_hotel_funcs.generate_cluster_config(rep_sequencer=3, rep_storage=3, rep_engine=8)
+    # print(cluster_config)

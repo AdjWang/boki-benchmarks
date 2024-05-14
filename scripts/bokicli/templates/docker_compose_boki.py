@@ -318,6 +318,7 @@ def generate_docker_compose(func_config, work_dir, metalog_reps, userlog_reps, i
     # for halfmoon optimal workflow
     engine_additional_configs = '- --use_txn_engine' if func_config.use_txn_engine else ''
     storage_additional_configs = '- --use_txn_engine' if func_config.use_txn_engine else ''
+    sequencer_additional_configs = '- --use_txn_engine' if func_config.use_txn_engine else ''
 
     baseline_prefix = 'b' if func_config.unsafe_baseline else ''
     dc_content = ''.join([
@@ -329,9 +330,8 @@ def generate_docker_compose(func_config, work_dir, metalog_reps, userlog_reps, i
         func_config.db_setup_f.format(workflow_bin_dir=func_config.workflow_bin_dir,
                                       func_env=common.LOCAL_FUNC_ENV,
                                       table_prefix=common.TABLE_PREFIX,
-                                      benchmark_mode=(
-            'baseline' if func_config.unsafe_baseline else 'beldi'),
-            baseline_prefix=baseline_prefix),
+                                      benchmark_mode=func_config.benchmark_mode,
+                                      baseline_prefix=baseline_prefix),
 
         zookeeper,
         zookeeper_setup_f.format(
@@ -385,7 +385,7 @@ def generate_docker_compose(func_config, work_dir, metalog_reps, userlog_reps, i
             io_uring_entries=common.IO_URING_ENTRIES,
             io_uring_fd_slots=common.IO_URING_FD_SLOTS,
             verbose=common.VERBOSE,
-            additional_configs=engine_additional_configs,
+            additional_configs=sequencer_additional_configs,
         ) for i in range(1, 1+metalog_reps)],
     ])
     return dc_content
@@ -396,7 +396,7 @@ if __name__ == '__main__':
     parser.add_argument('--metalog-reps', type=int, default=3)
     parser.add_argument('--userlog-reps', type=int, default=3)
     parser.add_argument('--index-reps', type=int, default=3)
-    parser.add_argument('--test-case', type=str, default='optimal-singleop')
+    parser.add_argument('--test-case', type=str, default='optimal-hotel')
     parser.add_argument('--workdir', type=str, default='/tmp')
     parser.add_argument('--output', type=str, default='/tmp')
     args = parser.parse_args()
@@ -454,6 +454,24 @@ if __name__ == '__main__':
             db_setup_f="",
             unsafe_baseline=False,
             workflow_bin_dir="/test-bin",
+        ),
+        'optimal-hotel': ServConfig(
+            db=dynamodb,
+            db_setup_f=dynamodb_setup_hotel_f,
+            unsafe_baseline=False,
+            workflow_bin_dir="/optimal-bin",
+            workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+            serv_generator=common.WORKFLOW_HOTEL_SERVS,
+            use_txn_engine=True,
+        ),
+        'optimal-movie': ServConfig(
+            db=dynamodb,
+            db_setup_f=dynamodb_setup_hotel_f,
+            unsafe_baseline=False,
+            workflow_bin_dir="/optimal-bin",
+            workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+            serv_generator=common.WORKFLOW_MEDIA_SERVS,
+            use_txn_engine=True,
         ),
         'optimal-singleop': ServConfig(
             db=dynamodb,

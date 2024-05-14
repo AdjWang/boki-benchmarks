@@ -95,6 +95,24 @@ REMOTE_SERVICES = {
         workflow_app_name=common.WorkflowAppName.finra.value[0],
         serv_generator=common.WORKFLOW_FINRA_SERVS,
     ),
+    'optimal-hotel': ServConfig(
+        data_init_mode="cayon",
+        enable_sharedlog=True,
+        wrk_env="",
+        workflow_bin_dir="/optimal-bin",
+        workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+        workflow_app_name=common.WorkflowAppName.hotel.value[0],
+        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+    ),
+    'optimal-movie': ServConfig(
+        data_init_mode="cayon",
+        enable_sharedlog=True,
+        wrk_env="",
+        workflow_bin_dir="/optimal-bin",
+        workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+        workflow_app_name=common.WorkflowAppName.media.value[0],
+        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+    ),
 }
 
 def dump_configs(dump_dir, config: ServConfig, args):

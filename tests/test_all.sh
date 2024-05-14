@@ -276,6 +276,16 @@ function test_workflow {
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"asynclog"
         BELDI_BASELINE="0"
         ;;
+    optimal-hotel)
+        APP_NAME="hotel"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"optimal"
+        BELDI_BASELINE="0"
+        ;;
+    optimal-movie)
+        APP_NAME="media"
+        APP_SRC_DIR=$WORKFLOW_SRC_DIR/"optimal"
+        BELDI_BASELINE="0"
+        ;;
     optimal-singleop)
         APP_NAME="singleop"
         APP_SRC_DIR=$WORKFLOW_SRC_DIR/"optimal"
@@ -321,6 +331,7 @@ function test_workflow {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
+    set -x
     if [[ $APP_NAME == "hotel" ]]; then
         # TODO
         # echo "test singleop"
@@ -372,7 +383,6 @@ function test_workflow {
     # echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
     # WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     
-    # set -x
     # # DEBUG: benchmarks printing responses
     # $WRK -t 2 -c 2 -d 10 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
 
@@ -417,7 +427,9 @@ run)
     # test_workflow boki-finra-asynclog
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
-    test_workflow optimal-singleop
+    test_workflow optimal-hotel
+    # test_workflow optimal-movie
+    # test_workflow optimal-singleop
     ;;
 *)
     echo "[ERROR] unknown arg '$1', needs ['build', 'push', 'clean', 'run']"

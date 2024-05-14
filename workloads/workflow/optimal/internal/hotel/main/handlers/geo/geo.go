@@ -12,13 +12,11 @@ import (
 	"cs.utexas.edu/zjia/faas"
 )
 
-var kNearest = 20
+var kNearest = 5
 
 func init() {
 	if kn, err := strconv.Atoi(os.Getenv("K_NEAREST")); err == nil {
 		kNearest = kn
-	} else {
-		panic("invalid K_NEAREST")
 	}
 }
 
