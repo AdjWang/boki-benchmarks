@@ -41,8 +41,7 @@ function build_optimal {
     make hotel media singleop -j$(nproc)
 }
 
-# DEBUG: test optimal
-# build_beldi
-# build_boki
-# build_asynclog
+build_beldi
+build_boki
+build_asynclog
 build_optimal

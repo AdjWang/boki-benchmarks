@@ -28,8 +28,6 @@ func Handler(env *cayonlib.Env) interface{} {
 		return res
 	case "reserve":
 		res, _ := cayonlib.SyncInvoke(env, data.Tfrontend(), rpcInput.Input)
-		// DEBUG
-		log.Printf("Func reserve input=%+v retuen res=%+v", rpcInput.Input, res)
 		return res
 	}
 	return 0

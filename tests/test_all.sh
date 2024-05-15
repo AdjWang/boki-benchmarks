@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=1
+DEBUG_BUILD=0
 TEST_DIR="$(realpath $(dirname "$0"))"
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 SCRIPT_DIR=$(realpath $TEST_DIR/../scripts)
@@ -219,9 +219,9 @@ function test_sharedlog {
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/function/BasicLogOp ||
         assert_should_success $LINENO
 
-    # echo "test async shared log operations"
-    # timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
-    #     assert_should_success $LINENO
+    echo "test async shared log operations"
+    timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/AsyncLogOp ||
+        assert_should_success $LINENO
 
     echo "run bench"
     timeout 10 curl -f -X POST -d "abc" http://localhost:9000/function/Bench ||
@@ -314,14 +314,14 @@ function test_workflow {
 
     echo "setup env..."
     python3 $SCRIPT_DIR/bokicli/bin/local_config_generator.py \
-        --metalog-reps=1 \
-        --userlog-reps=1 \
+        --metalog-reps=3 \
+        --userlog-reps=3 \
         --index-reps=1 \
         --test-case=$TEST_CASE \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 1 1 1 $TEST_CASE
+    setup_env 3 3 1 $TEST_CASE
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d --remove-orphans
@@ -379,26 +379,26 @@ function test_workflow {
         exit 1
     fi
 
-    # echo "test more requests"
-    # WRKBENCHDIR=$DEBUG_SCRIPT_DIR
-    # # WRKBENCHDIR=$APP_SRC_DIR
-    # echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
-    # WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
+    echo "test more requests"
+    WRKBENCHDIR=$DEBUG_SCRIPT_DIR
+    # WRKBENCHDIR=$APP_SRC_DIR
+    echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
+    WRK="docker run --rm --net=host -e BASELINE=$BELDI_BASELINE -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     
-    # # DEBUG: benchmarks printing responses
-    # $WRK -t 2 -c 2 -d 10 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
+    # DEBUG: benchmarks printing responses
+    $WRK -t 2 -c 2 -d 10 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
 
-    # # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
-    # # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
-    # # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
-    # # sleep_count_down 10
-    # # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
-    # # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
-    # # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
-    # # sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
+    # sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
+    # sleep_count_down 10
 
-    # wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
-    # python3 $DEBUG_SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
+    wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
+    python3 $DEBUG_SCRIPT_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
 }
 
 if [ $# -eq 0 ]; then
@@ -419,7 +419,7 @@ clean)
     cleanup
     ;;
 run)
-    test_sharedlog
+    # test_sharedlog
     # cleanup
     # test_workflow beldi-hotel-baseline
     # test_workflow beldi-movie-baseline
@@ -430,7 +430,7 @@ run)
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
     # test_workflow optimal-hotel
-    # test_workflow optimal-movie
+    test_workflow optimal-movie
     # test_workflow optimal-singleop
     ;;
 *)

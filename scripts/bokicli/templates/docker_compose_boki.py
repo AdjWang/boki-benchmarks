@@ -466,7 +466,7 @@ if __name__ == '__main__':
         ),
         'optimal-movie': ServConfig(
             db=dynamodb,
-            db_setup_f=dynamodb_setup_hotel_f,
+            db_setup_f=dynamodb_setup_media_f,
             unsafe_baseline=False,
             workflow_bin_dir="/optimal-bin",
             workflow_lib_name=common.WorkflowLibName.optimal.value[0],

@@ -24,8 +24,6 @@ type LockFsm struct {
 	tailSeqNum uint64
 	stepNumber int32
 	tail       *LockLogEntry
-	// DEBUG
-	applyConseq []LockLogEntry
 }
 
 var lockFsms = map[string]LockFsm{}
@@ -36,16 +34,13 @@ func getOrCreateLockFsm(lockId string) LockFsm {
 	fsm, exists := lockFsms[lockId]
 	lockFsmsMutex.RUnlock()
 	if exists {
-		log.Printf("[DEBUG] get lock fsm lockId=%s", lockId)
 		return fsm
 	} else {
-		log.Printf("[DEBUG] create lock fsm lockId=%s", lockId)
 		return LockFsm{
-			lockId:      lockId,
-			tailSeqNum:  uint64(0),
-			stepNumber:  0,
-			tail:        nil,
-			applyConseq: make([]LockLogEntry, 0),
+			lockId:     lockId,
+			tailSeqNum: uint64(0),
+			stepNumber: 0,
+			tail:       nil,
 		}
 	}
 }
@@ -54,11 +49,7 @@ func storeBackLockFsm(fsm LockFsm) {
 	lockFsmsMutex.Lock()
 	current, exists := lockFsms[fsm.lockId]
 	if !exists || current.tailSeqNum < fsm.tailSeqNum {
-		log.Printf("[DEBUG] store back lock fsm lockId=%s", fsm.lockId)
 		lockFsms[fsm.lockId] = fsm
-	} else {
-		log.Printf("[DEBUG] skip store back lock fsm lockId=%s (exists=%v tail seqnum current=%v fsm=%v)",
-			fsm.lockId, exists, current.tailSeqNum, fsm.tailSeqNum)
 	}
 	lockFsmsMutex.Unlock()
 }
@@ -68,7 +59,6 @@ func (fsm *LockFsm) catch(env *Env) {
 	for {
 		logEntry, err := env.FaasEnv.SharedLogReadNext(env.FaasCtx, tag, fsm.tailSeqNum)
 		CHECK(err)
-		log.Printf("[DEBUG] lock fsm catch tag=%v seqnum=%v logEntry=%+v", tag, fsm.tailSeqNum, logEntry)
 		if logEntry == nil {
 			break
 		}
@@ -77,11 +67,7 @@ func (fsm *LockFsm) catch(env *Env) {
 		var lockLog LockLogEntry
 		err = json.Unmarshal(decoded, &lockLog)
 		CHECK(err)
-		mine := (lockLog.LockId == fsm.lockId && lockLog.StepNumber == fsm.stepNumber)
-		log.Printf("[DEBUG] Found log: tag=%v mine=%v seqnum=%d, step=%d", tag, mine, logEntry.SeqNum, lockLog.StepNumber)
 		if lockLog.LockId == fsm.lockId && lockLog.StepNumber == fsm.stepNumber {
-			fsm.applyConseq = append(fsm.applyConseq, lockLog)
-
 			lockLog.SeqNum = logEntry.SeqNum
 			if lockLog.UnlockOp {
 				if fsm.tail == nil || fsm.tail.UnlockOp || fsm.tail.Holder != lockLog.Holder {
@@ -115,15 +101,12 @@ func (fsm *LockFsm) Lock(env *Env, holder string) bool {
 	} else if currentHolder != "" {
 		return false
 	}
-	lockLogEntry := LockLogEntry{
+	seqNum := LibAppendLog(env, LockStreamTag(fsm.lockId), &LockLogEntry{
 		LockId:     fsm.lockId,
 		StepNumber: fsm.stepNumber,
 		UnlockOp:   false,
 		Holder:     holder,
-	}
-	seqNum := LibAppendLog(env, LockStreamTag(fsm.lockId), &lockLogEntry)
-	lockLogEntry.SeqNum = seqNum
-	log.Printf("[DEBUG] Lock append lock tag=%v log entry=%+v", LockStreamTag(fsm.lockId), lockLogEntry)
+	})
 	fsm.catch(env)
 	if fsm.holder() == holder {
 		env.SeqNum = seqNum
@@ -138,15 +121,12 @@ func (fsm *LockFsm) Unlock(env *Env, holder string) {
 		log.Printf("[WARN] %s is not the holder for lock %s", holder, fsm.lockId)
 		return
 	}
-	lockLogEntry := LockLogEntry{
+	seqNum := LibAppendLog(env, LockStreamTag(fsm.lockId), &LockLogEntry{
 		LockId:     fsm.lockId,
 		StepNumber: fsm.stepNumber,
 		UnlockOp:   true,
 		Holder:     holder,
-	}
-	seqNum := LibAppendLog(env, LockStreamTag(fsm.lockId), &lockLogEntry)
-	lockLogEntry.SeqNum = seqNum
-	log.Printf("[DEBUG] Lock append lock tag=%v log entry=%+v", LockStreamTag(fsm.lockId), lockLogEntry)
+	})
 	env.SeqNum = seqNum
 }
 
@@ -157,10 +137,6 @@ func Lock(env *Env, tablename string, key string) bool {
 	storeBackLockFsm(fsm)
 	if !success {
 		log.Printf("[WARN] Failed to lock %s with txn %s", lockId, env.TxnId)
-		log.Printf("[DEBUG] Lock failed fsm lock log entries=%v =====", len(fsm.applyConseq))
-		for _, lockLogEntry := range fsm.applyConseq {
-			log.Printf("[DEBUG] Lock failed fsm lock log entry=%+v", lockLogEntry)
-		}
 	}
 	return success
 }

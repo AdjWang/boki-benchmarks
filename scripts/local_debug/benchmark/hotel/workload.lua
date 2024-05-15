@@ -281,7 +281,7 @@ request = function()
     else
         req = reserve_all()
     end
-    print("request:", req_count, req)
+    -- print("request:", req_count, req)
     req_count = req_count + 1
     return req
 end
@@ -299,11 +299,11 @@ function dump(o)
    end
 end
 
-response = function(status, headers, body)
-  print("status:", status)
-  print("headers:", dump(headers))
-  print("body:", body)
-  if status ~= 200 then
-    error(status)
-  end
-end
+-- response = function(status, headers, body)
+--   print("status:", status)
+--   print("headers:", dump(headers))
+--   print("body:", body)
+--   if status ~= 200 then
+--     error(status)
+--   end
+-- end

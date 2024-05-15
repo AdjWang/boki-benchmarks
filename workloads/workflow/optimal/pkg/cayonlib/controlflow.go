@@ -175,8 +175,6 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	ow := OutputWrapper{}
 	ow.Deserialize(res)
 	env.LogSize += ow.LogSize
-	// DEBUG
-	log.Printf("[DEBUG] ow callee=%v status=%v output=%+v instanceid=%+v", callee, ow.Status, ow.Output, iw.InstanceId)
 	switch ow.Status {
 	case "Success":
 		return ow.Output, iw.InstanceId

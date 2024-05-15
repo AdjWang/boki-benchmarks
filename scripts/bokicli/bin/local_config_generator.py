@@ -128,7 +128,7 @@ LOCAL_SERVICES = {
         workflow_bin_dir="/test-bin",
         workflow_lib_name=common.WorkflowLibName.test.value[0],
         serv_generator=common.SLOG_TEST_SERVS,
-        use_txn_engine=False,
+        use_txn_engine=True,
     ),
     'optimal-hotel': ServConfig(
         db=dynamodb,
@@ -142,7 +142,7 @@ LOCAL_SERVICES = {
     ),
     'optimal-movie': ServConfig(
         db=dynamodb,
-        db_setup_f=dynamodb_setup_hotel_f,
+        db_setup_f=dynamodb_setup_media_f,
         unsafe_baseline=False,
         benchmark_mode="cayon",
         workflow_bin_dir="/optimal-bin",
