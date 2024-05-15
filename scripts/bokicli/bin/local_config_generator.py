@@ -9,6 +9,7 @@ Files:
 """
 
 import argparse
+import copy
 import os
 import sys
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ BOKI_BENCH_DIR = Path(sys.argv[0]).parent.parent.parent.parent
 print(BOKI_BENCH_DIR)
 
 import common
+import func_serv
 from templates.docker_func import FuncMeta
 from templates.docker_compose_boki import (
     dynamodb,
@@ -35,9 +37,14 @@ class ServConfig:
     unsafe_baseline: bool
     benchmark_mode: str     # baseline or cayon
     workflow_bin_dir: str
-    workflow_lib_name: str
+    workflow_lib_name: common.WorkflowLibName
     serv_generator: FuncMeta
     use_txn_engine: bool
+
+    def __post_init__(self):
+        self.serv_generator = copy.copy(self.serv_generator)
+        self.serv_generator.set_workflow_lib_name(self.workflow_lib_name)
+
 
 LOCAL_SERVICES = {
     'beldi-hotel-baseline': ServConfig(
@@ -47,7 +54,7 @@ LOCAL_SERVICES = {
         benchmark_mode="baseline",
         workflow_bin_dir="/beldi-bin",
         workflow_lib_name=common.WorkflowLibName.beldi.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
         use_txn_engine=False,
     ),
     'beldi-movie-baseline': ServConfig(
@@ -57,7 +64,7 @@ LOCAL_SERVICES = {
         benchmark_mode="baseline",
         workflow_bin_dir="/beldi-bin",
         workflow_lib_name=common.WorkflowLibName.beldi.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
         use_txn_engine=False,
     ),
     'boki-hotel-baseline': ServConfig(
@@ -67,7 +74,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/bokiflow-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
         use_txn_engine=False,
     ),
     'boki-movie-baseline': ServConfig(
@@ -77,7 +84,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/bokiflow-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
         use_txn_engine=False,
     ),
     'boki-finra-baseline': ServConfig(
@@ -87,7 +94,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/bokiflow-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        serv_generator=common.WORKFLOW_FINRA_SERVS,
+        serv_generator=func_serv.WORKFLOW_FINRA_SERVS,
         use_txn_engine=False,
     ),
     'boki-hotel-asynclog': ServConfig(
@@ -97,7 +104,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/asynclog-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
         use_txn_engine=False,
     ),
     'boki-movie-asynclog': ServConfig(
@@ -107,7 +114,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/asynclog-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
         use_txn_engine=False,
     ),
     'boki-finra-asynclog': ServConfig(
@@ -117,7 +124,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/asynclog-bin",
         workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        serv_generator=common.WORKFLOW_FINRA_SERVS,
+        serv_generator=func_serv.WORKFLOW_FINRA_SERVS,
         use_txn_engine=False,
     ),
     'sharedlog': ServConfig(
@@ -127,7 +134,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/test-bin",
         workflow_lib_name=common.WorkflowLibName.test.value[0],
-        serv_generator=common.SLOG_TEST_SERVS,
+        serv_generator=func_serv.SLOG_TEST_SERVS,
         use_txn_engine=True,
     ),
     'optimal-hotel': ServConfig(
@@ -137,7 +144,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/optimal-bin",
         workflow_lib_name=common.WorkflowLibName.optimal.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
         use_txn_engine=True,
     ),
     'optimal-movie': ServConfig(
@@ -147,7 +154,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/optimal-bin",
         workflow_lib_name=common.WorkflowLibName.optimal.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
         use_txn_engine=True,
     ),
     'optimal-singleop': ServConfig(
@@ -157,7 +164,7 @@ LOCAL_SERVICES = {
         benchmark_mode="cayon",
         workflow_bin_dir="/optimal-bin",
         workflow_lib_name=common.WorkflowLibName.optimal.value[0],
-        serv_generator=common.WORKFLOW_OPTIMAL_SINGLEOP_SERVS,
+        serv_generator=func_serv.WORKFLOW_OPTIMAL_SINGLEOP_SERVS,
         use_txn_engine=True,
     ),
 }

@@ -33,6 +33,7 @@ services:
       - --slog_engine_enable_cache
       - --slog_engine_cache_cap_mb=1024
       - --slog_engine_propagate_auxdata
+      
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -51,7 +52,7 @@ services:
       - --zookeeper_host=zookeeper:2181
       - --metalog_replicas=3
       - --userlog_replicas=3
-      - --index_replicas=1
+      - --index_replicas=8
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -97,6 +98,7 @@ services:
       - --slog_storage_bgthread_interval_ms=1
       - --slog_storage_backend=rocksdb
       - --slog_storage_cache_cap_mb=4096
+      
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -117,6 +119,7 @@ services:
       - --io_uring_entries=2048
       - --io_uring_fd_slots=4096
       - --slog_global_cut_interval_us=300
+      
       # - --v=1
     depends_on:
       - zookeeper-setup

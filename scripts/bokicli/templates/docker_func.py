@@ -1,6 +1,8 @@
-from typing import List, Dict
+from typing import List, Dict, Callable
 from dataclasses import dataclass, field
 import json
+
+from common import WorkflowLibName
 
 @dataclass
 class FuncMeta:
@@ -9,11 +11,12 @@ class FuncMeta:
     engine_mnt_dir_local: str
     func_names: List[str]
     worker_min_max: Dict[str, tuple]
-    func_envs_local: Dict[str, str]
-    func_envs_remote: Dict[str, str]
+    func_envs_local_getter: Callable[[WorkflowLibName], Dict[str, str]]
+    func_envs_remote_getter: Callable[[WorkflowLibName], Dict[str, str]]
 
     service_names: List[str] = field(init=False)
     func_bins: List[str] = field(default=None)
+    workflow_lib_name: WorkflowLibName = field(default=None)
     # declaring common indents already have, not which should add to all lines
     # 2 spaces per indent
     base_indents: int = 1
@@ -54,6 +57,9 @@ class FuncMeta:
     @property
     def services_count(self):
         return len(self.service_names)
+    
+    def set_workflow_lib_name(self, name: WorkflowLibName):
+        self.workflow_lib_name = name
 
     def generate_local_config(
         self,
@@ -68,8 +74,9 @@ class FuncMeta:
             assert len(self.func_bins) == len(self.func_names)
             func_bins = [f'{image_fn_bin_dir}/{app_prefix}{self.app_name}/{fn_name}'
                          for fn_name in self.func_bins]
+        assert self.workflow_lib_name is not None
         func_envs = ('  '*(self.base_indents+2)) \
-                   .join([f'- {k}={v}\n' for k, v in self.func_envs_local.items()]) \
+                   .join([f'- {k}={v}\n' for k, v in self.func_envs_local_getter(self.workflow_lib_name).items()]) \
                    .strip('\n')
         func_templates = []
         for engine_id in range(1, engines+1):
@@ -88,8 +95,9 @@ class FuncMeta:
     def generate_remote_config(self, image_fn_bin_dir: str, app_prefix: str="") -> str:
         func_bins = [f'{image_fn_bin_dir}/{app_prefix}{self.app_name}/{fn_name}'
                      for fn_name in self.func_names]
+        assert self.workflow_lib_name is not None
         func_envs = ('  '*(self.base_indents+2)) \
-                   .join([f'- {k}={v}\n' for k, v in self.func_envs_remote.items()]) \
+                   .join([f'- {k}={v}\n' for k, v in self.func_envs_remote_getter(self.workflow_lib_name).items()]) \
                    .strip('\n')
         func_templates = []
         for idx in range(self.services_count):
@@ -154,6 +162,20 @@ class FuncMeta:
         return json.dumps(config, indent=4)
 
 if __name__ == '__main__':
+    def __get_boki_workflow_func_envs_local(workflow_lib_name: WorkflowLibName):
+        if workflow_lib_name == WorkflowLibName.optimal:
+            return dict(TABLE_PREFIX="2333",
+                        LoggingMode="read")
+        else:
+            return dict(TABLE_PREFIX="2333")
+
+    def __get_boki_workflow_func_envs_remote(workflow_lib_name: WorkflowLibName):
+        if workflow_lib_name == WorkflowLibName.optimal:
+            return dict(TABLE_PREFIX="${TABLE_PREFIX:?}",
+                        LoggingMode="${LoggingMode:?}")
+        else:
+            return dict(TABLE_PREFIX="${TABLE_PREFIX:?}")
+
     bokiflow_hotel_funcs = FuncMeta(
         app_name="hotel",
         image_name="adjwang/boki-beldibench:dev",
@@ -180,11 +202,10 @@ if __name__ == '__main__':
                         "order": (8, 8),
                         "frontend": (8, 8),
                         "gateway": (8, 8)},
-        func_envs_local=dict(TABLE_PREFIX="2333",
-                             LoggingMode="read"),
-        func_envs_remote=dict(TABLE_PREFIX="${TABLE_PREFIX:?}",
-                              LoggingMode="${LoggingMode:?}"),
+        func_envs_local_getter=__get_boki_workflow_func_envs_local,
+        func_envs_remote_getter=__get_boki_workflow_func_envs_remote,
     )
+    bokiflow_hotel_funcs.set_workflow_lib_name(WorkflowLibName.optimal)
 
     # funcs_per_engine = bokiflow_hotel_funcs.generate_local_config(
     #     image_fn_bin_dir="/optimal-bin", engines=1

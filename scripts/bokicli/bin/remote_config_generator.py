@@ -7,116 +7,135 @@ from pathlib import Path
 PROJECT_DIR = Path(sys.argv[0]).parent.parent
 sys.path.append(str(PROJECT_DIR))
 import argparse
+import copy
 
 from templates.docker_func import FuncMeta
 from templates.docker_swarm_boki import generate_docker_compose, generate_run_once
 import common
+import func_serv
 
 @dataclass
 class ServConfig:
     data_init_mode: str
     enable_sharedlog: bool
+    enable_txn_engine: bool
     wrk_env: str
     workflow_bin_dir: str
-    workflow_lib_name: str
-    workflow_app_name: str
+    workflow_lib_name: common.WorkflowLibName
+    workflow_app_name: common.WorkflowAppName
     serv_generator: FuncMeta
+
+    def __post_init__(self):
+        self.serv_generator = copy.copy(self.serv_generator)
+        self.serv_generator.set_workflow_lib_name(self.workflow_lib_name)
+
 
 REMOTE_SERVICES = {
     'beldi-hotel-baseline': ServConfig(
         data_init_mode="baseline",
         enable_sharedlog=False,
+        enable_txn_engine=False,
         wrk_env="BASELINE=1",
         workflow_bin_dir="/beldi-bin",
-        workflow_lib_name=common.WorkflowLibName.beldi.value[0],
-        workflow_app_name=common.WorkflowAppName.hotel.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        workflow_lib_name=common.WorkflowLibName.beldi,
+        workflow_app_name=common.WorkflowAppName.hotel,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
     ),
     'beldi-movie-baseline': ServConfig(
         data_init_mode="baseline",
         enable_sharedlog=False,
+        enable_txn_engine=False,
         wrk_env="BASELINE=1",
         workflow_bin_dir="/beldi-bin",
-        workflow_lib_name=common.WorkflowLibName.beldi.value[0],
-        workflow_app_name=common.WorkflowAppName.media.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        workflow_lib_name=common.WorkflowLibName.beldi,
+        workflow_app_name=common.WorkflowAppName.media,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
     ),
     'boki-hotel-baseline': ServConfig(
         data_init_mode="cayon",
         enable_sharedlog=True,
+        enable_txn_engine=False,
         wrk_env="",
         workflow_bin_dir="/bokiflow-bin",
-        workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        workflow_app_name=common.WorkflowAppName.hotel.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        workflow_lib_name=common.WorkflowLibName.boki,
+        workflow_app_name=common.WorkflowAppName.hotel,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
     ),
     'boki-movie-baseline': ServConfig(
         data_init_mode="cayon",
         enable_sharedlog=True,
+        enable_txn_engine=False,
         wrk_env="",
         workflow_bin_dir="/bokiflow-bin",
-        workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        workflow_app_name=common.WorkflowAppName.media.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        workflow_lib_name=common.WorkflowLibName.boki,
+        workflow_app_name=common.WorkflowAppName.media,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
     ),
     'boki-finra-baseline': ServConfig(
         data_init_mode="",
         enable_sharedlog=True,
+        enable_txn_engine=False,
         wrk_env="",
         workflow_bin_dir="/bokiflow-bin",
-        workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        workflow_app_name=common.WorkflowAppName.finra.value[0],
-        serv_generator=common.WORKFLOW_FINRA_SERVS,
+        workflow_lib_name=common.WorkflowLibName.boki,
+        workflow_app_name=common.WorkflowAppName.finra,
+        serv_generator=func_serv.WORKFLOW_FINRA_SERVS,
     ),
     'boki-hotel-asynclog': ServConfig(
         data_init_mode="cayon",
         enable_sharedlog=True,
+        enable_txn_engine=False,
         wrk_env="",
         workflow_bin_dir="/asynclog-bin",
-        workflow_lib_name=common.WorkflowLibName.asynclog.value[0],
-        workflow_app_name=common.WorkflowAppName.hotel.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        workflow_lib_name=common.WorkflowLibName.asynclog,
+        workflow_app_name=common.WorkflowAppName.hotel,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
     ),
     'boki-movie-asynclog': ServConfig(
         data_init_mode="cayon",
         enable_sharedlog=True,
+        enable_txn_engine=False,
         wrk_env="",
         workflow_bin_dir="/asynclog-bin",
-        workflow_lib_name=common.WorkflowLibName.asynclog.value[0],
-        workflow_app_name=common.WorkflowAppName.media.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        workflow_lib_name=common.WorkflowLibName.asynclog,
+        workflow_app_name=common.WorkflowAppName.media,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
     ),
     'boki-finra-asynclog': ServConfig(
         data_init_mode="",
         enable_sharedlog=True,
+        enable_txn_engine=False,
         wrk_env="",
         workflow_bin_dir="/asynclog-bin",
-        workflow_lib_name=common.WorkflowLibName.boki.value[0],
-        workflow_app_name=common.WorkflowAppName.finra.value[0],
-        serv_generator=common.WORKFLOW_FINRA_SERVS,
+        workflow_lib_name=common.WorkflowLibName.boki,
+        workflow_app_name=common.WorkflowAppName.finra,
+        serv_generator=func_serv.WORKFLOW_FINRA_SERVS,
     ),
     'optimal-hotel': ServConfig(
         data_init_mode="cayon",
         enable_sharedlog=True,
+        enable_txn_engine=True,
         wrk_env="",
         workflow_bin_dir="/optimal-bin",
-        workflow_lib_name=common.WorkflowLibName.optimal.value[0],
-        workflow_app_name=common.WorkflowAppName.hotel.value[0],
-        serv_generator=common.WORKFLOW_HOTEL_SERVS,
+        workflow_lib_name=common.WorkflowLibName.optimal,
+        workflow_app_name=common.WorkflowAppName.hotel,
+        serv_generator=func_serv.WORKFLOW_HOTEL_SERVS,
     ),
     'optimal-movie': ServConfig(
         data_init_mode="cayon",
         enable_sharedlog=True,
+        enable_txn_engine=True,
         wrk_env="",
         workflow_bin_dir="/optimal-bin",
-        workflow_lib_name=common.WorkflowLibName.optimal.value[0],
-        workflow_app_name=common.WorkflowAppName.media.value[0],
-        serv_generator=common.WORKFLOW_MEDIA_SERVS,
+        workflow_lib_name=common.WorkflowLibName.optimal,
+        workflow_app_name=common.WorkflowAppName.media,
+        serv_generator=func_serv.WORKFLOW_MEDIA_SERVS,
     ),
 }
 
 def dump_configs(dump_dir, config: ServConfig, args):
     docker_compose_boki = generate_docker_compose(config.enable_sharedlog,
+                                                  config.enable_txn_engine,
                                                   args.metalog_reps,
                                                   args.userlog_reps,
                                                   args.index_reps)
@@ -129,7 +148,7 @@ def dump_configs(dump_dir, config: ServConfig, args):
         args.metalog_reps, args.userlog_reps, args.index_reps)
     nightcore_config_json = config.serv_generator.generate_nightcore_config(app_prefix)
 
-    bin_path = Path(config.workflow_bin_dir) / (app_prefix + config.workflow_app_name)
+    bin_path = Path(config.workflow_bin_dir) / (app_prefix + config.workflow_app_name.value[0])
     run_once_sh = generate_run_once(
         bin_path, config.data_init_mode, config.workflow_lib_name, config.workflow_app_name,
         ' '.join([args.wrk_env, config.wrk_env]))
@@ -166,9 +185,11 @@ if __name__ == '__main__':
         # "boki-hotel-baseline",
         # "boki-movie-baseline",
         # "boki-finra-baseline",
-        # "boki-hotel-asynclog",
-        "boki-movie-asynclog",
+        "boki-hotel-asynclog",
+        # "boki-movie-asynclog",
         # "boki-finra-asynclog",
+        "optimal-hotel",
+        "optimal-movie",
     ]
     for bench_name in benchmarks:
         assert bench_name in REMOTE_SERVICES, f'{bench_name}'

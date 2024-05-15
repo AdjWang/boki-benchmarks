@@ -59,55 +59,6 @@
             "labels": [
                 "engine_node=true"
             ]
-        },
-        "bokiexp-engine-2": {
-            "type": "c5d.2xlarge",
-            "role": "worker",
-            "labels": [
-                "engine_node=true"
-            ]
-        },
-        "bokiexp-engine-3": {
-            "type": "c5d.2xlarge",
-            "role": "worker",
-            "labels": [
-                "engine_node=true"
-            ]
-        },
-        "bokiexp-engine-4": {
-            "type": "c5d.2xlarge",
-            "role": "worker",
-            "labels": [
-                "engine_node=true"
-            ]
-        },
-        "bokiexp-engine-5": {
-            "type": "c5d.2xlarge",
-            "role": "worker",
-            "labels": [
-                "engine_node=true"
-            ]
-        },
-        "bokiexp-engine-6": {
-            "type": "c5d.2xlarge",
-            "role": "worker",
-            "labels": [
-                "engine_node=true"
-            ]
-        },
-        "bokiexp-engine-7": {
-            "type": "c5d.2xlarge",
-            "role": "worker",
-            "labels": [
-                "engine_node=true"
-            ]
-        },
-        "bokiexp-engine-8": {
-            "type": "c5d.2xlarge",
-            "role": "worker",
-            "labels": [
-                "engine_node=true"
-            ]
         }
     },
     "services": {
@@ -133,71 +84,71 @@
         },
         "boki-engine": {
             "placement_label": "engine_node",
-            "replicas": 8
+            "replicas": 1
         },
         "geo-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "profile-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "rate-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "recommendation-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "user-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "hotel-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "search-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "flight-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "order-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "frontend-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         },
         "gateway-service": {
             "placement_label": "engine_node",
-            "replicas": 8,
+            "replicas": 1,
             "need_aws_env": true,
             "mount_certs": true
         }

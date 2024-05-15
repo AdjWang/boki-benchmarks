@@ -33,7 +33,6 @@ services:
       - --slog_engine_enable_cache
       - --slog_engine_cache_cap_mb=1024
       - --slog_engine_propagate_auxdata
-      - --use_txn_engine
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -52,7 +51,7 @@ services:
       - --zookeeper_host=zookeeper:2181
       - --metalog_replicas=3
       - --userlog_replicas=3
-      - --index_replicas=8
+      - --index_replicas=1
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -98,7 +97,6 @@ services:
       - --slog_storage_bgthread_interval_ms=1
       - --slog_storage_backend=rocksdb
       - --slog_storage_cache_cap_mb=4096
-      - --use_txn_engine
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -119,7 +117,6 @@ services:
       - --io_uring_entries=2048
       - --io_uring_fd_slots=4096
       - --slog_global_cut_interval_us=300
-      - --use_txn_engine
       # - --v=1
     depends_on:
       - zookeeper-setup
@@ -129,12 +126,11 @@ services:
 
   geo-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/geo", "1"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/geo", "1"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -143,12 +139,11 @@ services:
 
   profile-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/profile", "2"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/profile", "2"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -157,12 +152,11 @@ services:
 
   rate-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/rate", "3"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/rate", "3"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -171,12 +165,11 @@ services:
 
   recommendation-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/recommendation", "4"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/recommendation", "4"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -185,12 +178,11 @@ services:
 
   user-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/user", "5"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/user", "5"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -199,12 +191,11 @@ services:
 
   hotel-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/hotel", "6"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/hotel", "6"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -213,12 +204,11 @@ services:
 
   search-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/search", "7"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/search", "7"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -227,12 +217,11 @@ services:
 
   flight-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/flight", "8"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/flight", "8"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -241,12 +230,11 @@ services:
 
   order-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/order", "9"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/order", "9"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -255,12 +243,11 @@ services:
 
   frontend-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/frontend", "10"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/frontend", "10"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:
@@ -269,12 +256,11 @@ services:
 
   gateway-service:
     image: adjwang/boki-beldibench:dev
-    entrypoint: ["/tmp/boki/run_launcher", "/optimal-bin/hotel/gateway", "11"]
+    entrypoint: ["/tmp/boki/run_launcher", "/asynclog-bin/hotel/gateway", "11"]
     volumes:
       - /mnt/inmem/boki:/tmp/boki
     environment:
       - TABLE_PREFIX=${TABLE_PREFIX:?}
-      - LoggingMode=${LoggingMode:?}
       - FAAS_GO_MAX_PROC_FACTOR=8
       - GOGC=1000
     depends_on:

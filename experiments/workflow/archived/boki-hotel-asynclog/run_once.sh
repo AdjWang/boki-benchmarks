@@ -8,7 +8,6 @@ AWS_REGION=us-east-2
 
 EXP_DIR=$BASE_DIR/results/$1
 QPS=$2
-LOGMODE=$3
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
 WRK_DIR=/usr/local/bin
@@ -31,13 +30,13 @@ TABLE_PREFIX="${TABLE_PREFIX}-"
 
 ssh -q $CLIENT_HOST -- mkdir -p /tmp/app
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
-    adjwang/boki-beldibench:dev cp -r /optimal-bin/hotel/. /tmp/app
+    adjwang/boki-beldibench:dev cp -r /asynclog-bin/hotel/. /tmp/app
 ssh -q $CLIENT_HOST -- docker run -v /tmp:/tmp \
     adjwang/boki-beldibench:dev cp /bokiflow/data/compressed.json /tmp
 
-ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION LoggingMode=$LOGMODE \
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
     /tmp/app/init create cayon
-ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION LoggingMode=$LOGMODE \
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
     /tmp/app/init populate cayon /tmp/compressed.json
 
 scp -q $ROOT_DIR/scripts/zk_setup.sh $MANAGER_HOST:/tmp/zk_setup.sh
@@ -63,7 +62,7 @@ for HOST in $ALL_STORAGE_HOSTS; do
     ssh -q $HOST -- sudo mkdir -p /mnt/storage/logdata
 done
 
-ssh -q $MANAGER_HOST -- TABLE_PREFIX=$TABLE_PREFIX LoggingMode=$LOGMODE docker stack deploy \
+ssh -q $MANAGER_HOST -- TABLE_PREFIX=$TABLE_PREFIX docker stack deploy \
     -c /tmp/docker-compose-generated.yml -c /tmp/docker-compose.yml boki-experiment
 sleep 60
 
@@ -79,7 +78,7 @@ mkdir -p $EXP_DIR
 ssh -q $MANAGER_HOST -- cat /proc/cmdline >>$EXP_DIR/kernel_cmdline
 ssh -q $MANAGER_HOST -- uname -a >>$EXP_DIR/kernel_version
 
-scp -q $ROOT_DIR/workloads/workflow/optimal/benchmark/hotel/workload.lua $CLIENT_HOST:/tmp
+scp -q $ROOT_DIR/workloads/workflow/asynclog/benchmark/hotel/workload.lua $CLIENT_HOST:/tmp
 
 ssh -q $CLIENT_HOST --   $WRK_DIR/wrk -t 2 -c 2 -d 30 -L -U \
     -s /tmp/workload.lua \
@@ -96,7 +95,7 @@ sleep 10
 scp -q $MANAGER_HOST:/mnt/inmem/store/async_results $EXP_DIR
 $ROOT_DIR/scripts/compute_latency.py --async-result-file $EXP_DIR/async_results >$EXP_DIR/latency.txt
 
-ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION LoggingMode=$LOGMODE \
+ssh -q $CLIENT_HOST -- TABLE_PREFIX=$TABLE_PREFIX AWS_REGION=$AWS_REGION \
     /tmp/app/init clean cayon
 
 $HELPER_SCRIPT collect-container-logs --base-dir=$BASE_DIR --log-path=$EXP_DIR/logs

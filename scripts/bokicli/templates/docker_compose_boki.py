@@ -401,16 +401,6 @@ if __name__ == '__main__':
     parser.add_argument('--output', type=str, default='/tmp')
     args = parser.parse_args()
 
-    @dataclass
-    class ServConfig:
-        db: str
-        db_setup_f: str
-        unsafe_baseline: bool
-        workflow_bin_dir: str
-        workflow_lib_name: str
-        serv_generator: FuncMeta
-        use_txn_engine: bool
-
     # no beldi-hotel and beldi-movie here, compare to boki is enough
     AVAILABLE_TEST_CASES = {
         'beldi-hotel-baseline': dict(
@@ -455,30 +445,30 @@ if __name__ == '__main__':
             unsafe_baseline=False,
             workflow_bin_dir="/test-bin",
         ),
-        'optimal-hotel': ServConfig(
+        'optimal-hotel': common.ServConfig(
             db=dynamodb,
             db_setup_f=dynamodb_setup_hotel_f,
             unsafe_baseline=False,
             workflow_bin_dir="/optimal-bin",
-            workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+            workflow_lib_name=common.WorkflowLibName.optimal,
             serv_generator=common.WORKFLOW_HOTEL_SERVS,
             use_txn_engine=True,
         ),
-        'optimal-movie': ServConfig(
+        'optimal-movie': common.ServConfig(
             db=dynamodb,
             db_setup_f=dynamodb_setup_media_f,
             unsafe_baseline=False,
             workflow_bin_dir="/optimal-bin",
-            workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+            workflow_lib_name=common.WorkflowLibName.optimal,
             serv_generator=common.WORKFLOW_MEDIA_SERVS,
             use_txn_engine=True,
         ),
-        'optimal-singleop': ServConfig(
+        'optimal-singleop': common.ServConfig(
             db=dynamodb,
             db_setup_f=dynamodb_setup_optimal_singleop_f,
             unsafe_baseline=False,
             workflow_bin_dir="/optimal-bin",
-            workflow_lib_name=common.WorkflowLibName.optimal.value[0],
+            workflow_lib_name=common.WorkflowLibName.optimal,
             serv_generator=common.WORKFLOW_OPTIMAL_SINGLEOP_SERVS,
             use_txn_engine=False,
         ),
