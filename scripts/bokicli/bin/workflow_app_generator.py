@@ -26,7 +26,7 @@ def generate_makefile_target(name, funcs):
     target = [f'{name}: {" ".join(funcs)}']
     for func_name in funcs:
         target.append(f'{func_name}:')
-        target.append(f'\tenv GOOS=linux go build -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/{name}/{func_name} internal/{name}/cmd/{func_name}/main.go')
+        target.append(f'\tenv GOOS=linux go build -buildvcs=false -ldflags="-s -w -X github.com/eniac/Beldi/pkg/beldilib.TYPE=BELDI" -o bin/{name}/{func_name} internal/{name}/cmd/{func_name}/main.go')
     return '\n'.join(target)
 
 

@@ -429,8 +429,8 @@ run)
     # test_workflow boki-finra-asynclog
     # test_workflow boki-hotel-asynclog
     # test_workflow boki-movie-asynclog
-    test_workflow optimal-hotel
-    # test_workflow optimal-movie
+    # test_workflow optimal-hotel
+    test_workflow optimal-movie
     # test_workflow optimal-singleop
     ;;
 *)

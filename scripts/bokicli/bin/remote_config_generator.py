@@ -185,7 +185,7 @@ if __name__ == '__main__':
         # "boki-hotel-baseline",
         # "boki-movie-baseline",
         # "boki-finra-baseline",
-        "boki-hotel-asynclog",
+        # "boki-hotel-asynclog",
         # "boki-movie-asynclog",
         # "boki-finra-asynclog",
         "optimal-hotel",

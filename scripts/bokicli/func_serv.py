@@ -73,11 +73,11 @@ WORKFLOW_HOTEL_SERVS = FuncMeta(
                     "recommendation": (8, 8),
                     "user": (8, 8),
                     "hotel": (8, 8),
-                    "search": (8, 8),
+                    "search": (64, 64),
                     "flight": (8, 8),
                     "order": (8, 8),
                     "frontend": (8, 8),
-                    "gateway": (8, 8)},
+                    "gateway": (64, 64)},
     func_envs_local_getter=__get_workflow_func_envs_local,
     func_envs_remote_getter=__get_workflow_func_envs_remote,
 )
