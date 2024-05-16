@@ -12,9 +12,10 @@ RUN_QUEUE_SQS=
 RUN_STORE_BOKI=
 RUN_STORE_MONGO=
 
-# Workflow workload for BokiFlow and Beldi
-RUN_WORKFLOW_BOKI=y
+# Workflow workload for BokiFlow, Beldi and Halfmoon
+RUN_WORKFLOW_BOKI=
 RUN_WORKFLOW_BELDI=
+RUN_WORKFLOW_HALFMOON=y
 
 HELPER_SCRIPT=$ROOT_DIR/scripts/exp_helper
 
@@ -258,5 +259,56 @@ $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
 echo "====== Finish running Beldi experiments ======"
 else
 echo "====== Skip Beldi experiments ======"
+fi
+echo ""
+
+
+if [[ ! -z $RUN_WORKFLOW_HALFMOON ]] && [[ $RUN_WORKFLOW_HALFMOON == "y" ]]; then
+echo "====== Start running Halfmoon experiments ======"
+
+BASE_DIR=$ROOT_DIR/experiments/workflow/optimal-hotel
+
+$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+# $BASE_DIR/run_once.sh qps200-read 200 read
+# $BASE_DIR/run_once.sh qps600-read 600 read
+# $BASE_DIR/run_once.sh qps1000-read 1000 read
+# $BASE_DIR/run_once.sh qps1400-read 1400 read
+# $BASE_DIR/run_once.sh qps1800-read 1800 read
+
+# $BASE_DIR/run_once.sh qps200-write 200 write
+# $BASE_DIR/run_once.sh qps600-write 600 write
+$BASE_DIR/run_once.sh qps1000-write 1000 write
+# $BASE_DIR/run_once.sh qps1400-write 1400 write
+$BASE_DIR/run_once.sh qps1800-write 1800 write
+
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+echo "[DEBUG] exit early"
+exit 0
+
+
+BASE_DIR=$ROOT_DIR/experiments/workflow/optimal-movie
+
+$HELPER_SCRIPT start-machines --base-dir=$BASE_DIR --instance-iam-role $BOKI_MACHINE_IAM
+
+$BASE_DIR/run_once.sh qps200-read 200 read
+$BASE_DIR/run_once.sh qps300-read 300 read
+$BASE_DIR/run_once.sh qps400-read 400 read
+$BASE_DIR/run_once.sh qps500-read 500 read
+$BASE_DIR/run_once.sh qps600-read 600 read
+
+# $BASE_DIR/run_once.sh qps200-write 200 write
+# $BASE_DIR/run_once.sh qps300-write 300 write
+# $BASE_DIR/run_once.sh qps400-write 400 write
+# $BASE_DIR/run_once.sh qps500-write 500 write
+# $BASE_DIR/run_once.sh qps600-write 600 write
+
+# $HELPER_SCRIPT stop-machines --base-dir=$BASE_DIR
+echo "[DEBUG] exit early"
+exit 0
+
+echo "====== Finish running Halfmoon experiments ======"
+else
+echo "====== Skip Halfmoon experiments ======"
 fi
 echo ""
