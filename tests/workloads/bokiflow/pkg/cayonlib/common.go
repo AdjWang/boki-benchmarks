@@ -1,7 +1,9 @@
 package cayonlib
 
 import (
+	"log"
 	"os"
+	"time"
 
 	// "github.com/aws/aws-sdk-go/aws"
 	// "github.com/aws/aws-sdk-go/aws/credentials"
@@ -16,22 +18,31 @@ var sess = session.Must(session.NewSessionWithOptions(session.Options{
 	SharedConfigState: session.SharedConfigEnable,
 }))
 
-// var DBClient = dynamodb.New(sess)
+var DBClient = dynamodb.New(sess, NewDBConfig(DBENV))
 
-// DEBUG
-// local dynamodb
-var DBClient = dynamodb.New(sess,
-	&aws.Config{
-		Endpoint: aws.String("http://10.0.2.15:8000"),
-		Region:   aws.String("us-east-2"),
-		// Credentials:                   credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-		Credentials:                   credentials.NewStaticCredentials("2333", "abcd", "TOKEN"),
-		CredentialsChainVerboseErrors: aws.Bool(true),
-	})
+func NewDBConfig(dbenv string) *aws.Config {
+	if dbenv == "LOCAL" {
+		// local dynamodb for debugging
+		log.Println("[INFO] Init local dynamodb configuration")
+		return &aws.Config{
+			Endpoint: aws.String("http://dynamodb:8000"),
+			Region:   aws.String("us-east-2"),
+			// Credentials:                   credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
+			Credentials:                   credentials.NewStaticCredentials("2333", "abcd", "TOKEN"),
+			CredentialsChainVerboseErrors: aws.Bool(true),
+		}
+	} else {
+		log.Println("[INFO] Init remote dynamodb configuration")
+		return &aws.Config{}
+	}
+}
 
 var T = int64(60)
 
 var TYPE = "BELDI"
+var DBENV = os.Getenv("DBENV") // "REMOTE" or "LOCAL" or unset
+
+var gSyncTimeout = time.Duration(60 * time.Second)
 
 func CHECK(err error) {
 	if err != nil {

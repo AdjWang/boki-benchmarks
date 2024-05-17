@@ -2,7 +2,6 @@ package cayonlib
 
 import (
 	"fmt"
-	"time"
 
 	// "log"
 	"encoding/json"
@@ -234,7 +233,7 @@ func LibSyncAppendLog(env *Env, tag uint64, tagMeta []types.TagMeta, data interf
 	// sync index
 	indexFuture, err := env.FaasEnv.AsyncSharedLogReadIndex(env.FaasCtx, future.GetMeta())
 	CHECK(err)
-	err = indexFuture.Await(10 * time.Second)
+	err = indexFuture.Await(gSyncTimeout)
 	CHECK(err)
 }
 

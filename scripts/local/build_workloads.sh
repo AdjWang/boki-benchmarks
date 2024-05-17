@@ -11,7 +11,7 @@ function build_goexample {
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
 
     export CGO_ENABLED=0
-    go build -o bin/main main.go
+    go build -buildvcs=false -o bin/main main.go
 }
 
 function build_queue {
@@ -21,9 +21,9 @@ function build_queue {
     go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
 
     export CGO_ENABLED=0
-    go build -o bin/main main.go
-    go build -o bin/init_queues tools/init_queues.go
-    go build -o bin/benchmark tools/benchmark.go
+    go build -buildvcs=false -o bin/main main.go
+    go build -buildvcs=false -o bin/init_queues tools/init_queues.go
+    go build -buildvcs=false -o bin/benchmark tools/benchmark.go
 }
 
 function build_retwis {
@@ -33,9 +33,9 @@ function build_retwis {
     go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
 
     export CGO_ENABLED=0
-    go build -o bin/main main.go
-    go build -o bin/create_users tools/create_users.go
-    go build -o bin/benchmark tools/benchmark.go
+    go build -buildvcs=false -o bin/main main.go
+    go build -buildvcs=false -o bin/create_users tools/create_users.go
+    go build -buildvcs=false -o bin/benchmark tools/benchmark.go
 }
 
 function build_workflow {

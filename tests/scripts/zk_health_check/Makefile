@@ -13,4 +13,4 @@
 #       start_period: 20s
 #       timeout: 10s
 all:
-	go build -o zk_health_check main.go
+	go build -buildvcs=false -o zk_health_check main.go

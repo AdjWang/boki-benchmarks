@@ -2,7 +2,6 @@ package cayonlib
 
 import (
 	"log"
-	"time"
 
 	// "fmt"
 	"cs.utexas.edu/zjia/faas/types"
@@ -78,7 +77,7 @@ func LibScanWithLast(tablename string, projection []string, last map[string]*dyn
 			expr, err := expression.NewBuilder().Build()
 			CHECK(err)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
@@ -87,8 +86,9 @@ func LibScanWithLast(tablename string, projection []string, last map[string]*dyn
 		} else {
 			expr, err := expression.NewBuilder().WithProjection(BuildProjection(projection)).Build()
 			CHECK(err)
+			// log.Printf("[DEBUG] scan 2 tb=%s", kTablePrefix+tablename)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
@@ -101,7 +101,7 @@ func LibScanWithLast(tablename string, projection []string, last map[string]*dyn
 			expr, err := expression.NewBuilder().Build()
 			CHECK(err)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
@@ -112,7 +112,7 @@ func LibScanWithLast(tablename string, projection []string, last map[string]*dyn
 			expr, err := expression.NewBuilder().WithProjection(BuildProjection(projection)).Build()
 			CHECK(err)
 			res, err = DBClient.Scan(&dynamodb.ScanInput{
-				TableName:                 aws.String(tablename),
+				TableName:                 aws.String(kTablePrefix + tablename),
 				ExpressionAttributeNames:  expr.Names(),
 				ExpressionAttributeValues: expr.Values(),
 				FilterExpression:          expr.Filter(),
@@ -171,7 +171,7 @@ func CondWrite(env *Env, tablename string, key string,
 	}
 	env.FaasEnv.AsyncLogCtx().Chain(stepFuture.GetMeta())
 	// sync
-	err := env.FaasEnv.AsyncLogCtx().Sync(60 * time.Second)
+	err := env.FaasEnv.AsyncLogCtx().Sync(gSyncTimeout)
 	CHECK(err)
 	// resolve cond
 	lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, stepFuture.GetMeta())

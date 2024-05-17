@@ -1,15 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 
-DEBUG_BUILD=0
+DEBUG_BUILD=1
 TEST_DIR="$(realpath $(dirname "$0"))"
+SCRIPTS_DIR=$(realpath $TEST_DIR/../scripts)
 BOKI_DIR=$(realpath $TEST_DIR/../boki)
 DOCKERFILE_DIR=$TEST_DIR/dockerfiles
 WORKLOAD_DIR=$TEST_DIR/workloads
 
 WORK_DIR=/tmp/boki-test
 
-DOCKER_BUILDER=$HOME/.docker/cli-plugins/docker-buildx
+DOCKER_BUILDER="docker buildx"
 NO_CACHE=""
 
 function setup_env {
@@ -23,6 +24,12 @@ function setup_env {
     mkdir -p $WORK_DIR/config
 
     cp $TEST_DIR/scripts/zk_setup.sh $WORK_DIR/config
+    # inspect unhealthy log:
+    # docker inspect --format "{{json .State.Health }}" $(docker ps -a | grep unhealthy | awk '{print $1}') | jq
+    if [ ! -f $TEST_DIR/scripts/zk_health_check/zk_health_check ]; then
+        docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+            bash -c "cd /boki-benchmark/tests/scripts/zk_health_check && make"
+    fi
     cp $TEST_DIR/scripts/zk_health_check/zk_health_check $WORK_DIR/config
     cp $WORKLOAD_DIR/$TEST_CASE/nightcore_config.json $WORK_DIR/config
     cp $WORKLOAD_DIR/$TEST_CASE/run_launcher $WORK_DIR/config
@@ -65,7 +72,9 @@ function build {
     docker run --rm -v $BOKI_DIR:/boki adjwang/boki-buildenv:dev bash -c "cd /boki && make -j$(nproc)"
 
     echo "========== build workloads =========="
-    $WORKLOAD_DIR/build_all.sh
+    # $WORKLOAD_DIR/build_all.sh
+    docker run --rm -v $TEST_DIR/..:/boki-benchmark adjwang/boki-benchbuildenv:dev \
+        /boki-benchmark/tests/workloads/build_all.sh
 
     echo "========== build docker images =========="
     # build boki docker image
@@ -105,7 +114,7 @@ function push {
 }
 
 function cleanup {
-    cd $WORK_DIR && docker compose down || true
+    cd $WORK_DIR && docker compose down -t1 || true
     sudo rm -rf $WORK_DIR
     mkdir -p $WORK_DIR
 }
@@ -164,14 +173,14 @@ function test_sharedlog {
 
     echo "setup env..."
     python3 $TEST_DIR/scripts/docker-compose-generator.py \
-        --metalog-reps=3 \
-        --userlog-reps=3 \
+        --metalog-reps=1 \
+        --userlog-reps=1 \
         --index-reps=1 \
         --test-case=sharedlog \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 1 sharedlog
+    setup_env 1 1 1 sharedlog
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -229,20 +238,15 @@ function test_bokiflow {
 
     echo "setup env..."
     python3 $TEST_DIR/scripts/docker-compose-generator.py \
-        --metalog-reps=3 \
-        --userlog-reps=3 \
-        --index-reps=2 \
-        --test-case=bokiflow \
+        --metalog-reps=1 \
+        --userlog-reps=1 \
+        --index-reps=1 \
+        --test-case=bokiflow-hotel \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 3 3 2 bokiflow
-
-    echo "restart dynamodb..."
-    docker stop $(docker ps -qf ancestor=amazon/dynamodb-local) 2>/dev/null || true
-    docker rm $(docker ps -aqf ancestor=amazon/dynamodb-local) 2>/dev/null || true
-    docker run -d -p 8000:8000 amazon/dynamodb-local
+    setup_env 1 1 1 bokiflow
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -250,21 +254,16 @@ function test_bokiflow {
     echo "wait to startup..."
     sleep_count_down 15
 
-    echo "setup dynamodb..."
-    $TEST_DIR/workloads/bokiflow/bin/singleop/init
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init clean boki
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init create boki
-    $TEST_DIR/workloads/bokiflow/bin/hotel/init populate boki
-
     echo "list functions"
     timeout 1 curl -f -X POST -d "abc" http://localhost:9000/list_functions ||
         assert_should_success $LINENO
 
-    echo "test singleop"
-    timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
-        assert_should_success $LINENO
-    echo ""
+    # echo "test singleop"
+    # timeout 10 curl -f -X POST -d "{}" http://localhost:9000/function/singleop ||
+    #     assert_should_success $LINENO
+    # echo ""
 
+    set -x
     echo "test read request"
     timeout 10 curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
         http://localhost:9000/function/gateway ||
@@ -277,12 +276,34 @@ function test_bokiflow {
         assert_should_success $LINENO
     echo ""
 
-    echo "test more reads"
-    for _ in $(seq 1 300); do
-        curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
-            http://localhost:9000/function/gateway
-        echo ""
-    done
+    # echo "test more reads"
+    # for _ in $(seq 1 300); do
+    #     curl -X POST -H "Content-Type: application/json" -d '{"Async":false,"CallerName":"","Input":{"Function":"search","Input":{"InDate":"2015-04-21","Lat":37.785999999999996,"Lon":-122.40999999999999,"OutDate":"2015-04-24"}},"InstanceId":"b1f69474bc9147ae89850ccb57be7085"}' \
+    #         http://localhost:9000/function/gateway
+    #     echo ""
+    # done
+
+    echo "test more requests"
+    APP_NAME="hotel"
+    WRKBENCHDIR=$TEST_DIR/workloads/bokiflow
+    # WRKBENCHDIR=$APP_SRC_DIR
+    echo "using wrkload: $WRKBENCHDIR/benchmark/$APP_NAME/workload.lua"
+    WRK="docker run --rm --net=host -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
+    
+    # DEBUG: benchmarks printing responses
+    $WRK -t 2 -c 2 -d 10 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
+
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_end
+    # sleep_count_down 10
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_start
+    # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
+    # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=benchmark_end
+    # sleep_count_down 10
+
+    wc -l /tmp/boki-test/mnt/inmem_gateway/store/async_results
+    python3 $SCRIPTS_DIR/compute_latency.py --async-result-file /tmp/boki-test/mnt/inmem_gateway/store/async_results
 }
 
 if [ $# -eq 0 ]; then

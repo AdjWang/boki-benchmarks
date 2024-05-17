@@ -9,3 +9,4 @@
 
 /tests/workloads/**/bin/
 /tests/scripts/zk_health_check/zk_health_check
+scripts/local_debug/zk_health_check/zk_health_check

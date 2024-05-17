@@ -16,7 +16,7 @@ go mod edit -replace cs.utexas.edu/zjia/faas/slib=$BOKI_DIR/slib
 export CGO_ENABLED=0
 
 ( cd $BASE_DIR && \
-    go build -o bin/main main.go && \
-    go build -o bin/init_queues tools/init_queues.go && \
-    go build -o bin/benchmark tools/benchmark.go
+    go build -buildvcs=false -o bin/main main.go && \
+    go build -buildvcs=false -o bin/init_queues tools/init_queues.go && \
+    go build -buildvcs=false -o bin/benchmark tools/benchmark.go
 )

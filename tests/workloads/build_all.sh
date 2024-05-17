@@ -16,9 +16,7 @@ function build_bokiflow {
     cd $WORKLOAD_DIR/bokiflow
     go mod edit -replace cs.utexas.edu/zjia/faas=$BOKI_DIR/worker/golang
     go mod tidy
-    make hotel
-    make media
-    make singleop
+    make hotel media singleop -j$(nproc)
 }
 
 build_sharedlog

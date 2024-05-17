@@ -212,7 +212,7 @@ func SyncInvoke(env *Env, callee string, input interface{}) (interface{}, string
 	// DEBUG
 	// go func(env *Env, future types.Future[uint64]) {
 	// 	// sync
-	// 	err := future.Await(10 * time.Second)
+	// 	err := future.Await(gSyncTimeout)
 	// 	CHECK(err)
 	// 	// resolve cond
 	// 	lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, future.GetMeta())
@@ -347,7 +347,7 @@ func AssignedSyncInvoke(env *Env, callee string, stepFuture types.Future[uint64]
 	retValChan := make(chan invokeRetValPair)
 	go func(env *Env, future types.Future[uint64]) {
 		// sync
-		err := future.Await(10 * time.Second)
+		err := future.Await(gSyncTimeout)
 		CHECK(err)
 		// resolve cond
 		lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, future.GetMeta())
@@ -507,7 +507,7 @@ func AsyncInvoke(env *Env, callee string, input interface{}) string {
 	// DEBUG
 	// go func(env *Env, future types.Future[uint64]) {
 	// 	// sync
-	// 	err := future.Await(10 * time.Second)
+	// 	err := future.Await(gSyncTimeout)
 	// 	CHECK(err)
 	// 	// resolve cond
 	// 	lastStepLog, err := env.FaasEnv.AsyncSharedLogRead(env.FaasCtx, future.GetMeta())
@@ -667,7 +667,7 @@ func wrapperInternal(f func(*Env) interface{}, iw *InputWrapper, env *Env) (Outp
 	//	}
 	//}
 
-	if err := env.FaasEnv.AsyncLogCtx().Sync(time.Second); err != nil {
+	if err := env.FaasEnv.AsyncLogCtx().Sync(gSyncTimeout); err != nil {
 		return OutputWrapper{
 			Status: "Failure",
 			Output: 0,

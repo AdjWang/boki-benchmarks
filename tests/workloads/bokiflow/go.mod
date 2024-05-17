@@ -20,4 +20,4 @@ require (
 	github.com/jmespath/go-jmespath v0.3.0 // indirect
 )
 
-replace cs.utexas.edu/zjia/faas => /home/adjwang/dev/boki-benchmarks/boki/worker/golang
+replace cs.utexas.edu/zjia/faas => /boki-benchmark/boki/worker/golang

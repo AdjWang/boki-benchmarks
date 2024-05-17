@@ -20,7 +20,7 @@ func ClearAll() {
 }
 
 func main() {
-	log.SetFlags(log.Lshortfile)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.SetOutput(os.Stderr)
 
 	if len(os.Args) >= 2 {
@@ -31,12 +31,6 @@ func main() {
 			return
 		}
 	}
-	log.Println("clear all")
-	ClearAll()
-
-	log.Println("wait until all tables are deleted")
-	cayonlib.WaitUntilAllDeleted([]string{"singleop", "nop"})
-
 	log.Println("create lambda table: singleop")
 	cayonlib.CreateLambdaTables("singleop")
 	log.Println("create lambda table: nop")
