@@ -240,13 +240,13 @@ function test_bokiflow {
     python3 $TEST_DIR/scripts/docker-compose-generator.py \
         --metalog-reps=1 \
         --userlog-reps=1 \
-        --index-reps=1 \
+        --index-reps=2 \
         --test-case=bokiflow-hotel \
         --table-prefix=$TABLE_PREFIX \
         --workdir=$WORK_DIR \
         --output=$WORK_DIR
 
-    setup_env 1 1 1 bokiflow
+    setup_env 1 1 2 bokiflow
 
     echo "setup cluster..."
     cd $WORK_DIR && docker compose up -d
@@ -291,7 +291,7 @@ function test_bokiflow {
     WRK="docker run --rm --net=host -v $WRKBENCHDIR:/workdir 1vlad/wrk2-docker"
     
     # DEBUG: benchmarks printing responses
-    $WRK -t 2 -c 2 -d 10 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 10
+    $WRK -t 2 -c 2 -d 60 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 50
 
     # curl -X GET -H "Content-Type: application/json" http://localhost:9000/mark_event?name=warmup_start
     # $WRK -t 2 -c 2 -d 30 -s /workdir/benchmark/$APP_NAME/workload.lua http://localhost:9000 -L -U -R 100
